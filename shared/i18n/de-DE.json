@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "Zum vorherigen Tab wechseln",
   "app.shortcuts.action.toggleAIPanel.description": "Rechtes Panel für AI-Dateneinblicke öffnen",
   "app.shortcuts.action.toggleAIPanel.label": "AI-Dateneinblicke öffnen",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "Ausgewählten Text duplizieren oder ohne Auswahl die Cursorzeile duplizieren (leere Zeilen überspringen)",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "Auswahl oder Zeile duplizieren",
   "app.shortcuts.action.toggleLogPanel.description": "SQL-Ausführungslog öffnen oder schließen",
   "app.shortcuts.action.toggleLogPanel.label": "Logbereich umschalten",
   "app.shortcuts.action.toggleMacFullscreen.description": "Nativer Vollbildwechsel im macOS-Modus für native Fenstersteuerung",

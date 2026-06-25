@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "Предыдущая вкладка",
   "app.shortcuts.action.toggleAIPanel.description": "Открыть правую панель аналитики данных AI",
   "app.shortcuts.action.toggleAIPanel.label": "Открыть аналитику данных AI",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "Дублировать выделенный текст, а при отсутствии выделения — строку курсора (пустые строки пропускать)",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "Дублировать выделение или строку",
   "app.shortcuts.action.toggleLogPanel.description": "Открыть или закрыть панель журнала выполнения SQL",
   "app.shortcuts.action.toggleLogPanel.label": "Переключить панель журнала",
   "app.shortcuts.action.toggleMacFullscreen.description": "Переключение нативного полноэкранного режима в режиме нативных элементов окна macOS",

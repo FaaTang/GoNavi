@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "Switch to Previous Tab",
   "app.shortcuts.action.toggleAIPanel.description": "Open the right AI data insights panel",
   "app.shortcuts.action.toggleAIPanel.label": "Open AI Data Insights",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "Duplicate selected text, or duplicate the cursor line when no selection (skip empty lines)",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "Duplicate Selection or Line",
   "app.shortcuts.action.toggleLogPanel.description": "Open or close the SQL execution log panel",
   "app.shortcuts.action.toggleLogPanel.label": "Toggle Log Panel",
   "app.shortcuts.action.toggleMacFullscreen.description": "Native fullscreen toggle in macOS native window control mode",
