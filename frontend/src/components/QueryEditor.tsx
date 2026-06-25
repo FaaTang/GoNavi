@@ -228,6 +228,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const runQueryActionRef = useRef<any>(null);
   const selectCurrentStatementActionRef = useRef<any>(null);
   const saveQueryActionRef = useRef<any>(null);
+  const duplicateSelectionOrLineActionRef = useRef<any>(null);
   const aiContextMenuActionDisposablesRef = useRef<any[]>([]);
   const toggleQueryResultsPanelActionRef = useRef<any>(null);
   const lastExternalQueryRef = useRef<string>(getTabQueryValue(tab));
@@ -355,6 +356,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   );
   const toggleQueryResultsPanelShortcutBinding = useMemo(
       () => resolveShortcutBinding(shortcutOptions, 'toggleQueryResultsPanel', activeShortcutPlatform),
+      [activeShortcutPlatform, shortcutOptions],
+  );
+  const duplicateSelectionOrLineShortcutBinding = useMemo(
+      () => resolveShortcutBinding(shortcutOptions, 'duplicateSelectionOrLine', activeShortcutPlatform),
       [activeShortcutPlatform, shortcutOptions],
   );
   const primaryShortcutModifierLabel = useMemo(
@@ -787,6 +792,55 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       editor.revealRangeInCenterIfOutsideViewport?.(selection);
       editor.focus?.();
   };
+
+  const handleDuplicateSelectionOrLine = useCallback(() => {
+      const editor = editorRef.current;
+      const monaco = monacoRef.current;
+      const model = editor?.getModel?.();
+      const selection = editor?.getSelection?.();
+      if (!editor || !monaco || !model || !selection) {
+          return;
+      }
+
+      const hasSelection = typeof selection.isEmpty === 'function' ? !selection.isEmpty() : (
+          selection.startLineNumber !== selection.endLineNumber
+          || selection.startColumn !== selection.endColumn
+      );
+      if (hasSelection) {
+          const selectedText = String(model.getValueInRange?.(selection) || '');
+          if (!selectedText) {
+              return;
+          }
+          const insertRange = new monaco.Range(
+              selection.endLineNumber,
+              selection.endColumn,
+              selection.endLineNumber,
+              selection.endColumn,
+          );
+          editor.executeEdits?.('gonavi.duplicateSelectionOrLine', [{
+              range: insertRange,
+              text: selectedText,
+              forceMoveMarkers: true,
+          }]);
+          return;
+      }
+
+      const lineNumber = selection.positionLineNumber || selection.startLineNumber;
+      if (!lineNumber) {
+          return;
+      }
+      const lineContent = String(model.getLineContent?.(lineNumber) || '');
+      if (!lineContent.trim()) {
+          return;
+      }
+      const lineEndColumn = Number(model.getLineMaxColumn?.(lineNumber) || 1);
+      const insertRange = new monaco.Range(lineNumber, lineEndColumn, lineNumber, lineEndColumn);
+      editor.executeEdits?.('gonavi.duplicateSelectionOrLine', [{
+          range: insertRange,
+          text: `\n${lineContent}`,
+          forceMoveMarkers: true,
+      }]);
+  }, []);
 
   const buildQueryEditorAiContextMenuActions = useCallback(() => ([
       {
@@ -1837,6 +1891,21 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.toggleQueryResultsPanel.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: toggleResultPanelVisibility,
+              });
+          }
+      }
+
+      const duplicateBinding = duplicateSelectionOrLineShortcutBinding;
+      if (duplicateBinding?.enabled && duplicateBinding.combo) {
+          const keyBinding = comboToMonacoKeyBinding(
+              duplicateBinding.combo, monaco.KeyMod, monaco.KeyCode
+          );
+          if (keyBinding) {
+              duplicateSelectionOrLineActionRef.current = editor.addAction({
+                  id: 'gonavi.duplicateSelectionOrLine',
+                  label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.duplicateSelectionOrLine.label'),
+                  keybindings: [keyBinding.keyMod | keyBinding.keyCode],
+                  run: handleDuplicateSelectionOrLine,
               });
           }
       }
@@ -3977,6 +4046,37 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           }
       };
   }, [languagePreference, toggleQueryResultsPanelShortcutBinding, toggleResultPanelVisibility]);
+
+  useEffect(() => {
+      if (duplicateSelectionOrLineActionRef.current) {
+          duplicateSelectionOrLineActionRef.current.dispose();
+          duplicateSelectionOrLineActionRef.current = null;
+      }
+
+      const editor = editorRef.current;
+      const monaco = monacoRef.current;
+      if (!editor || !monaco) return;
+
+      const binding = duplicateSelectionOrLineShortcutBinding;
+      if (!binding?.enabled || !binding.combo) return;
+
+      const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
+      if (keyBinding) {
+          duplicateSelectionOrLineActionRef.current = editor.addAction({
+              id: 'gonavi.duplicateSelectionOrLine',
+              label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.duplicateSelectionOrLine.label'),
+              keybindings: [keyBinding.keyMod | keyBinding.keyCode],
+              run: handleDuplicateSelectionOrLine,
+          });
+      }
+
+      return () => {
+          if (duplicateSelectionOrLineActionRef.current) {
+              duplicateSelectionOrLineActionRef.current.dispose();
+              duplicateSelectionOrLineActionRef.current = null;
+          }
+      };
+  }, [duplicateSelectionOrLineShortcutBinding, handleDuplicateSelectionOrLine, languagePreference]);
 
   useEffect(() => {
       const handleRunActiveQuery = () => {

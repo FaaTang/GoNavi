@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "前のタブへ切り替え",
   "app.shortcuts.action.toggleAIPanel.description": "右側の AI データ洞察パネルを開きます",
   "app.shortcuts.action.toggleAIPanel.label": "AI データ洞察を開く",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "選択中は選択範囲を複製し、未選択時はカーソル行を複製します（空行はスキップ）",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "選択範囲または現在行を複製",
   "app.shortcuts.action.toggleLogPanel.description": "SQL 実行ログパネルを開閉します",
   "app.shortcuts.action.toggleLogPanel.label": "ログパネルを切り替え",
   "app.shortcuts.action.toggleMacFullscreen.description": "macOS ネイティブウィンドウ制御モードでのネイティブフルスクリーン切り替え",

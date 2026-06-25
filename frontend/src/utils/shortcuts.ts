@@ -7,6 +7,7 @@ export type ShortcutAction =
   | 'selectCurrentStatement'
   | 'saveQuery'
   | 'toggleQueryResultsPanel'
+  | 'duplicateSelectionOrLine'
   | 'sendAIChatMessage'
   | 'focusSidebarSearch'
   | 'newQueryTab'
@@ -104,6 +105,7 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'selectCurrentStatement',
   'saveQuery',
   'toggleQueryResultsPanel',
+  'duplicateSelectionOrLine',
   'sendAIChatMessage',
   'focusSidebarSearch',
   'newQueryTab',
@@ -158,6 +160,12 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
   toggleQueryResultsPanel: {
     labelKey: 'app.shortcuts.action.toggleQueryResultsPanel.label',
     descriptionKey: 'app.shortcuts.action.toggleQueryResultsPanel.description',
+    scope: 'queryEditor',
+    allowInEditable: true,
+  },
+  duplicateSelectionOrLine: {
+    labelKey: 'app.shortcuts.action.duplicateSelectionOrLine.label',
+    descriptionKey: 'app.shortcuts.action.duplicateSelectionOrLine.description',
     scope: 'queryEditor',
     allowInEditable: true,
   },
@@ -258,6 +266,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   toggleQueryResultsPanel: {
     mac: { combo: 'Meta+Shift+M', enabled: true },
     windows: { combo: 'Ctrl+Shift+M', enabled: true },
+  },
+  duplicateSelectionOrLine: {
+    mac: { combo: 'Meta+D', enabled: true },
+    windows: { combo: 'Ctrl+D', enabled: true },
   },
   sendAIChatMessage: {
     mac: { combo: 'Enter', enabled: true },

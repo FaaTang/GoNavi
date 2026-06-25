@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "切换到上一个标签页",
   "app.shortcuts.action.toggleAIPanel.description": "打开右侧 AI 数据洞察面板",
   "app.shortcuts.action.toggleAIPanel.label": "打开 AI 数据洞察",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "有选区时复制选区；无选区时复制光标所在行（空行不复制）",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "复制选区或当前行",
   "app.shortcuts.action.toggleLogPanel.description": "打开或关闭 SQL 执行日志面板",
   "app.shortcuts.action.toggleLogPanel.label": "切换日志面板",
   "app.shortcuts.action.toggleMacFullscreen.description": "macOS 原生窗口控制模式下的全屏切换",

@@ -2607,6 +2607,8 @@
   "app.shortcuts.action.switchToPreviousTab.label": "切換到上一個標籤頁",
   "app.shortcuts.action.toggleAIPanel.description": "開啟右側 AI 資料洞察面板",
   "app.shortcuts.action.toggleAIPanel.label": "開啟 AI 資料洞察",
+  "app.shortcuts.action.duplicateSelectionOrLine.description": "有選取時複製選取內容；無選取時複製游標所在行（空行不複製）",
+  "app.shortcuts.action.duplicateSelectionOrLine.label": "複製選取或目前行",
   "app.shortcuts.action.toggleLogPanel.description": "開啟或關閉 SQL 執行記錄面板",
   "app.shortcuts.action.toggleLogPanel.label": "切換記錄面板",
   "app.shortcuts.action.toggleMacFullscreen.description": "macOS 原生視窗控制模式下的全螢幕切換",
