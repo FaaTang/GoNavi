@@ -41,6 +41,8 @@ type QueryEditorToolbarProps = {
   loading: boolean;
   saveMoreMenuItems: MenuProps["items"];
   formatSettingsMenu: MenuProps["items"];
+  formatSettingsOpen?: boolean;
+  onFormatSettingsOpenChange?: (open: boolean) => void;
   onConnectionChange: (connectionId: string) => void;
   onDatabaseChange: (dbName: string) => void;
   onMaxRowsChange: (maxRows: number) => void;
@@ -73,6 +75,8 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
   loading,
   saveMoreMenuItems,
   formatSettingsMenu,
+  formatSettingsOpen,
+  onFormatSettingsOpenChange,
   onConnectionChange,
   onDatabaseChange,
   onMaxRowsChange,
@@ -322,6 +326,8 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           </Button>
         </Tooltip>
         <Dropdown
+          open={formatSettingsOpen}
+          onOpenChange={onFormatSettingsOpenChange}
           menu={{ items: formatSettingsMenu }}
           placement="bottomRight"
           trigger={["click"]}

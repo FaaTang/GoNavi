@@ -1223,6 +1223,7 @@ export interface QueryOptions {
   showColumnComment: boolean;
   showColumnType: boolean;
   showQueryResultsPanel: boolean;
+  askWhatToExecute: boolean;
 }
 
 export interface DataEditTransactionOptions {
@@ -1916,14 +1917,23 @@ const sanitizeQueryOptions = (value: unknown): QueryOptions => {
     typeof raw.showColumnType === "boolean" ? raw.showColumnType : true;
   const showQueryResultsPanel =
     typeof raw.showQueryResultsPanel === "boolean" ? raw.showQueryResultsPanel : false;
+  const askWhatToExecute =
+    typeof raw.askWhatToExecute === "boolean" ? raw.askWhatToExecute : false;
   if (!Number.isFinite(maxRows) || maxRows <= 0) {
-    return { maxRows: 5000, showColumnComment, showColumnType, showQueryResultsPanel };
+    return {
+      maxRows: 5000,
+      showColumnComment,
+      showColumnType,
+      showQueryResultsPanel,
+      askWhatToExecute,
+    };
   }
   return {
     maxRows: Math.min(50000, Math.trunc(maxRows)),
     showColumnComment,
     showColumnType,
     showQueryResultsPanel,
+    askWhatToExecute,
   };
 };
 
@@ -2350,6 +2360,7 @@ export const useStore = create<AppState>()(
         showColumnComment: true,
         showColumnType: true,
         showQueryResultsPanel: false,
+        askWhatToExecute: false,
       },
       dataEditTransactionOptions: {
         commitMode: "manual",

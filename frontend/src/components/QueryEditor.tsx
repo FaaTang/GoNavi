@@ -55,6 +55,8 @@ import { SQL_EDITOR_AUTO_COMMIT_DELAY_OPTIONS } from './QueryEditorTransactionSe
 import QueryEditorTransactionToolbar from './QueryEditorTransactionToolbar';
 import QueryEditorToolbar from './QueryEditorToolbar';
 import { useSqlEditorTransactionController } from './useSqlEditorTransactionController';
+import { mountSqlExecutionChooser } from './SqlExecutionChooser';
+import { resolveSqlExecutionIntent } from '../utils/sqlExecutionScope';
 import {
     type CompletionColumnMeta,
     type CompletionPackageMeta,
@@ -208,7 +210,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const [query, setQuery] = useState(getInitialEditorQuery(tab));
   const isExternalSQLFileTab = Boolean(String(tab.filePath || '').trim());
   const isObjectEditQueryTab = tab.type === 'query' && tab.queryMode === 'object-edit';
-  
+
   type ResultSet = QueryEditorResultSet;
 
   // Result Sets
@@ -236,6 +238,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const runQueryActionRef = useRef<any>(null);
   const selectCurrentStatementActionRef = useRef<any>(null);
   const saveQueryActionRef = useRef<any>(null);
+  const sqlExecutionChooserDisposeRef = useRef<(() => void) | null>(null);
+  const sqlExecutionChooserOpenRef = useRef(false);
+  const runInFlightRef = useRef(false);
   const aiContextMenuActionDisposablesRef = useRef<any[]>([]);
   const toggleQueryResultsPanelActionRef = useRef<any>(null);
   const lastExternalQueryRef = useRef<string>(getTabQueryValue(tab));
@@ -304,6 +309,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const [isResultPanelVisible, setIsResultPanelVisible] = useState(
       () => tab.resultPanelVisible === true
   );
+  const [formatSettingsOpen, setFormatSettingsOpen] = useState(false);
+  const [highlightExecutionSetting, setHighlightExecutionSetting] = useState(false);
   const shortcutOptions = useStore(state => state.shortcutOptions);
   const activeShortcutPlatform = getShortcutPlatform(isMacLikePlatform());
   const runQueryShortcutBinding = useMemo(
@@ -2799,17 +2806,25 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   };
 
   const formatSettingsMenu: MenuProps['items'] = [
-      { 
-          key: 'upper', 
+      {
+          key: 'upper',
           label: translate('query_editor.format.keyword_upper'),
           icon: sqlFormatOptions.keywordCase === 'upper' ? '✓' : undefined,
-          onClick: () => setSqlFormatOptions({ keywordCase: 'upper' }) 
+          onClick: () => setSqlFormatOptions({ keywordCase: 'upper' })
       },
-      { 
-          key: 'lower', 
+      {
+          key: 'lower',
           label: translate('query_editor.format.keyword_lower'),
           icon: sqlFormatOptions.keywordCase === 'lower' ? '✓' : undefined,
-          onClick: () => setSqlFormatOptions({ keywordCase: 'lower' }) 
+          onClick: () => setSqlFormatOptions({ keywordCase: 'lower' })
+      },
+      { type: 'divider' },
+      {
+          key: 'ask-what-to-execute',
+          label: translate('query_editor.execution.ask_what_to_execute'),
+          icon: queryOptions.askWhatToExecute ? '✓' : undefined,
+          className: highlightExecutionSetting ? 'gn-query-execution-setting-highlight' : undefined,
+          onClick: () => setQueryOptions({ askWhatToExecute: !queryOptions.askWhatToExecute }),
       },
       { type: 'divider' },
       {
@@ -3013,6 +3028,12 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
       return getExecutableSQLAtCurrentCursor(model, String(model.getValue?.() ?? currentQuery));
   };
+
+  const closeSqlExecutionChooser = useCallback(() => {
+      sqlExecutionChooserDisposeRef.current?.();
+      sqlExecutionChooserDisposeRef.current = null;
+      sqlExecutionChooserOpenRef.current = false;
+  }, []);
 
   const captureEditorCursorPosition = (event?: React.MouseEvent<HTMLElement>) => {
       event?.preventDefault();
@@ -3236,10 +3257,16 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
   };
 
-  const handleRun = async () => {
+  const handleRunWithSql = useCallback(async (executableSQL: string) => {
+    if (runInFlightRef.current) {
+        return;
+    }
+    runInFlightRef.current = true;
+
+    let runSeq = 0;
+    let startedLoading = false;
+    try {
     const currentQuery = getCurrentQuery();
-    if (!currentQuery.trim()) return;
-    const executableSQL = getExecutableSQL();
     if (!executableSQL.trim()) {
         message.info(translate('query_editor.message.no_executable_sql'));
         setResultSets([]);
@@ -3260,8 +3287,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         // 清除旧查询ID
         clearQueryId();
     }
-      const runSeq = ++runSeqRef.current;
+      runSeq = ++runSeqRef.current;
       setLoading(true);
+      startedLoading = true;
       setExecutionError('');
       const runStartTime = Date.now();
     const conn = connections.find(c => c.id === currentConnectionId);
@@ -3860,7 +3888,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         addSqlLog({
             id: `log-${Date.now()}-error`,
             timestamp: Date.now(),
-            sql: executableSQL || getExecutableSQL() || getCurrentQuery(),
+            sql: executableSQL || getCurrentQuery(),
             status: 'error',
             duration: Date.now() - runStartTime,
             message: e.message,
@@ -3870,12 +3898,114 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         setExecutionError(formattedError);
         setResultSets([]);
         setActiveResultKey(QUERY_EDITOR_SQL_LOG_TAB_KEY);
+    }
     } finally {
-        if (runSeqRef.current === runSeq) setLoading(false);
+        runInFlightRef.current = false;
+        if (startedLoading && runSeqRef.current === runSeq) setLoading(false);
         // Clear query ID after execution completes
         clearQueryId();
     }
-  };
+  }, [
+      activatePendingSqlTransaction,
+      addSqlLog,
+      clearQueryId,
+      connections,
+      currentConnectionId,
+      currentDb,
+      executeSqlEditorMultiQuery,
+      getCurrentQuery,
+      pendingSqlTransactionRef,
+      queryOptions?.maxRows,
+      resultSets,
+      setQueryId,
+      sqlEditorAutoCommitDelayMs,
+      sqlEditorCommitMode,
+      updateResultPanelVisibility,
+      isActive,
+  ]);
+
+  const requestRun = useCallback(() => {
+      if (loading || runInFlightRef.current) {
+          return;
+      }
+      if (sqlExecutionChooserOpenRef.current) {
+          return;
+      }
+
+      const fullSql = getCurrentQuery();
+      if (!fullSql.trim()) {
+          return;
+      }
+
+      const selectedSql = getSelectedSQL();
+      const position = normalizeEditorPosition(editorRef.current?.getPosition?.());
+      const cursorOffset = position ? getNormalizedOffsetAtPosition(fullSql, position) : 0;
+      const intent = resolveSqlExecutionIntent({
+          fullSql,
+          selectedSql,
+          cursorOffset,
+          askWhatToExecute: Boolean(queryOptions?.askWhatToExecute),
+      });
+
+      if (intent.kind === 'use-auto') {
+          const autoSql = getExecutableSQL();
+          if (!autoSql.trim()) {
+              message.info(translate('query_editor.message.no_executable_sql'));
+              setResultSets([]);
+              setActiveResultKey('');
+              return;
+          }
+          void handleRunWithSql(autoSql);
+          return;
+      }
+
+      if (intent.kind === 'empty') {
+          message.info(translate('query_editor.message.no_executable_sql'));
+          setResultSets([]);
+          setActiveResultKey('');
+          return;
+      }
+
+      if (intent.kind === 'execute') {
+          void handleRunWithSql(intent.sql);
+          return;
+      }
+
+      const editor = editorRef.current;
+      const monaco = monacoRef.current;
+      if (!editor || !monaco) {
+          void handleRunWithSql(intent.options[0]?.sql || '');
+          return;
+      }
+
+      closeSqlExecutionChooser();
+      sqlExecutionChooserOpenRef.current = true;
+      let selectedId = intent.defaultOptionId;
+      const dispose = mountSqlExecutionChooser(editor, monaco, {
+          options: intent.options,
+          selectedId,
+          onSelectedIdChange: (nextId) => {
+              selectedId = nextId;
+          },
+          onConfirm: (sql) => {
+              closeSqlExecutionChooser();
+              void handleRunWithSql(sql);
+          },
+          onCancel: closeSqlExecutionChooser,
+          onOpenSettings: () => {
+              closeSqlExecutionChooser();
+              window.dispatchEvent(new CustomEvent('gonavi:open-query-execution-settings'));
+          },
+          translate,
+      });
+      sqlExecutionChooserDisposeRef.current = dispose;
+  }, [
+      closeSqlExecutionChooser,
+      getCurrentQuery,
+      handleRunWithSql,
+      loading,
+      queryOptions?.askWhatToExecute,
+  ]);
 
   const handleCancel = async () => {
     if (!currentQueryIdRef.current) {
@@ -3958,14 +4088,14 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           }
           event.preventDefault();
           event.stopPropagation();
-          void handleRun();
+          requestRun();
       };
 
       window.addEventListener('keydown', handleRunShortcut, true);
       return () => {
           window.removeEventListener('keydown', handleRunShortcut, true);
       };
-  }, [isActive, runQueryShortcutBinding, handleRun]);
+  }, [isActive, runQueryShortcutBinding, requestRun]);
 
   // Re-register Monaco internal keybinding when runQuery shortcut changes
   useEffect(() => {
@@ -4134,14 +4264,14 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           if (!isActive) {
               return;
           }
-          void handleRun();
+          requestRun();
       };
 
       window.addEventListener('gonavi:run-active-query', handleRunActiveQuery as EventListener);
       return () => {
           window.removeEventListener('gonavi:run-active-query', handleRunActiveQuery as EventListener);
       };
-  }, [isActive, handleRun]);
+  }, [isActive, requestRun]);
 
   // 监听由 TabManager 分发的专用注入事件
   useEffect(() => {
@@ -4176,7 +4306,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                       const maxCol = model.getLineMaxColumn(lineCount);
                       editor.setSelection(new monaco.Range(1, 1, lineCount, maxCol));
                       editor.focus();
-                      setTimeout(() => handleRun(), 500);
+                      setTimeout(() => requestRun(), 500);
                   }
               } else {
               let position = editor.getPosition();
@@ -4189,7 +4319,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               if (position) {
                   const mText = (sqlText.endsWith('\n') ? sqlText : sqlText + '\n');
                   const startRange = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
-                  
+
                   editor.executeEdits('ai-insert', [{
                       range: startRange,
                       text: (position.column > 1 ? '\n' : '') + mText,
@@ -4199,13 +4329,13 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   if (typeof nextValue === 'string') {
                       applyQueryState(nextValue);
                   }
-                  
+
                   // 定位并滚动到可见区域
                   const targetLine = position.lineNumber + (position.column > 1 ? 1 : 0);
                   editor.revealLineInCenterIfOutsideViewport(targetLine);
                   editor.setPosition({ lineNumber: targetLine + mText.split('\n').length - 1, column: 1 });
                   editor.focus();
-                  
+
                   if (!e.detail.runImmediately) {
                       message.success(translate('query_editor.message.insert_success'));
                   }
@@ -4217,7 +4347,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                           endPosition.lineNumber, endPosition.column
                       ));
                       // 🔧 延迟 500ms 等待连接/数据库切换的 setState 生效后再执行
-                      setTimeout(() => handleRun(), 500);
+                      setTimeout(() => requestRun(), 500);
                   }
               }
               }
@@ -4228,7 +4358,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       };
       window.addEventListener('gonavi:insert-sql-to-tab', handleInsertSql as EventListener);
       return () => window.removeEventListener('gonavi:insert-sql-to-tab', handleInsertSql as EventListener);
-  }, [tab.id, handleRun]);
+  }, [tab.id, requestRun]);
 
   const resolveDefaultQueryName = () => {
       const rawTitle = String(tab.title || '').trim();
@@ -4477,6 +4607,77 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       };
   }, [handleShowSqlExecutionLog]);
 
+  const handleFormatSettingsOpenChange = useCallback((open: boolean) => {
+      setFormatSettingsOpen(open);
+      if (!open) {
+          setHighlightExecutionSetting(false);
+      }
+  }, []);
+
+  useEffect(() => {
+      const handleOpenQueryExecutionSettings = () => {
+          if (!isActive) {
+              return;
+          }
+          setFormatSettingsOpen(true);
+          setHighlightExecutionSetting(true);
+      };
+
+      window.addEventListener(
+          'gonavi:open-query-execution-settings',
+          handleOpenQueryExecutionSettings as EventListener,
+      );
+      return () => {
+          window.removeEventListener(
+              'gonavi:open-query-execution-settings',
+              handleOpenQueryExecutionSettings as EventListener,
+          );
+      };
+  }, [isActive]);
+
+  useEffect(() => {
+      if (!highlightExecutionSetting) {
+          return;
+      }
+      const timer = window.setTimeout(() => setHighlightExecutionSetting(false), 2000);
+      return () => window.clearTimeout(timer);
+  }, [highlightExecutionSetting]);
+
+  useEffect(() => {
+      if (!isActive) {
+          closeSqlExecutionChooser();
+      }
+  }, [isActive, closeSqlExecutionChooser]);
+
+  useEffect(() => {
+      const editor = editorRef.current;
+      if (!editor || !isActive) {
+          return;
+      }
+
+      const blurDisposable = editor.onDidBlurEditorWidget?.(() => {
+          closeSqlExecutionChooser();
+      });
+      const contentDisposable = editor.onDidChangeModelContent?.(() => {
+          if (!sqlExecutionChooserOpenRef.current) {
+              return;
+          }
+          const text = String(editor.getModel?.()?.getValue?.() || '').trim();
+          if (!text) {
+              closeSqlExecutionChooser();
+          }
+      });
+
+      return () => {
+          blurDisposable?.dispose?.();
+          contentDisposable?.dispose?.();
+      };
+  }, [closeSqlExecutionChooser, isActive]);
+
+  useEffect(() => () => {
+      closeSqlExecutionChooser();
+  }, [closeSqlExecutionChooser]);
+
   const handleSave = async () => {
       try {
           const values = await saveForm.validateFields();
@@ -4578,6 +4779,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
   return (
     <div ref={queryEditorRootRef} className={isV2Ui ? 'gn-v2-query-editor' : undefined} style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <style>{`
+        .gn-query-execution-setting-highlight {
+          background: rgba(24, 144, 255, 0.12);
+        }
+      `}</style>
       <div
         ref={editorPaneRef}
         className={isV2Ui ? 'gn-v2-query-editor-pane' : undefined}
@@ -4601,6 +4807,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         loading={loading}
         saveMoreMenuItems={saveMoreMenuItems}
         formatSettingsMenu={formatSettingsMenu}
+        formatSettingsOpen={formatSettingsOpen}
+        onFormatSettingsOpenChange={handleFormatSettingsOpenChange}
         onConnectionChange={(val) => {
             setCurrentConnectionId(val);
             setCurrentDb('');
@@ -4614,23 +4822,23 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         )}
         onAutoCommitDelayMsChange={(delayMs) => setSqlEditorTransactionOptions({ autoCommitDelayMs: delayMs })}
         onCaptureEditorCursorPosition={captureEditorCursorPosition}
-        onRun={handleRun}
+        onRun={requestRun}
         onCancel={handleCancel}
         onQuickSave={handleQuickSave}
         onFormat={handleFormat}
         onToggleResultPanelVisibility={toggleResultPanelVisibility}
         onAIAction={handleAIAction}
       />
-      
+
       <div
         ref={editorShellRef}
         className={isV2Ui ? 'gn-v2-query-monaco-shell' : undefined}
         style={isResultPanelVisible ? { height: editorHeight, minHeight: '100px' } : { flex: '1 1 auto', minHeight: 0 }}
       >
-        <Editor 
-          height="100%" 
+        <Editor
+          height="100%"
           gonaviTypography="code"
-          defaultLanguage="sql" 
+          defaultLanguage="sql"
           theme={darkMode ? "transparent-dark" : "transparent-light"}
           defaultValue={query}
           onChange={(val) => {
@@ -4638,8 +4846,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               syncQueryDraft(nextValue);
           }}
           onMount={handleEditorDidMount}
-          options={{ 
-            minimap: { enabled: false }, 
+          options={{
+            minimap: { enabled: false },
             automaticLayout: true,
             fixedOverflowWidgets: true,
             hover: {
@@ -4695,10 +4903,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         />
       )}
 
-      <Modal 
+      <Modal
         title={translate(saveModalMode === 'rename' ? 'query_editor.save_modal.rename_title' : 'query_editor.save_modal.title')}
-        open={isSaveModalOpen} 
-        onOk={handleSave} 
+        open={isSaveModalOpen}
+        onOk={handleSave}
         onCancel={() => setIsSaveModalOpen(false)}
         okText={translate(saveModalMode === 'rename' ? 'query_editor.save_modal.rename_ok' : 'common.save')}
         cancelText={translate('common.cancel')}
