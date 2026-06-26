@@ -10,7 +10,8 @@ export type ShortcutAction =
   | 'duplicateSelectionOrLine'
   | 'sendAIChatMessage'
   | 'focusSidebarSearch'
-  | 'newQueryTab'
+  | 'sidebarNewQuery'
+  | 'sidebarViewTableDdl'
   | 'switchToNextTab'
   | 'switchToPreviousTab'
   | 'newConnection'
@@ -39,7 +40,7 @@ export interface ShortcutActionMeta {
   description: string;
   allowInEditable?: boolean;
   allowWithoutModifier?: boolean;
-  scope?: 'global' | 'aiComposer' | 'queryEditor';
+  scope?: 'global' | 'aiComposer' | 'queryEditor' | 'sidebar';
   requiredKey?: string;
   disallowShift?: boolean;
   platformOnly?: 'mac';
@@ -108,7 +109,8 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'duplicateSelectionOrLine',
   'sendAIChatMessage',
   'focusSidebarSearch',
-  'newQueryTab',
+  'sidebarNewQuery',
+  'sidebarViewTableDdl',
   'switchToNextTab',
   'switchToPreviousTab',
   'newConnection',
@@ -183,9 +185,15 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
     descriptionKey: 'app.shortcuts.action.focusSidebarSearch.description',
     allowInEditable: true,
   },
-  newQueryTab: {
-    labelKey: 'app.shortcuts.action.newQueryTab.label',
-    descriptionKey: 'app.shortcuts.action.newQueryTab.description',
+  sidebarNewQuery: {
+    labelKey: 'app.shortcuts.action.sidebarNewQuery.label',
+    descriptionKey: 'app.shortcuts.action.sidebarNewQuery.description',
+    scope: 'sidebar',
+  },
+  sidebarViewTableDdl: {
+    labelKey: 'app.shortcuts.action.sidebarViewTableDdl.label',
+    descriptionKey: 'app.shortcuts.action.sidebarViewTableDdl.description',
+    scope: 'sidebar',
   },
   switchToNextTab: {
     labelKey: 'app.shortcuts.action.switchToNextTab.label',
@@ -252,8 +260,8 @@ export const SHORTCUT_ACTION_META: Record<ShortcutAction, ShortcutActionMeta> = 
 
 export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   runQuery: {
-    mac: { combo: 'Meta+R', enabled: true },
-    windows: { combo: 'Ctrl+R', enabled: true },
+    mac: { combo: 'Meta+Enter', enabled: true },
+    windows: { combo: 'Ctrl+Enter', enabled: true },
   },
   selectCurrentStatement: {
     mac: { combo: 'Meta+E', enabled: true },
@@ -279,9 +287,13 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
     mac: { combo: 'Meta+K', enabled: true },
     windows: { combo: 'Ctrl+K', enabled: true },
   },
-  newQueryTab: {
-    mac: { combo: 'Meta+N', enabled: true },
-    windows: { combo: 'Ctrl+N', enabled: true },
+  sidebarNewQuery: {
+    mac: { combo: 'Ctrl+Shift+Q', enabled: true },
+    windows: { combo: 'Ctrl+Shift+Q', enabled: true },
+  },
+  sidebarViewTableDdl: {
+    mac: { combo: 'Ctrl+Q', enabled: true },
+    windows: { combo: 'Ctrl+Q', enabled: true },
   },
   switchToNextTab: {
     mac: { combo: 'Ctrl+Tab', enabled: true },
@@ -581,6 +593,65 @@ const isLegacyShortcutBinding = (value: Record<string, unknown>): boolean => (
   || Object.prototype.hasOwnProperty.call(value, 'enabled')
 );
 
+const LEGACY_NEW_QUERY_TAB_COMBOS = new Set(['Ctrl+N', 'Meta+N']);
+
+const isLegacyNewQueryTabCombo = (combo: string): boolean => (
+  LEGACY_NEW_QUERY_TAB_COMBOS.has(normalizeShortcutCombo(combo))
+);
+
+const migrateLegacyNewQueryTabRaw = (raw: Record<string, unknown>): Record<string, unknown> => {
+  const next = { ...raw };
+  const legacyRaw = next.newQueryTab;
+  if (legacyRaw && typeof legacyRaw === 'object' && !next.sidebarNewQuery) {
+    const legacy = legacyRaw as Record<string, unknown>;
+    if (isLegacyShortcutBinding(legacy) && !Object.prototype.hasOwnProperty.call(legacy, 'mac')) {
+      const combo = normalizeShortcutCombo(String(legacy.combo || ''));
+      if (!isLegacyNewQueryTabCombo(combo)) {
+        next.sidebarNewQuery = legacyRaw;
+      } else if (legacy.enabled === false) {
+        next.sidebarNewQuery = {
+          mac: { enabled: false },
+          windows: { enabled: false },
+        };
+      }
+    } else {
+      const macRaw = legacy.mac as Record<string, unknown> | undefined;
+      const winRaw = legacy.windows as Record<string, unknown> | undefined;
+      const macCombo = normalizeShortcutCombo(String(macRaw?.combo || ''));
+      const winCombo = normalizeShortcutCombo(String(winRaw?.combo || ''));
+      const migrated: Record<string, unknown> = {};
+      if (macRaw && !isLegacyNewQueryTabCombo(macCombo)) {
+        migrated.mac = macRaw;
+      } else if (macRaw?.enabled === false) {
+        migrated.mac = { enabled: false };
+      }
+      if (winRaw && !isLegacyNewQueryTabCombo(winCombo)) {
+        migrated.windows = winRaw;
+      } else if (winRaw?.enabled === false) {
+        migrated.windows = { enabled: false };
+      }
+      if (Object.keys(migrated).length > 0) {
+        next.sidebarNewQuery = migrated;
+      }
+    }
+  }
+  delete next.newQueryTab;
+  return next;
+};
+
+const upgradeLegacySidebarNewQueryBinding = (
+  binding: ShortcutPlatformBinding,
+  fallback: ShortcutPlatformBinding,
+): ShortcutPlatformBinding => {
+  if (!isLegacyNewQueryTabCombo(binding.combo)) {
+    return binding;
+  }
+  return {
+    combo: fallback.combo,
+    enabled: binding.enabled,
+  };
+};
+
 const sanitizeShortcutPlatformBinding = (
   action: ShortcutAction,
   platform: ShortcutPlatform,
@@ -599,7 +670,9 @@ const sanitizeShortcutPlatformBinding = (
 };
 
 export const sanitizeShortcutOptions = (value: unknown): ShortcutOptions => {
-  const raw = (value && typeof value === 'object') ? value as Record<string, unknown> : {};
+  const raw = migrateLegacyNewQueryTabRaw(
+    (value && typeof value === 'object') ? value as Record<string, unknown> : {},
+  );
   const defaults = cloneShortcutOptions(DEFAULT_SHORTCUT_OPTIONS);
 
   SHORTCUT_ACTION_ORDER.forEach((action) => {
@@ -620,6 +693,12 @@ export const sanitizeShortcutOptions = (value: unknown): ShortcutOptions => {
       windows: sanitizeShortcutPlatformBinding(action, 'windows', binding.windows, defaults[action].windows),
     };
   });
+
+  const sidebarNewQueryDefaults = DEFAULT_SHORTCUT_OPTIONS.sidebarNewQuery;
+  defaults.sidebarNewQuery = {
+    mac: upgradeLegacySidebarNewQueryBinding(defaults.sidebarNewQuery.mac, sidebarNewQueryDefaults.mac),
+    windows: upgradeLegacySidebarNewQueryBinding(defaults.sidebarNewQuery.windows, sidebarNewQueryDefaults.windows),
+  };
 
   return defaults;
 };

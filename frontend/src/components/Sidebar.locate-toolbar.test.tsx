@@ -972,7 +972,7 @@ describe('Sidebar locate toolbar', () => {
   it('renders v2 command action shortcuts from the shared shortcut options', () => {
     const source = readSidebarSource();
 
-    expect(source).toContain("shortcut: resolveShortcutDisplay(shortcutOptions, 'newQueryTab', activeShortcutPlatform)");
+    expect(source).toContain("shortcut: resolveShortcutDisplay(shortcutOptions, 'sidebarNewQuery', activeShortcutPlatform)");
     expect(source).toContain("shortcut: resolveShortcutDisplay(shortcutOptions, 'newConnection', activeShortcutPlatform)");
     expect(source).toContain("shortcut: resolveShortcutDisplay(shortcutOptions, 'toggleAIPanel', activeShortcutPlatform)");
     expect(source).toContain("shortcut: resolveShortcutDisplay(shortcutOptions, 'toggleLogPanel', activeShortcutPlatform)");

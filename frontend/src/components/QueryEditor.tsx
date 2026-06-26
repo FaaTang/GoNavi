@@ -241,6 +241,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const duplicateSelectionOrLineActionRef = useRef<any>(null);
   const sqlExecutionChooserDisposeRef = useRef<(() => void) | null>(null);
   const sqlExecutionChooserOpenRef = useRef(false);
+  const sqlExecutionChooserCursorSnapshotRef = useRef<{ lineNumber: number; column: number } | null>(null);
   const runInFlightRef = useRef(false);
   const aiContextMenuActionDisposablesRef = useRef<any[]>([]);
   const toggleQueryResultsPanelActionRef = useRef<any>(null);
@@ -265,6 +266,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const pendingEditorHeightRef = useRef(editorHeight);
   const resizeFrameRef = useRef<number | null>(null);
   const queryEditorRootRef = useRef<HTMLDivElement | null>(null);
+  const sqlExecutionChooserOverlayRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const tablesRef = useRef<CompletionTableMeta[]>([]); // Store tables for autocomplete (cross-db)
   const allColumnsRef = useRef<CompletionColumnMeta[]>([]); // Store all columns (cross-db)
@@ -3098,11 +3100,30 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       return getExecutableSQLAtCurrentCursor(model, String(model.getValue?.() ?? currentQuery));
   };
 
-  const closeSqlExecutionChooser = useCallback(() => {
+  const disposeSqlExecutionChooser = useCallback(() => {
       sqlExecutionChooserDisposeRef.current?.();
       sqlExecutionChooserDisposeRef.current = null;
       sqlExecutionChooserOpenRef.current = false;
   }, []);
+
+  const restoreSqlExecutionChooserCursor = useCallback(() => {
+      const editor = editorRef.current;
+      const snapshot = sqlExecutionChooserCursorSnapshotRef.current;
+      sqlExecutionChooserCursorSnapshotRef.current = null;
+      if (!editor || !snapshot) {
+          return;
+      }
+      editor.setPosition?.(snapshot);
+      editor.focus?.();
+  }, []);
+
+  const closeSqlExecutionChooser = useCallback(() => {
+      const shouldRestoreCursor = sqlExecutionChooserOpenRef.current || !!sqlExecutionChooserDisposeRef.current;
+      disposeSqlExecutionChooser();
+      if (shouldRestoreCursor) {
+          restoreSqlExecutionChooserCursor();
+      }
+  }, [disposeSqlExecutionChooser, restoreSqlExecutionChooserCursor]);
 
   const captureEditorCursorPosition = (event?: React.MouseEvent<HTMLElement>) => {
       event?.preventDefault();
@@ -4047,12 +4068,17 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           return;
       }
 
-      closeSqlExecutionChooser();
+      disposeSqlExecutionChooser();
+      const openingPosition = normalizeEditorPosition(editor.getPosition?.());
+      sqlExecutionChooserCursorSnapshotRef.current = openingPosition
+          ? { lineNumber: openingPosition.lineNumber, column: openingPosition.column }
+          : null;
       sqlExecutionChooserOpenRef.current = true;
       let selectedId = intent.defaultOptionId;
       const dispose = mountSqlExecutionChooser(editor, monaco, {
           options: intent.options,
           selectedId,
+          overlayRoot: sqlExecutionChooserOverlayRef.current,
           onSelectedIdChange: (nextId) => {
               selectedId = nextId;
           },
@@ -4070,6 +4096,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       sqlExecutionChooserDisposeRef.current = dispose;
   }, [
       closeSqlExecutionChooser,
+      disposeSqlExecutionChooser,
       getCurrentQuery,
       handleRunWithSql,
       loading,
@@ -4756,7 +4783,20 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
 
       const blurDisposable = editor.onDidBlurEditorWidget?.(() => {
-          closeSqlExecutionChooser();
+          if (!sqlExecutionChooserOpenRef.current) {
+              return;
+          }
+          window.setTimeout(() => {
+              if (!sqlExecutionChooserOpenRef.current) {
+                  return;
+              }
+              const activeElement = document.activeElement;
+              const overlay = sqlExecutionChooserOverlayRef.current;
+              if (overlay && activeElement instanceof Node && overlay.contains(activeElement)) {
+                  return;
+              }
+              closeSqlExecutionChooser();
+          }, 0);
       });
       const contentDisposable = editor.onDidChangeModelContent?.(() => {
           if (!sqlExecutionChooserOpenRef.current) {
@@ -4878,7 +4918,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   );
 
   return (
-    <div ref={queryEditorRootRef} className={isV2Ui ? 'gn-v2-query-editor' : undefined} style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div ref={queryEditorRootRef} className={isV2Ui ? 'gn-v2-query-editor' : undefined} style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <style>{`
         .gn-query-execution-setting-highlight {
           background: rgba(24, 144, 255, 0.12);
@@ -5002,6 +5042,12 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           onDiagnoseExecutionError={handleDiagnoseExecutionError}
         />
       )}
+
+      <div
+        ref={sqlExecutionChooserOverlayRef}
+        className="gn-sql-execution-chooser-overlay"
+        aria-hidden
+      />
 
       <Modal
         title={translate(saveModalMode === 'rename' ? 'query_editor.save_modal.rename_title' : 'query_editor.save_modal.title')}

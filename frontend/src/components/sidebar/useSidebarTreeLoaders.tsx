@@ -449,6 +449,7 @@ export const useSidebarTreeLoaders = ({
       const loadKey = `tables-${conn.id}-${dbName}`;
       if (loadingNodesRef.current.has(loadKey)) return;
       loadingNodesRef.current.add(loadKey);
+      setConnectionStates(prev => ({ ...prev, [key as string]: 'loading' }));
       
       const dbQueries = savedQueries.filter(q => q.connectionId === conn.id && q.dbName === dbName);
       const queriesNode: TreeNode = {
@@ -478,7 +479,6 @@ export const useSidebarTreeLoaders = ({
 	      try {
 	          const res = await DBGetTables(buildRpcConnectionConfig(config) as any, conn.dbName);
 	          if (res.success) {
-	            setConnectionStates(prev => ({ ...prev, [key as string]: 'success' }));
 
                 const tableRows: any[] = Array.isArray(res.data) ? res.data : [];
                 const tableStatusSql = buildSidebarTableStatusSQL(conn as SavedConnection, conn.dbName);
@@ -886,6 +886,7 @@ export const useSidebarTreeLoaders = ({
 
 	                replaceTreeNodeChildren(key, [queriesNode, ...groupedNodes]);
 	            }
+                setConnectionStates(prev => ({ ...prev, [key as string]: 'success' }));
                 onDatabaseTreeLoaded?.(String(key));
 	          } else {
 	            setConnectionStates(prev => ({ ...prev, [key as string]: 'error' }));

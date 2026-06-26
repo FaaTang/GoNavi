@@ -451,9 +451,9 @@ export const useSidebarSearchModel = ({
       kind: 'action',
       title: t('query.new'),
       meta: t('sidebar.command_search.action.new_query.meta'),
-      shortcut: resolveShortcutDisplay(shortcutOptions, 'newQueryTab', activeShortcutPlatform),
+      shortcut: resolveShortcutDisplay(shortcutOptions, 'sidebarNewQuery', activeShortcutPlatform),
       icon: <PlusOutlined />,
-      onRun: () => window.dispatchEvent(new CustomEvent('gonavi:create-query-tab')),
+      onRun: () => window.dispatchEvent(new CustomEvent('gonavi:sidebar-new-query')),
     },
     {
       key: 'action-new-connection',

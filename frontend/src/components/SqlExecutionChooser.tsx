@@ -7,6 +7,7 @@ import { getNormalizedPositionAtOffset, normalizeEditorPosition } from './queryE
 
 const SQL_EXECUTION_CHOOSER_WIDGET_ID = 'gonavi.sqlExecutionChooser';
 const SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID = 'gonavi-sql-execution-chooser-highlight-style';
+const SQL_EXECUTION_CHOOSER_OVERLAY_STYLE_ID = 'gonavi-sql-execution-chooser-overlay-style';
 
 export type SqlExecutionChooserOptionView = Pick<
   SqlExecutionChooserOption,
@@ -27,6 +28,7 @@ type SqlExecutionChooserPanelProps = {
 
 export type MountSqlExecutionChooserProps = Omit<SqlExecutionChooserPanelProps, 'options'> & {
   options: SqlExecutionChooserOption[];
+  overlayRoot?: HTMLElement | null;
 };
 
 const resolveSelectedOption = <T extends { id: SqlExecutionChooserOptionId }>(
@@ -47,17 +49,72 @@ const resolveNextOptionId = (
 };
 
 const ensureSqlExecutionChooserHighlightStyle = () => {
-  if (document.getElementById(SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID)) return;
-
-  const styleNode = document.createElement('style');
-  styleNode.id = SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID;
-  styleNode.textContent = `
+  if (!document.getElementById(SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID)) {
+    const styleNode = document.createElement('style');
+    styleNode.id = SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID;
+    styleNode.textContent = `
 .gn-sql-execution-chooser-highlight {
   background: rgba(24, 144, 255, 0.2);
   border-radius: 2px;
 }
 `;
-  document.head.appendChild(styleNode);
+    document.head.appendChild(styleNode);
+  }
+
+  if (!document.getElementById(SQL_EXECUTION_CHOOSER_OVERLAY_STYLE_ID)) {
+    const overlayStyleNode = document.createElement('style');
+    overlayStyleNode.id = SQL_EXECUTION_CHOOSER_OVERLAY_STYLE_ID;
+    overlayStyleNode.textContent = `
+.gn-sql-execution-chooser-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  overflow: visible;
+}
+.gn-sql-execution-chooser-overlay.is-open {
+  pointer-events: auto;
+}
+.gn-sql-execution-chooser-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: transparent;
+}
+.gn-sql-execution-chooser-host {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 1;
+}
+`;
+    document.head.appendChild(overlayStyleNode);
+  }
+};
+
+export const positionSqlExecutionChooserHost = (
+  editor: any,
+  hostNode: HTMLElement,
+  overlayRoot: HTMLElement,
+  monaco?: any,
+): boolean => {
+  const anchor = normalizeEditorPosition(editor?.getPosition?.());
+  const editorDom = editor?.getDomNode?.();
+  if (!anchor || !editorDom) {
+    return false;
+  }
+
+  const coords = editor.getScrolledVisiblePosition?.(anchor);
+  if (!coords) {
+    return false;
+  }
+
+  const overlayRect = overlayRoot.getBoundingClientRect();
+  const editorRect = editorDom.getBoundingClientRect();
+  const lineHeight = Number(editor?.getOption?.(monaco?.editor?.EditorOption?.lineHeight) || 20);
+
+  hostNode.style.top = `${Math.max(0, editorRect.top - overlayRect.top + coords.top + lineHeight)}px`;
+  hostNode.style.left = `${Math.max(0, editorRect.left - overlayRect.left + coords.left)}px`;
+  return true;
 };
 
 const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
@@ -133,7 +190,6 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
       onKeyDown={handleKeyDown}
       tabIndex={0}
       style={{
-        position: 'absolute',
         minWidth: 320,
         maxWidth: 420,
         padding: 10,
@@ -144,7 +200,6 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
-        zIndex: 40,
       }}
     >
       {options.map((option) => {
@@ -213,6 +268,37 @@ export function mountSqlExecutionChooser(
 
   ensureSqlExecutionChooserHighlightStyle();
   const domNode = document.createElement('div');
+  domNode.className = 'gn-sql-execution-chooser-host';
+  const overlayRoot = props.overlayRoot || null;
+  const useOverlayRoot = !!overlayRoot;
+  let backdropNode: HTMLDivElement | null = null;
+  const openedAt = performance.now();
+  const OUTSIDE_DISMISS_GUARD_MS = 200;
+  let handleOutsidePointerDown: ((event: MouseEvent) => void) | null = null;
+  if (useOverlayRoot) {
+    overlayRoot.classList.add('is-open');
+    backdropNode = document.createElement('div');
+    backdropNode.className = 'gn-sql-execution-chooser-backdrop';
+    backdropNode.setAttribute('data-testid', 'sql-execution-chooser-backdrop');
+    overlayRoot.appendChild(backdropNode);
+    overlayRoot.appendChild(domNode);
+    handleOutsidePointerDown = (event: MouseEvent) => {
+      if (disposed) {
+        return;
+      }
+      if (performance.now() - openedAt < OUTSIDE_DISMISS_GUARD_MS) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Node) || domNode.contains(target)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      props.onCancel();
+    };
+    document.addEventListener('mousedown', handleOutsidePointerDown, true);
+  }
   const root = createRoot(domNode);
   let decorationIds: string[] = [];
   let currentSelectedId = props.selectedId;
@@ -297,6 +383,11 @@ export function mountSqlExecutionChooser(
     },
   };
 
+  const updateOverlayPosition = () => {
+    if (!useOverlayRoot || !overlayRoot) return;
+    positionSqlExecutionChooserHost(editor, domNode, overlayRoot, monaco);
+  };
+
   const renderChooser = () => {
     if (disposed) return;
     root.render(
@@ -313,7 +404,11 @@ export function mountSqlExecutionChooser(
   };
 
   renderChooser();
-  editor.addContentWidget?.(widget);
+  if (useOverlayRoot) {
+    updateOverlayPosition();
+  } else {
+    editor.addContentWidget?.(widget);
+  }
   applyHighlight();
 
   const editorKeydownDisposable = editor.onKeyDown?.((event: any) => {
@@ -324,8 +419,24 @@ export function mountSqlExecutionChooser(
   });
 
   const cursorChangeDisposable = editor.onDidChangeCursorPosition?.(() => {
+    if (useOverlayRoot) {
+      updateOverlayPosition();
+      return;
+    }
     editor.layoutContentWidget?.(widget);
   });
+
+  const scrollChangeDisposable = useOverlayRoot
+    ? editor.onDidScrollChange?.(() => {
+        updateOverlayPosition();
+      })
+    : null;
+
+  const layoutChangeDisposable = useOverlayRoot
+    ? editor.onDidLayoutChange?.(() => {
+        updateOverlayPosition();
+      })
+    : null;
 
   const contentChangeDisposable = editor.onDidChangeModelContent?.(() => {
     applyHighlight();
@@ -335,14 +446,25 @@ export function mountSqlExecutionChooser(
     if (disposed) return;
     disposed = true;
 
-    editor.removeContentWidget?.(widget);
+    if (useOverlayRoot) {
+      overlayRoot?.classList.remove('is-open');
+      backdropNode?.remove();
+      domNode.remove();
+    } else {
+      editor.removeContentWidget?.(widget);
+    }
     if (editor?.deltaDecorations) {
       decorationIds = editor.deltaDecorations(decorationIds, []);
     }
 
     editorKeydownDisposable?.dispose?.();
     cursorChangeDisposable?.dispose?.();
+    scrollChangeDisposable?.dispose?.();
+    layoutChangeDisposable?.dispose?.();
     contentChangeDisposable?.dispose?.();
+    if (handleOutsidePointerDown) {
+      document.removeEventListener('mousedown', handleOutsidePointerDown, true);
+    }
     root.unmount();
   };
 }

@@ -217,3 +217,146 @@ export const shouldLoadSidebarNodeOnExpand = (
       || node.type === 'jvm-mode'
       || node.type === 'jvm-resource';
 };
+
+/**
+ * resolveSidebarNodeDisplayLabel 提取树节点当前显示文案（用于 Ctrl/Cmd+C 复制）。
+ */
+export const resolveSidebarNodeDisplayLabel = (
+  node: Pick<SidebarNodeLike, 'type' | 'title' | 'dataRef'> | null | undefined,
+): string => {
+  const objectGroupTitle = resolveV2ObjectGroupTitle(node);
+  if (objectGroupTitle) {
+    return objectGroupTitle.trim();
+  }
+  const directTitle = node?.title;
+  if (typeof directTitle === 'string' || typeof directTitle === 'number') {
+    return String(directTitle).trim();
+  }
+  const dataRef = node?.dataRef || {};
+  const fallback = dataRef.tableName
+      || dataRef.viewName
+      || dataRef.sequenceName
+      || dataRef.packageName
+      || dataRef.eventName
+      || dataRef.routineName
+      || dataRef.triggerName
+      || dataRef.dbName
+      || dataRef.name
+      || dataRef.path;
+  return String(fallback || '').trim();
+};
+
+export const buildSidebarSelectedDisplayLabels = (
+  nodes: Array<Pick<SidebarNodeLike, 'title' | 'dataRef'> | null | undefined>,
+): string[] => (
+  nodes
+    .map((node) => resolveSidebarNodeDisplayLabel(node))
+    .filter((label) => !!label)
+);
+
+export type SidebarTreeSelectKey = string | number | bigint;
+
+export const isSidebarTreeMultiSelectMouseEvent = (
+  event: Pick<MouseEvent, 'ctrlKey' | 'metaKey'> | null | undefined,
+): boolean => !!(event?.ctrlKey || event?.metaKey);
+
+/**
+ * resolveSidebarTreeSelectState 规范化树节点选择：
+ * - 普通单击：仅保留当前节点
+ * - Ctrl/Cmd + 单击：沿用 antd 多选结果
+ */
+export const resolveSidebarTreeSelectState = (input: {
+  keys: SidebarTreeSelectKey[];
+  node: SidebarNodeLike | null | undefined;
+  selectedNodes: SidebarNodeLike[];
+  nativeEvent?: Pick<MouseEvent, 'ctrlKey' | 'metaKey'> | null;
+}): { keys: SidebarTreeSelectKey[]; nodes: SidebarNodeLike[] } => {
+  if (input.keys.length === 0) {
+    return { keys: [], nodes: [] };
+  }
+  if (isSidebarTreeMultiSelectMouseEvent(input.nativeEvent)) {
+    return { keys: input.keys, nodes: input.selectedNodes };
+  }
+  const nodeKey = input.node?.key;
+  if (nodeKey === undefined || nodeKey === null) {
+    return { keys: input.keys, nodes: input.selectedNodes };
+  }
+  return {
+    keys: [nodeKey],
+    nodes: input.node ? [input.node] : [],
+  };
+};
+
+export const isSidebarTreeCopyShortcutKeyboardEvent = (
+  event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>,
+): boolean => {
+  const key = String(event.key || '').toLowerCase();
+  return key === 'c' && (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
+};
+
+export const isSidebarTreeClearSelectionKeyboardEvent = (
+  event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>,
+): boolean => (
+  String(event.key || '') === 'Escape'
+  && !event.ctrlKey
+  && !event.metaKey
+  && !event.altKey
+  && !event.shiftKey
+);
+
+export const isSidebarShortcutOverlayTarget = (target: EventTarget | null | undefined): boolean => {
+  if (!target || typeof target !== 'object') return false;
+  const element = target as HTMLElement;
+  return !!element.closest?.('.ant-modal-wrap, .ant-dropdown, .ant-select-dropdown, .ant-picker-dropdown, .ant-popover');
+};
+
+export const isEditableShortcutTarget = (target: EventTarget | null | undefined): boolean => {
+  if (!target || typeof target !== 'object') return false;
+  const element = target as HTMLElement;
+  return !!element.closest?.('input, textarea, [contenteditable="true"]');
+};
+
+export const isQueryEditorShortcutTarget = (target: Element | EventTarget | null | undefined): boolean => {
+  if (!target || typeof target !== 'object') return false;
+  const element = target as HTMLElement;
+  return !!element.closest?.('.monaco-editor, .gn-v2-query-editor, .gn-v2-query-editor-pane');
+};
+
+export const isSidebarTreeDdlShortcutNode = (
+  node: Pick<SidebarNodeLike, 'type'> | null | undefined,
+): boolean => node?.type === 'table';
+
+export const isSidebarTreeNewQueryShortcutNode = (
+  node: Pick<SidebarNodeLike, 'type'> | null | undefined,
+): boolean => node?.type === 'database' || node?.type === 'table';
+
+export const shouldHandleSidebarTreeShortcut = (input: {
+  selectedCount: number;
+  treeContainer: HTMLElement | null;
+  activeElement: Element | null;
+  eventTarget: EventTarget | null;
+  lastTreeInteractionAt: number;
+  requireSingleSelection?: boolean;
+  now?: number;
+}): boolean => {
+  if (input.selectedCount <= 0) return false;
+  if (input.requireSingleSelection && input.selectedCount !== 1) return false;
+  const container = input.treeContainer;
+  if (!container) return false;
+  const activeInTree = !!input.activeElement && container.contains(input.activeElement);
+  const targetInTree = !!input.eventTarget && container.contains(input.eventTarget as Node);
+  if (isQueryEditorShortcutTarget(input.activeElement) && !activeInTree && !targetInTree) {
+    return false;
+  }
+  const recentTreeInteraction = (input.now ?? Date.now()) - input.lastTreeInteractionAt < 8000;
+  return activeInTree || targetInTree || recentTreeInteraction;
+};
+
+export const shouldHandleSidebarTreeCopyShortcut = (input: {
+  selectedCount: number;
+  treeContainer: HTMLElement | null;
+  activeElement: Element | null;
+  eventTarget: EventTarget | null;
+  lastTreeInteractionAt: number;
+  now?: number;
+}): boolean => shouldHandleSidebarTreeShortcut(input);

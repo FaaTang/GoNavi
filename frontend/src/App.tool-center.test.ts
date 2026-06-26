@@ -246,7 +246,6 @@ describe('tool center menu entries', () => {
     const expectedHandlers = new Map([
       ['runQuery', 'gonavi:run-active-query'],
       ['focusSidebarSearch', 'gonavi:focus-sidebar-search'],
-      ['newQueryTab', 'handleNewQuery();'],
       ['switchToNextTab', 'switchActiveTabByOffset(1);'],
       ['switchToPreviousTab', 'switchActiveTabByOffset(-1);'],
       ['newConnection', 'handleCreateConnection();'],

@@ -376,12 +376,16 @@ describe('shortcut defaults', () => {
 
   it('uses Navicat-inspired defaults separately for macOS and Windows/Linux', () => {
     expect(DEFAULT_SHORTCUT_OPTIONS.runQuery).toEqual({
-      mac: { combo: 'Meta+R', enabled: true },
-      windows: { combo: 'Ctrl+R', enabled: true },
+      mac: { combo: 'Meta+Enter', enabled: true },
+      windows: { combo: 'Ctrl+Enter', enabled: true },
     });
-    expect(DEFAULT_SHORTCUT_OPTIONS.newQueryTab).toEqual({
-      mac: { combo: 'Meta+N', enabled: true },
-      windows: { combo: 'Ctrl+N', enabled: true },
+    expect(DEFAULT_SHORTCUT_OPTIONS.sidebarNewQuery).toEqual({
+      mac: { combo: 'Ctrl+Shift+Q', enabled: true },
+      windows: { combo: 'Ctrl+Shift+Q', enabled: true },
+    });
+    expect(DEFAULT_SHORTCUT_OPTIONS.sidebarViewTableDdl).toEqual({
+      mac: { combo: 'Ctrl+Q', enabled: true },
+      windows: { combo: 'Ctrl+Q', enabled: true },
     });
     expect(DEFAULT_SHORTCUT_OPTIONS.switchToNextTab).toEqual({
       mac: { combo: 'Ctrl+Tab', enabled: true },
@@ -419,35 +423,75 @@ describe('shortcut defaults', () => {
       mac: { combo: 'Ctrl+Shift+R', enabled: false },
       windows: { combo: 'Ctrl+Shift+R', enabled: false },
     });
-    expect(options.newQueryTab.windows.combo).toBe('Ctrl+N');
+    expect(options.sidebarNewQuery.windows.combo).toBe('Ctrl+Shift+Q');
+  });
+
+  it('drops legacy newQueryTab default binding in favor of sidebarNewQuery defaults', () => {
+    const options = sanitizeShortcutOptions({
+      newQueryTab: {
+        mac: { combo: 'Meta+N', enabled: false },
+        windows: { combo: 'Ctrl+N', enabled: true },
+      },
+    });
+
+    expect(options.sidebarNewQuery).toEqual({
+      mac: { combo: 'Ctrl+Shift+Q', enabled: false },
+      windows: { combo: 'Ctrl+Shift+Q', enabled: true },
+    });
+  });
+
+  it('upgrades sidebarNewQuery still using legacy Ctrl+N combo', () => {
+    const options = sanitizeShortcutOptions({
+      sidebarNewQuery: {
+        mac: { combo: 'Meta+N', enabled: true },
+        windows: { combo: 'Ctrl+N', enabled: true },
+      },
+    });
+
+    expect(options.sidebarNewQuery).toEqual({
+      mac: { combo: 'Ctrl+Shift+Q', enabled: true },
+      windows: { combo: 'Ctrl+Shift+Q', enabled: true },
+    });
+  });
+
+  it('preserves custom legacy newQueryTab binding as sidebarNewQuery', () => {
+    const options = sanitizeShortcutOptions({
+      newQueryTab: {
+        mac: { combo: 'Meta+Alt+Q', enabled: true },
+        windows: { combo: 'Ctrl+Alt+Q', enabled: true },
+      },
+    });
+
+    expect(options.sidebarNewQuery.mac.combo).toBe('Meta+Alt+Q');
+    expect(options.sidebarNewQuery.windows.combo).toBe('Ctrl+Alt+Q');
   });
 
   it('sanitizes partial platform shortcut bindings without losing defaults', () => {
     const options = sanitizeShortcutOptions({
-      newQueryTab: {
-        mac: { combo: 'Meta+N', enabled: false },
+      sidebarNewQuery: {
+        mac: { combo: 'Ctrl+Shift+Q', enabled: false },
       },
       sendAIChatMessage: {
         windows: { combo: 'A', enabled: true },
       },
     });
 
-    expect(options.newQueryTab.mac).toEqual({ combo: 'Meta+N', enabled: false });
-    expect(options.newQueryTab.windows).toEqual({ combo: 'Ctrl+N', enabled: true });
+    expect(options.sidebarNewQuery.mac).toEqual({ combo: 'Ctrl+Shift+Q', enabled: false });
+    expect(options.sidebarNewQuery.windows).toEqual({ combo: 'Ctrl+Shift+Q', enabled: true });
     expect(options.saveQuery.windows).toEqual({ combo: 'Ctrl+S', enabled: true });
     expect(options.sendAIChatMessage.windows).toEqual({ combo: 'Enter', enabled: true });
   });
 
   it('resolves and displays platform-specific bindings', () => {
     const options = sanitizeShortcutOptions({
-      newQueryTab: {
-        mac: { combo: 'Meta+N', enabled: true },
-        windows: { combo: 'Ctrl+N', enabled: true },
+      sidebarNewQuery: {
+        mac: { combo: 'Ctrl+Shift+Q', enabled: true },
+        windows: { combo: 'Ctrl+Shift+Q', enabled: true },
       },
     });
 
-    expect(resolveShortcutBinding(options, 'newQueryTab', 'mac')).toEqual({
-      combo: 'Meta+N',
+    expect(resolveShortcutBinding(options, 'sidebarNewQuery', 'mac')).toEqual({
+      combo: 'Ctrl+Shift+Q',
       enabled: true,
     });
     expect(getShortcutDisplayLabel('Meta+N', 'mac')).toBe('⌘N');
@@ -461,7 +505,7 @@ describe('shortcut defaults', () => {
     expect(getPrimaryShortcutDisplayLabel('C', 'windows')).toBe('Ctrl+C');
     expect(getPrimaryShortcutDisplayLabel('Enter', 'mac')).toBe('⌘↵');
     expect(getPrimaryShortcutDisplayLabel('Enter', 'windows')).toBe('Ctrl+Enter');
-    expect(resolveShortcutDisplay(options, 'newQueryTab', 'windows')).toBe('Ctrl+N');
+    expect(resolveShortcutDisplay(options, 'sidebarNewQuery', 'windows')).toBe('Ctrl+Shift+Q');
   });
 });
 

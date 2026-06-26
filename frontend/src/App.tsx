@@ -2608,9 +2608,6 @@ function App() {
               case 'focusSidebarSearch':
                   window.dispatchEvent(new CustomEvent('gonavi:focus-sidebar-search'));
                   break;
-              case 'newQueryTab':
-                  handleNewQuery();
-                  break;
               case 'switchToNextTab':
                   switchActiveTabByOffset(1);
                   break;
@@ -2647,7 +2644,7 @@ function App() {
       return () => {
           window.removeEventListener('keydown', handleGlobalShortcut, true);
       };
-  }, [activeShortcutPlatform, handleCreateConnection, handleManualResetWindowZoom, handleNewQuery, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
+  }, [activeShortcutPlatform, handleCreateConnection, handleManualResetWindowZoom, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
 
   useEffect(() => {
       if (!capturingShortcutAction) {

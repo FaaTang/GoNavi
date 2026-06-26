@@ -49,6 +49,17 @@ import {
   shouldClearSidebarActiveContextOnEmptySelect,
   shouldLoadSidebarNodeOnExpand,
   getV2RailConnectionGroupBadgeText,
+  buildSidebarSelectedDisplayLabels,
+  isEditableShortcutTarget,
+  isSidebarTreeCopyShortcutKeyboardEvent,
+  isSidebarTreeClearSelectionKeyboardEvent,
+  isSidebarShortcutOverlayTarget,
+  isSidebarTreeDdlShortcutNode,
+  isSidebarTreeNewQueryShortcutNode,
+  resolveSidebarNodeDisplayLabel,
+  resolveSidebarTreeSelectState,
+  shouldHandleSidebarTreeCopyShortcut,
+  shouldHandleSidebarTreeShortcut,
   type V2ExplorerFilter,
 } from './sidebar/sidebarHelpers';
 // 重新导出，保持外部测试文件的 `from './Sidebar'` 兼容
@@ -63,7 +74,24 @@ export {
   resolveV2ObjectGroupTitle,
   resolveSidebarTableNameForCopy,
   parseV2CommandSearchQuery,
+  buildSidebarSelectedDisplayLabels,
+  isEditableShortcutTarget,
+  isSidebarTreeCopyShortcutKeyboardEvent,
+  isSidebarTreeClearSelectionKeyboardEvent,
+  isSidebarShortcutOverlayTarget,
+  isSidebarTreeDdlShortcutNode,
+  isSidebarTreeNewQueryShortcutNode,
+  isSidebarTreeMultiSelectMouseEvent,
+  resolveSidebarNodeDisplayLabel,
+  resolveSidebarTreeSelectState,
+  shouldHandleSidebarTreeCopyShortcut,
+  shouldHandleSidebarTreeShortcut,
 } from './sidebar/sidebarHelpers';
+import SidebarDdlModal from './sidebar/SidebarDdlModal';
+import {
+  buildNewQueryTabFromSidebarNode,
+  fetchTableDdlFromSidebarNode,
+} from './sidebar/sidebarShortcutActions';
 import React, { useEffect, useState, useMemo, useRef, useCallback, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { Tree, message, Dropdown, MenuProps, Input, Button, Form, Popover, Tooltip } from 'antd';
@@ -140,7 +168,7 @@ import {
     buildBatchTableExportWorkbenchTab,
 } from '../utils/tableExportTab';
 import { useExportProgressDialog } from './ExportProgressModal';
-import { getShortcutPlatform, resolveShortcutDisplay } from '../utils/shortcuts';
+import { getShortcutPlatform, isShortcutMatch, resolveShortcutBinding, resolveShortcutDisplay } from '../utils/shortcuts';
 import { buildExternalSQLRootNode, type ExternalSQLTreeNode } from '../utils/externalSqlTree';
 import { t } from '../i18n';
 import MessagePublishModal from './MessagePublishModal';
@@ -511,7 +539,16 @@ const Sidebar: React.FC<{
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+  const selectedKeysRef = useRef<React.Key[]>([]);
   const selectedNodesRef = useRef<any[]>([]);
+  const sidebarTreeCopyHotkeyArmedAtRef = useRef(0);
+  const sidebarDdlRequestSeqRef = useRef(0);
+  const [sidebarDdlModalState, setSidebarDdlModalState] = useState({
+    open: false,
+    tableName: '',
+    ddlText: '',
+    ddlLoading: false,
+  });
   const loadingNodesRef = useRef<Set<string>>(new Set());
   const databaseTreeTouchedAtRef = useRef<Record<string, number>>({});
   const pruneLoadedDatabaseTreesRef = useRef<() => void>(() => {});
@@ -548,6 +585,7 @@ const Sidebar: React.FC<{
       const snapshot = treeDragSelectionSnapshotRef.current;
       treeDragSelectSuppressUntilRef.current = Date.now() + 1000;
       setSelectedKeys(snapshot.selectedKeys);
+      selectedKeysRef.current = snapshot.selectedKeys;
       selectedNodesRef.current = snapshot.selectedNodes;
       setActiveContext(snapshot.activeContext);
   }, [setActiveContext]);
@@ -642,6 +680,19 @@ const Sidebar: React.FC<{
   const [treeViewportWidth, setTreeViewportWidth] = useState(0);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const treeRef = useRef<any>(null);
+
+  useEffect(() => {
+      selectedKeysRef.current = selectedKeys;
+  }, [selectedKeys]);
+
+  const focusSidebarTreeContainer = useCallback(() => {
+      treeContainerRef.current?.focus?.();
+  }, []);
+
+  const markSidebarTreeInteraction = useCallback(() => {
+      sidebarTreeCopyHotkeyArmedAtRef.current = Date.now();
+      focusSidebarTreeContainer();
+  }, [focusSidebarTreeContainer]);
   const treeDataRef = useRef<TreeNode[]>([]);
   const externalSQLDirectoryTreesRef = useRef<Record<string, ExternalSQLTreeEntry[]>>({});
   const findTreeNodeByKeyRef = useRef<(nodes: TreeNode[], targetKey: React.Key) => TreeNode | null>(() => null);
@@ -1222,6 +1273,7 @@ const Sidebar: React.FC<{
           setSearchValue('');
           mergeExpandedTreeKeys(path.slice(0, -1));
           setSelectedKeys([targetKey]);
+          selectedKeysRef.current = [targetKey];
           selectedNodesRef.current = targetNode ? [targetNode] : [];
           const connectionId = String(request.connectionId || activeContext?.connectionId || activeTab?.connectionId || '').trim();
           const dbName = String(request.dbName || activeContext?.dbName || activeTab?.dbName || '').trim();
@@ -1308,6 +1360,7 @@ const Sidebar: React.FC<{
       setSearchValue('');
       mergeExpandedTreeKeys(path.slice(0, -1));
       setSelectedKeys([targetKey]);
+      selectedKeysRef.current = [targetKey];
       selectedNodesRef.current = targetNode ? [targetNode] : [];
       setActiveContext({ connectionId: request.connectionId, dbName: request.dbName });
       scrollSidebarTreeToKey(targetKey);
@@ -1463,10 +1516,18 @@ const Sidebar: React.FC<{
       if (isTreeDragging) {
           return;
       }
-      setSelectedKeys(keys);
-      selectedNodesRef.current = info.selectedNodes || [];
+      const { keys: nextKeys, nodes: nextNodes } = resolveSidebarTreeSelectState({
+          keys,
+          node: info?.node,
+          selectedNodes: info?.selectedNodes || [],
+          nativeEvent: info?.nativeEvent,
+      });
+      setSelectedKeys(nextKeys);
+      selectedKeysRef.current = nextKeys;
+      selectedNodesRef.current = nextNodes;
+      markSidebarTreeInteraction();
 
-      if (keys.length === 0) {
+      if (nextKeys.length === 0) {
           if (shouldClearSidebarActiveContextOnEmptySelect(isV2Ui)) {
               setActiveContext(null);
           }
@@ -1540,11 +1601,15 @@ const Sidebar: React.FC<{
       const nodeConnectionId = resolveSidebarNodeConnectionId(node, connectionIds);
       if (type === 'connection') {
           setSelectedKeys([nodeKey]);
+          selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
+          markSidebarTreeInteraction();
           setActiveContext({ connectionId: nodeKey, dbName: '' });
       } else if (type === 'database') {
           setSelectedKeys([nodeKey]);
+          selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
+          markSidebarTreeInteraction();
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
@@ -2485,6 +2550,288 @@ const Sidebar: React.FC<{
   const v2CommandSearchLabel = t('sidebar.command_search.label');
   const v2CommandSearchPlaceholder = t('sidebar.command_search.placeholder');
 
+  const visibleTreeDataRef = useRef<TreeNode[]>([]);
+  useEffect(() => {
+      visibleTreeDataRef.current = isV2Ui ? v2VisibleTreeData : displayTreeData;
+  }, [displayTreeData, isV2Ui, v2VisibleTreeData]);
+
+  const getSidebarTreeSelectedCount = useCallback((): number => (
+      Math.max(selectedKeysRef.current.length, selectedNodesRef.current.length)
+  ), []);
+
+  const resolveSelectedSidebarDisplayLabels = useCallback((): string[] => {
+      const selectedNodesFromRef = selectedNodesRef.current;
+      if (selectedNodesFromRef.length > 0) {
+          const labelsFromRef = buildSidebarSelectedDisplayLabels(selectedNodesFromRef);
+          if (labelsFromRef.length > 0) {
+              return labelsFromRef;
+          }
+      }
+      const selectedNodesFromKeys = selectedKeysRef.current
+          .map((key) => findTreeNodeByKeyRef.current(visibleTreeDataRef.current, key)
+              || findTreeNodeByKeyRef.current(treeDataRef.current, key))
+          .filter(Boolean);
+      return buildSidebarSelectedDisplayLabels(
+          selectedNodesFromKeys.length > 0 ? selectedNodesFromKeys : selectedNodesFromRef,
+      );
+  }, []);
+
+  const resolveSidebarTreeSingleSelectedNode = useCallback((): TreeNode | null => {
+      if (selectedKeysRef.current.length !== 1) {
+          return null;
+      }
+      const selectedNodesFromRef = selectedNodesRef.current;
+      if (selectedNodesFromRef.length === 1 && selectedNodesFromRef[0]) {
+          return selectedNodesFromRef[0];
+      }
+      const key = selectedKeysRef.current[0];
+      return findTreeNodeByKeyRef.current(visibleTreeDataRef.current, key)
+          || findTreeNodeByKeyRef.current(treeDataRef.current, key)
+          || null;
+  }, []);
+
+  const triggerSidebarTreeCopy = useCallback((): boolean => {
+      const labels = resolveSelectedSidebarDisplayLabels();
+      if (labels.length === 0) {
+          return false;
+      }
+      void navigator.clipboard.writeText(labels.join('\n'))
+          .then(() => {
+              message.success(t('data_grid.message.copied_to_clipboard'));
+          })
+          .catch((error) => {
+              console.error(error);
+              message.error(String(error?.message || error));
+          });
+      return true;
+  }, [resolveSelectedSidebarDisplayLabels]);
+
+  const shouldSidebarTreeKeyboardShortcut = useCallback((eventTarget: EventTarget | null, options?: {
+      requireSingleSelection?: boolean;
+  }) => (
+      shouldHandleSidebarTreeShortcut({
+          selectedCount: getSidebarTreeSelectedCount(),
+          treeContainer: treeContainerRef.current,
+          activeElement: document.activeElement,
+          eventTarget,
+          lastTreeInteractionAt: sidebarTreeCopyHotkeyArmedAtRef.current,
+          requireSingleSelection: options?.requireSingleSelection,
+      })
+  ), [getSidebarTreeSelectedCount]);
+
+  const closeSidebarDdlModal = useCallback(() => {
+      sidebarDdlRequestSeqRef.current += 1;
+      setSidebarDdlModalState({
+          open: false,
+          tableName: '',
+          ddlText: '',
+          ddlLoading: false,
+      });
+  }, []);
+
+  const copySidebarDdlToClipboard = useCallback(() => {
+      const ddlText = sidebarDdlModalState.ddlText.trim();
+      if (!ddlText) {
+          return;
+      }
+      void navigator.clipboard.writeText(ddlText)
+          .then(() => {
+              message.success(t('data_grid.message.copied_to_clipboard'));
+          })
+          .catch((error) => {
+              console.error(error);
+              message.error(String(error?.message || error));
+          });
+  }, [sidebarDdlModalState.ddlText, t]);
+
+  const openSidebarTableDdlModal = useCallback(async (node: TreeNode) => {
+      const tableName = String(node.dataRef?.tableName || node.title || '').trim();
+      const requestSeq = ++sidebarDdlRequestSeqRef.current;
+      setSidebarDdlModalState({
+          open: true,
+          tableName,
+          ddlText: '',
+          ddlLoading: true,
+      });
+      const result = await fetchTableDdlFromSidebarNode(node);
+      if (requestSeq !== sidebarDdlRequestSeqRef.current) {
+          return;
+      }
+      if ('ddlText' in result) {
+          setSidebarDdlModalState({
+              open: true,
+              tableName: result.tableName,
+              ddlText: result.ddlText,
+              ddlLoading: false,
+          });
+          return;
+      }
+      setSidebarDdlModalState((current) => ({
+          ...current,
+          ddlLoading: false,
+      }));
+      if (result.error === 'missing_context') {
+          message.error(t('data_grid.message.ddl_missing_context'));
+          return;
+      }
+      message.error(result.message || t('data_grid.message.ddl_load_failed'));
+  }, [t]);
+
+  const triggerSidebarTreeNewQueryShortcut = useCallback((): boolean => {
+      const node = resolveSidebarTreeSingleSelectedNode();
+      if (!node || !isSidebarTreeNewQueryShortcutNode(node)) {
+          return false;
+      }
+      const tab = buildNewQueryTabFromSidebarNode(node, t);
+      if (!tab) {
+          return false;
+      }
+      addTab(tab);
+      return true;
+  }, [addTab, resolveSidebarTreeSingleSelectedNode, t]);
+
+  const triggerSidebarTreeDdlShortcut = useCallback((): boolean => {
+      const node = resolveSidebarTreeSingleSelectedNode();
+      if (!node || !isSidebarTreeDdlShortcutNode(node)) {
+          return false;
+      }
+      void openSidebarTableDdlModal(node);
+      return true;
+  }, [openSidebarTableDdlModal, resolveSidebarTreeSingleSelectedNode]);
+
+  const handleSidebarTreeKeyboardShortcuts = useCallback((event: KeyboardEvent) => {
+      if (!shouldSidebarTreeKeyboardShortcut(event.target, { requireSingleSelection: true })) {
+          return false;
+      }
+      const sidebarNewQueryBinding = resolveShortcutBinding(shortcutOptions, 'sidebarNewQuery', activeShortcutPlatform);
+      if (sidebarNewQueryBinding.enabled && isShortcutMatch(event, sidebarNewQueryBinding.combo)) {
+          return triggerSidebarTreeNewQueryShortcut();
+      }
+      const sidebarViewTableDdlBinding = resolveShortcutBinding(shortcutOptions, 'sidebarViewTableDdl', activeShortcutPlatform);
+      if (sidebarViewTableDdlBinding.enabled && isShortcutMatch(event, sidebarViewTableDdlBinding.combo)) {
+          return triggerSidebarTreeDdlShortcut();
+      }
+      return false;
+  }, [
+      activeShortcutPlatform,
+      shortcutOptions,
+      shouldSidebarTreeKeyboardShortcut,
+      triggerSidebarTreeDdlShortcut,
+      triggerSidebarTreeNewQueryShortcut,
+  ]);
+
+  const clearSidebarTreeSelection = useCallback(() => {
+      setSelectedKeys([]);
+      selectedKeysRef.current = [];
+      selectedNodesRef.current = [];
+      if (shouldClearSidebarActiveContextOnEmptySelect(isV2Ui)) {
+          setActiveContext(null);
+      }
+  }, [isV2Ui, setActiveContext]);
+
+  const shouldSkipSidebarTreeKeyboardShortcut = useCallback((event: Pick<KeyboardEvent, 'target'>) => {
+      if (isV2CommandSearchOpen || contextMenu) {
+          return true;
+      }
+      if (isEditableShortcutTarget(event.target)) {
+          return true;
+      }
+      if (isSidebarShortcutOverlayTarget(event.target)) {
+          return true;
+      }
+      return false;
+  }, [contextMenu, isV2CommandSearchOpen]);
+
+  const handleSidebarTreeKeyboardShortcut = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (shouldSkipSidebarTreeKeyboardShortcut(event.nativeEvent)) {
+          return;
+      }
+      if (!shouldSidebarTreeKeyboardShortcut(event.target)) {
+          return;
+      }
+      if (isSidebarTreeClearSelectionKeyboardEvent(event.nativeEvent)) {
+          if (getSidebarTreeSelectedCount() <= 0) {
+              return;
+          }
+          clearSidebarTreeSelection();
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+      }
+      if (!isSidebarTreeCopyShortcutKeyboardEvent(event.nativeEvent)) {
+          if (handleSidebarTreeKeyboardShortcuts(event.nativeEvent)) {
+              event.preventDefault();
+              event.stopPropagation();
+          }
+          return;
+      }
+      if (!triggerSidebarTreeCopy()) {
+          return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+  }, [
+      clearSidebarTreeSelection,
+      getSidebarTreeSelectedCount,
+      handleSidebarTreeKeyboardShortcuts,
+      shouldSidebarTreeKeyboardShortcut,
+      shouldSkipSidebarTreeKeyboardShortcut,
+      triggerSidebarTreeCopy,
+  ]);
+
+  useEffect(() => {
+      const handleSidebarNewQueryEvent = () => {
+          triggerSidebarTreeNewQueryShortcut();
+      };
+      window.addEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent);
+      return () => {
+          window.removeEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent);
+      };
+  }, [triggerSidebarTreeNewQueryShortcut]);
+
+  useEffect(() => {
+      const onWindowKeyDown = (event: KeyboardEvent) => {
+          if (shouldSkipSidebarTreeKeyboardShortcut(event)) {
+              return;
+          }
+          if (!shouldSidebarTreeKeyboardShortcut(event.target)) {
+              return;
+          }
+          if (isSidebarTreeClearSelectionKeyboardEvent(event)) {
+              if (getSidebarTreeSelectedCount() <= 0) {
+                  return;
+              }
+              clearSidebarTreeSelection();
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+          }
+          if (!isSidebarTreeCopyShortcutKeyboardEvent(event)) {
+              if (handleSidebarTreeKeyboardShortcuts(event)) {
+                  event.preventDefault();
+                  event.stopPropagation();
+              }
+              return;
+          }
+          if (!triggerSidebarTreeCopy()) {
+              return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+      };
+      window.addEventListener('keydown', onWindowKeyDown, true);
+      return () => {
+          window.removeEventListener('keydown', onWindowKeyDown, true);
+      };
+  }, [
+      clearSidebarTreeSelection,
+      getSidebarTreeSelectedCount,
+      handleSidebarTreeKeyboardShortcuts,
+      shouldSidebarTreeKeyboardShortcut,
+      shouldSkipSidebarTreeKeyboardShortcut,
+      triggerSidebarTreeCopy,
+  ]);
+
   const v2CommandSearchPanelProps: SidebarSearchPanelProps<V2CommandSearchItem> = {
     isOpen: isV2CommandSearchOpen,
     searchValue: v2CommandSearchValue,
@@ -2805,15 +3152,24 @@ const Sidebar: React.FC<{
         <div
             ref={treeContainerRef}
             className={`sidebar-tree-scroll-shell${isV2Ui ? ' gn-v2-explorer-tree-shell' : ''}`}
+            tabIndex={-1}
+            onMouseDown={(event) => {
+                if ((event.target as HTMLElement | null)?.closest('.ant-tree')) {
+                    markSidebarTreeInteraction();
+                }
+            }}
+            onKeyDown={handleSidebarTreeKeyboardShortcut}
             style={{
                 flex: 1,
                 overflow: 'hidden',
                 minHeight: 0,
+                outline: 'none',
             }}
         >
             <div className="sidebar-tree-scroll-content">
                 <Tree
                     ref={treeRef}
+                    multiple
                     showIcon
                     draggable={{
                         icon: false,
@@ -3030,6 +3386,16 @@ const Sidebar: React.FC<{
             defaultDestination={messagePublishTarget?.destination || ''}
             onCancel={() => setMessagePublishTarget(null)}
             onSuccess={handleMessagePublishSuccess}
+        />
+        <SidebarDdlModal
+            open={sidebarDdlModalState.open}
+            tableName={sidebarDdlModalState.tableName}
+            ddlText={sidebarDdlModalState.ddlText}
+            ddlLoading={sidebarDdlModalState.ddlLoading}
+            darkMode={darkMode}
+            onClose={closeSidebarDdlModal}
+            onCopy={copySidebarDdlToClipboard}
+            translate={t}
         />
     </div>
   );

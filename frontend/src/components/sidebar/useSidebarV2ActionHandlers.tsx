@@ -7,10 +7,9 @@ import { t } from '../../i18n';
 import type { SavedConnection } from '../../types';
 import { buildRpcConnectionConfig } from '../../utils/connectionRpcConfig';
 import { resolveConnectionAccentColor, resolveConnectionIconType } from '../../utils/connectionVisual';
-import { buildTableSelectQuery } from '../../utils/objectQueryTemplates';
+import { buildNewQueryTabFromSidebarNode } from './sidebarShortcutActions';
 import { DBReleaseConnection } from '../../../wailsjs/go/app/App';
 import { getDbIcon } from '../DatabaseIcons';
-import { getMetadataDialect } from './sidebarMetadataLoaders';
 import {
   type V2DatabaseContextMenuActionKey,
   type V2ConnectionGroupContextMenuActionKey,
@@ -165,16 +164,10 @@ export const useSidebarV2ActionHandlers = ({
         openDesign(node, 'columns', false);
         return;
       case 'new-query': {
-        const tableName = String(node.dataRef?.tableName || '').trim();
-        const queryTemplate = buildTableSelectQuery(getMetadataDialect(node.dataRef as SavedConnection), tableName);
-        addTab({
-          id: `query-${Date.now()}`,
-          title: t('query.new'),
-          type: 'query',
-          connectionId: node.dataRef.id,
-          dbName: node.dataRef.dbName,
-          query: queryTemplate,
-        });
+        const tab = buildNewQueryTabFromSidebarNode(node, t);
+        if (tab) {
+          addTab(tab);
+        }
         return;
       }
       case 'publish-message':
@@ -292,14 +285,10 @@ export const useSidebarV2ActionHandlers = ({
   };
 
   const openDatabaseQuery = (node: any) => {
-    addTab({
-      id: `query-${Date.now()}`,
-      title: t('sidebar.tab.new_query_database', { database: node.title }),
-      type: 'query',
-      connectionId: node.dataRef.id,
-      dbName: node.title,
-      query: '',
-    });
+    const tab = buildNewQueryTabFromSidebarNode(node, t);
+    if (tab) {
+      addTab(tab);
+    }
   };
 
   const handleV2DatabaseContextMenuAction = (node: any, action: V2DatabaseContextMenuActionKey) => {
