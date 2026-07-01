@@ -24,10 +24,8 @@ type CatalogAlias = {
 };
 
 const NON_LEGACY_ALIAS_LANGUAGES = new Set<SupportedLanguage>([
-  "zh-TW",
-  "ja-JP",
-  "de-DE",
-  "ru-RU",
+  "zh-CN",
+  "en-US",
 ]);
 
 const catalogAliases: Record<string, CatalogAlias> = {
@@ -192,6 +190,7 @@ export {
   DEFAULT_LANGUAGE,
   LANGUAGE_PREFERENCES,
   SUPPORTED_LANGUAGES,
+  normalizeLanguage,
   type I18nParams,
   type LanguagePreference,
   type SupportedLanguage,

@@ -100,10 +100,10 @@ const assertSourceDoesNotInlineCatalogValues = (
 };
 
 describe("i18n catalog", () => {
-  it("loads six complete catalogs with consistent base keys", () => {
+  it("loads two complete catalogs with consistent base keys", () => {
     const baseKeys = getCatalogKeys("en-US");
 
-    expect(SUPPORTED_LANGUAGES).toHaveLength(6);
+    expect(SUPPORTED_LANGUAGES).toHaveLength(2);
     expect(baseKeys).toContain("common.cancel");
     expect(baseKeys).toContain("settings.language.title");
 
@@ -243,6 +243,8 @@ describe("i18n catalog", () => {
       "app.shortcuts.action.switchToNextTab.label",
       "app.shortcuts.action.switchToPreviousTab.description",
       "app.shortcuts.action.switchToPreviousTab.label",
+      "app.shortcuts.action.closeCurrentTab.description",
+      "app.shortcuts.action.closeCurrentTab.label",
       "app.shortcuts.action.toggleAIPanel.description",
       "app.shortcuts.action.toggleAIPanel.label",
       "app.shortcuts.action.toggleLogPanel.description",
@@ -491,7 +493,7 @@ describe("i18n catalog", () => {
     expect(t("zh-CN", "data_grid.secondary.row_count", { count: "<raw-count>" })).toContain("<raw-count>");
     expect(t("zh-CN", "data_grid.secondary.pending_changes", { count: "<raw-count>" })).toContain("<raw-count>");
     expect(t("zh-CN", "data_grid.secondary.view_ddl")).toContain("DDL");
-    expect(t("ja-JP", "data_grid.secondary.er_diagram")).toContain("ER");
+    expect(t("en-US", "data_grid.secondary.er_diagram")).toContain("ER");
     expect(t("zh-CN", "data_grid.record_view.json_record_count", { count: "<raw-count>" })).toContain("<raw-count>");
     expect(t("en-US", "data_grid.record_view.record_position", { current: "<raw-current>", total: "<raw-total>" })).toContain("<raw-current>");
     expect(t("en-US", "data_grid.record_view.record_position", { current: "<raw-current>", total: "<raw-total>" })).toContain("<raw-total>");
@@ -650,7 +652,7 @@ describe("i18n catalog", () => {
     expect(t("en-US", "data_grid.message.commit_failed", { detail: "<raw-detail>" })).toContain("<raw-detail>");
     expect(t("en-US", "data_grid.message.rollback_failed", { detail: "<raw-rollback-detail>" })).toContain("<raw-rollback-detail>");
     expect(t("zh-CN", "data_grid.message.preview_sql_failed_detail", { detail: "<raw-preview-error>" })).toContain("<raw-preview-error>");
-    expect(t("de-DE", "data_grid.copy_sql.error.missing_table_name", { mode: "UPDATE" })).toContain("UPDATE");
+    expect(t("en-US", "data_grid.copy_sql.error.missing_table_name", { mode: "UPDATE" })).toContain("UPDATE");
   });
 
   it("keeps DataGrid Preview SQL Modal chrome in catalogs while preserving raw SQL operation labels", () => {
@@ -1046,7 +1048,7 @@ describe("i18n catalog", () => {
     const source = readQueryEditorSource();
     const handleRunSource = sliceBetween(
       source,
-      "const handleRun = async () => {",
+      "const handleRunWithSql = useCallback(async (executableSQL: string) => {",
       "  const handleCancel = async () => {",
     );
     const handleCancelSource = sliceBetween(
@@ -1084,7 +1086,7 @@ describe("i18n catalog", () => {
     const source = readQueryEditorSource();
     const handleRunSource = sliceBetween(
       source,
-      "const handleRun = async () => {",
+      "const handleRunWithSql = useCallback(async (executableSQL: string) => {",
       "  const handleCancel = async () => {",
     );
 
@@ -1111,7 +1113,7 @@ describe("i18n catalog", () => {
     const source = readQueryEditorSource();
     const handleRunSource = sliceBetween(
       source,
-      "const handleRun = async () => {",
+      "const handleRunWithSql = useCallback(async (executableSQL: string) => {",
       "  const handleCancel = async () => {",
     );
 
@@ -1136,7 +1138,7 @@ describe("i18n catalog", () => {
     const handleReloadSource = sliceBetween(
       source,
       "  const handleReloadResult = async (resultKey: string, sql: string) => {",
-      "  const handleRun = async () => {",
+      "  const handleRunWithSql = useCallback(async (executableSQL: string) => {",
     );
 
     for (const language of SUPPORTED_LANGUAGES) {
@@ -1642,19 +1644,17 @@ describe("i18n catalog", () => {
     });
   });
 
-  it("keeps builtin function completion action labels localized beyond the english baseline in ja-JP de-DE and ru-RU", () => {
+  it("keeps builtin function completion action labels localized in zh-CN beyond the english baseline", () => {
     const actionKeys = [
       "query_editor.completion.action.absolute_value",
       "query_editor.completion.action.bitmap_construction",
       "query_editor.completion.action.group_concatenation",
     ] as const;
 
-    for (const language of ["ja-JP", "de-DE", "ru-RU"] as const) {
-      for (const key of actionKeys) {
-        expect(catalogs[language]).toHaveProperty(key);
-        expect(catalogs[language][key]).toBeTruthy();
-        expect(catalogs[language][key]).not.toBe(catalogs["en-US"][key]);
-      }
+    for (const key of actionKeys) {
+      expect(catalogs["zh-CN"]).toHaveProperty(key);
+      expect(catalogs["zh-CN"][key]).toBeTruthy();
+      expect(catalogs["zh-CN"][key]).not.toBe(catalogs["en-US"][key]);
     }
   });
 

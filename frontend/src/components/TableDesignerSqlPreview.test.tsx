@@ -31,12 +31,8 @@ const tableDesignerSqlPreviewChangeKeys = [
 
 const sharedI18nDir = new URL('../../../shared/i18n/', import.meta.url);
 const sharedI18nLocaleFiles = [
-  'de-DE.json',
   'en-US.json',
-  'ja-JP.json',
-  'ru-RU.json',
   'zh-CN.json',
-  'zh-TW.json',
 ] as const;
 
 const sliceBetween = (source: string, start: string, end: string): string => {

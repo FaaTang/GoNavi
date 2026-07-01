@@ -1,10 +1,10 @@
 import Modal from './common/ResizableDraggableModal';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Button, Dropdown, message, Tabs, Tooltip } from 'antd';
+import { Button, Dropdown, Input, message, Tabs, Tooltip } from 'antd';
 import { AppstoreOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import type { MenuProps, TabsProps } from 'antd';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import type { DragStartEvent, DragEndEvent, DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
@@ -25,7 +25,7 @@ import JVMAuditViewer from './JVMAuditViewer';
 import JVMDiagnosticConsole from './JVMDiagnosticConsole';
 import JVMMonitoringDashboard from './JVMMonitoringDashboard';
 import SqlAnalysisWorkbench from './explain/SqlAnalysisWorkbench';
-import type { TabData } from '../types';
+import type { SavedQuery, TabData } from '../types';
 import { t } from '../i18n';
 import {
   buildTabDisplayModel,
@@ -36,13 +36,18 @@ import {
 import { ReadSQLFile, WriteSQLFile } from '../../wailsjs/go/app/App';
 import {
   getSQLFileTabPath,
-  hasSQLFileTabUnsavedChanges,
   isSQLFileMissingErrorMessage,
   isSQLFileMissingReadResult,
-  isSQLFileQueryTab,
   normalizeSQLFileReadContent,
 } from '../utils/sqlFileTabDirty';
-import { clearSQLFileTabDraft, getSQLFileTabDraft } from '../utils/sqlFileTabDrafts';
+import { clearQueryTabDraft, flushQueryTabDrafts, getQueryTabDraft } from '../utils/sqlFileTabDrafts';
+import { isLocalizedUntitledQueryTitle } from '../utils/queryTabTitle';
+import {
+  getQueryTabCloseLabel,
+  hasQueryTabUnsavedChanges,
+  isClosableQueryTab,
+  resolveQueryTabSavedQueryId,
+} from '../utils/queryTabDirty';
 
 const getTabKindLabel = (tab: TabData): string => {
   if (tab.type === 'query') return t('tab_manager.kind_badge.query');
@@ -67,6 +72,94 @@ const getTabKindLabel = (tab: TabData): string => {
 };
 
 export const TAB_WORKBENCH_CLASS_NAME = 'tab-workbench';
+
+type DirtyQueryTabEntry = {
+  tab: TabData;
+  draft: string;
+};
+
+const promptQuerySaveName = (suggestedName: string): Promise<string | null> => (
+  new Promise((resolve) => {
+    let nextName = suggestedName;
+    const modal = Modal.confirm({
+      title: t('tab_manager.query_close.name_required_title'),
+      content: (
+        <Input
+          autoFocus
+          defaultValue={suggestedName}
+          placeholder={t('query_editor.save_modal.name')}
+          onChange={(event) => {
+            nextName = event.target.value;
+          }}
+        />
+      ),
+      okText: t('common.save'),
+      cancelText: t('common.cancel'),
+      onOk: () => {
+        const trimmed = String(nextName || '').trim();
+        if (!trimmed) {
+          void message.warning(t('tab_manager.query_close.name_empty'));
+          return Promise.reject(new Error('empty-query-name'));
+        }
+        resolve(trimmed);
+        return Promise.resolve();
+      },
+      onCancel: () => resolve(null),
+    });
+    void modal;
+  })
+);
+
+const saveDirtyQueryTab = async (
+  entry: DirtyQueryTabEntry,
+  savedQueries: SavedQuery[],
+  saveQueryFn: (query: SavedQuery) => Promise<SavedQuery>,
+): Promise<void> => {
+  const { tab, draft } = entry;
+  const filePath = getSQLFileTabPath(tab);
+  if (filePath) {
+    const res = await WriteSQLFile(filePath, draft);
+    if (!res.success) {
+      throw new Error(t('tab_manager.query_close.save_failed', {
+        title: getQueryTabCloseLabel(tab, savedQueries),
+        detail: res.message || t('tab_manager.sql_file_close.unknown_error'),
+      }));
+    }
+    return;
+  }
+
+  const savedQueryId = resolveQueryTabSavedQueryId(tab, savedQueries);
+  const existing = savedQueryId
+    ? savedQueries.find((item) => item.id === savedQueryId) || null
+    : null;
+  if (existing) {
+    await saveQueryFn({
+      ...existing,
+      sql: draft,
+      connectionId: tab.connectionId || existing.connectionId,
+      dbName: tab.dbName || existing.dbName || '',
+    });
+    return;
+  }
+
+  let name = isLocalizedUntitledQueryTitle(tab.title) ? '' : String(tab.title || '').trim();
+  if (!name) {
+    const promptedName = await promptQuerySaveName('');
+    if (!promptedName) {
+      throw new Error('cancelled-query-save');
+    }
+    name = promptedName;
+  }
+
+  await saveQueryFn({
+    id: String(tab.id || '').trim() || `query-${Date.now()}`,
+    name,
+    sql: draft,
+    connectionId: tab.connectionId,
+    dbName: tab.dbName || '',
+    createdAt: Date.now(),
+  });
+};
 
 const getTabKindTooltipLabel = (tab: TabData): string => {
   if (tab.type === 'query') return t('tab_manager.hover.kind.query');
@@ -129,6 +222,19 @@ const getCloseTabsToRightIds = (tabs: TabData[], id: string): string[] => {
 export const stopTabHoverDragPropagation = (event: React.SyntheticEvent<HTMLElement>) => {
   event.stopPropagation();
 };
+
+export const stopTabClosePointerActivation = (event: React.SyntheticEvent<HTMLElement>) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+type TabDragActivatorContextValue = {
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+};
+
+const TabDragActivatorContext = React.createContext<TabDragActivatorContextValue | null>(null);
 
 export const resolveTabHoverOpen = (isHoverInfoOpen: boolean, isTabMenuOpen: boolean) =>
   isHoverInfoOpen && !isTabMenuOpen;
@@ -276,6 +382,14 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
 }) => {
   const [isHoverInfoOpen, setIsHoverInfoOpen] = useState(false);
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
+  const dragActivator = React.useContext(TabDragActivatorContext);
+  const dragHandleProps = dragActivator
+    ? {
+        ref: dragActivator.setActivatorNodeRef,
+        ...dragActivator.attributes,
+        ...dragActivator.listeners,
+      }
+    : {};
 
   const handleTabLabelContextMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault();
@@ -294,46 +408,42 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
 
   const tabDisplayPartCount = displayModel.primaryParts.length + displayModel.secondaryParts.length;
   const showSecondaryLine = isV2Ui && displayModel.layout === 'double' && Boolean(displayModel.secondaryText);
-  const labelNode = (
-    <span
-      className={`tab-dnd-label${isV2Ui ? ' gn-v2-tab-label' : ''}${showSecondaryLine ? ' gn-v2-tab-label-double' : ''}${tabDisplayPartCount >= 4 ? ' gn-v2-tab-label-rich' : ''}`}
-      onContextMenu={handleTabLabelContextMenu}
-      title={isV2Ui ? undefined : displayTitle}
-    >
-      {isV2Ui ? (
-        <span className="gn-v2-tab-label-content">
-          <span className="gn-v2-tab-label-main tab-title-text">
-            {displayModel.primaryParts.length > 0
-              ? displayModel.primaryParts.map(renderV2TabDisplayPart)
-              : displayModel.primaryText}
-          </span>
-          {showSecondaryLine ? (
-            <span className="gn-v2-tab-label-secondary" title={displayModel.secondaryText}>
-              {displayModel.secondaryText}
-            </span>
-          ) : null}
+  const tabTitleNode = isV2Ui ? (
+    <span className="gn-v2-tab-label-content tab-dnd-handle" {...dragHandleProps}>
+      <span className="gn-v2-tab-label-main tab-title-text">
+        {displayModel.primaryParts.length > 0
+          ? displayModel.primaryParts.map(renderV2TabDisplayPart)
+          : displayModel.primaryText}
+      </span>
+      {showSecondaryLine ? (
+        <span className="gn-v2-tab-label-secondary" title={displayModel.secondaryText}>
+          {displayModel.secondaryText}
         </span>
-      ) : (
-        <span className="tab-title-text">{displayTitle}</span>
-      )}
-      {isV2Ui && onClose ? (
-        <button
-          type="button"
-          className="gn-v2-tab-close"
-          aria-label={t('tab_manager.close_aria', { title: displayTitle })}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onClose();
-          }}
-        >
-          <CloseOutlined />
-        </button>
       ) : null}
     </span>
+  ) : (
+    <span className="tab-title-text">{displayTitle}</span>
   );
 
-  const wrappedLabel = isV2Ui ? (
+  const handleTabClosePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    stopTabClosePointerActivation(event);
+    onClose?.();
+  };
+
+  const tabCloseButton = isV2Ui && onClose ? (
+    <button
+      type="button"
+      className="gn-v2-tab-close"
+      aria-label={t('tab_manager.close_aria', { title: displayTitle })}
+      onPointerDown={handleTabClosePointerDown}
+      onMouseDown={stopTabClosePointerActivation}
+      onClick={stopTabClosePointerActivation}
+    >
+      <CloseOutlined />
+    </button>
+  ) : null;
+
+  const wrappedTitle = isV2Ui ? (
     <Tooltip
       title={(
         <TabHoverInfo
@@ -351,9 +461,9 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
       destroyOnHidden
       rootClassName="gn-v2-tab-hover-tooltip"
     >
-      {labelNode}
+      <span className="gn-v2-tab-tooltip-target">{tabTitleNode}</span>
     </Tooltip>
-  ) : labelNode;
+  ) : tabTitleNode;
 
   return (
     <Dropdown
@@ -362,7 +472,24 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
       onOpenChange={handleTabMenuOpenChange}
       rootClassName={isV2Ui ? 'gn-v2-tab-context-menu-popup' : undefined}
     >
-      {wrappedLabel}
+      {isV2Ui ? (
+        <span
+          className={`tab-dnd-label gn-v2-tab-label${showSecondaryLine ? ' gn-v2-tab-label-double' : ''}${tabDisplayPartCount >= 4 ? ' gn-v2-tab-label-rich' : ''}`}
+          onContextMenu={handleTabLabelContextMenu}
+        >
+          {wrappedTitle}
+          {tabCloseButton}
+        </span>
+      ) : (
+        <span
+          className="tab-dnd-label tab-dnd-handle"
+          onContextMenu={handleTabLabelContextMenu}
+          title={displayTitle}
+          {...dragHandleProps}
+        >
+          {wrappedTitle}
+        </span>
+      )}
     </Dropdown>
   );
 };
@@ -373,24 +500,37 @@ type DraggableTabNodeProps = {
 
 const DraggableTabNode: React.FC<DraggableTabNodeProps> = ({ node }) => {
   const tabId = String(node.key || '').trim();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tabId });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tabId });
   const style: React.CSSProperties = {
     ...(node.props.style || {}),
     transform: CSS.Transform.toString(transform),
     transition: transition || 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
     opacity: isDragging ? 0.88 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
-    touchAction: 'none',
     zIndex: isDragging ? 2 : node.props.style?.zIndex,
   };
+  const activatorValue = useMemo<TabDragActivatorContextValue>(() => ({
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+  }), [attributes, listeners, setActivatorNodeRef]);
 
-  return React.cloneElement(node, {
-    ref: setNodeRef,
-    style,
-    ...attributes,
-    ...listeners,
-    className: `${node.props.className || ''} tab-dnd-node${isDragging ? ' is-dragging' : ''}`,
-  });
+  return (
+    <TabDragActivatorContext.Provider value={activatorValue}>
+      {React.cloneElement(node, {
+        ref: setNodeRef,
+        style,
+        className: `${node.props.className || ''} tab-dnd-node${isDragging ? ' is-dragging' : ''}`,
+      })}
+    </TabDragActivatorContext.Provider>
+  );
 };
 
 const TabContent: React.FC<{ tab: TabData; isActive: boolean }> = React.memo(({ tab, isActive }) => {
@@ -477,48 +617,59 @@ const TabManager: React.FC = React.memo(() => {
     setActiveTab(newActiveKey);
   };
 
-  const requestCloseSQLFileTabs = useCallback(async (
+  const requestCloseQueryTabs = useCallback(async (
     targetTabs: TabData[],
     closeConfirmedTabs: () => void,
   ) => {
-    const candidateTabs = targetTabs.filter(isSQLFileQueryTab);
+    flushQueryTabDrafts(targetTabs.map((tab) => tab.id));
+
+    const candidateTabs = targetTabs.filter(isClosableQueryTab);
+    const savedQueriesSnapshot = useStore.getState().savedQueries;
+    const saveQueryFn = useStore.getState().saveQuery;
+
+    const closeConfirmedTabsAndClearDrafts = () => {
+      closeConfirmedTabs();
+      candidateTabs.forEach((tab) => clearQueryTabDraft(tab.id));
+    };
+
     if (candidateTabs.length === 0) {
       closeConfirmedTabs();
       return;
     }
 
-    const closeConfirmedTabsAndClearDrafts = () => {
-      closeConfirmedTabs();
-      candidateTabs.forEach((tab) => clearSQLFileTabDraft(tab.id));
-    };
-
-    const dirtyTabs: Array<{ tab: TabData; draft: string }> = [];
+    const dirtyTabs: DirtyQueryTabEntry[] = [];
     const missingFileTabs: Array<{ tab: TabData; filePath: string }> = [];
     for (const tab of candidateTabs) {
+      const draft = getQueryTabDraft(tab.id, String(tab.query ?? ''));
       const filePath = getSQLFileTabPath(tab);
-      if (!filePath) continue;
-      try {
-        const res = await ReadSQLFile(filePath);
-        if (!res.success) {
-          if (isSQLFileMissingReadResult(res)) {
+      if (filePath) {
+        try {
+          const res = await ReadSQLFile(filePath);
+          if (!res.success) {
+            if (isSQLFileMissingReadResult(res)) {
+              missingFileTabs.push({ tab, filePath });
+              continue;
+            }
+            message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: res.message || filePath }));
+            return;
+          }
+          if (hasQueryTabUnsavedChanges(tab, draft, savedQueriesSnapshot, normalizeSQLFileReadContent(res.data))) {
+            dirtyTabs.push({ tab, draft });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (isSQLFileMissingErrorMessage(errorMessage)) {
             missingFileTabs.push({ tab, filePath });
             continue;
           }
-          message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: res.message || filePath }));
+          message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: errorMessage }));
           return;
         }
-        const draft = getSQLFileTabDraft(tab.id, String(tab.query ?? ''));
-        if (hasSQLFileTabUnsavedChanges({ ...tab, query: draft }, normalizeSQLFileReadContent(res.data))) {
-          dirtyTabs.push({ tab, draft });
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (isSQLFileMissingErrorMessage(errorMessage)) {
-          missingFileTabs.push({ tab, filePath });
-          continue;
-        }
-        message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: errorMessage }));
-        return;
+        continue;
+      }
+
+      if (hasQueryTabUnsavedChanges(tab, draft, savedQueriesSnapshot)) {
+        dirtyTabs.push({ tab, draft });
       }
     }
 
@@ -529,15 +680,14 @@ const TabManager: React.FC = React.memo(() => {
       }
 
       const firstDirtyTab = dirtyTabs[0].tab;
-      const dirtyFilePath = getSQLFileTabPath(firstDirtyTab);
       const dirtyLabel = dirtyTabs.length === 1
-        ? t('tab_manager.sql_file_close.dirty_single_label', { title: firstDirtyTab.title || dirtyFilePath })
-        : t('tab_manager.sql_file_close.dirty_multiple_label', { count: dirtyTabs.length });
+        ? t('tab_manager.query_close.dirty_single_label', { title: getQueryTabCloseLabel(firstDirtyTab, savedQueriesSnapshot) })
+        : t('tab_manager.query_close.dirty_multiple_label', { count: dirtyTabs.length });
 
       let destroyConfirm: (() => void) | null = null;
       const confirmRef = Modal.confirm({
-        title: t('tab_manager.sql_file_close.save_confirm_title'),
-        content: t('tab_manager.sql_file_close.save_confirm_content', { label: dirtyLabel }),
+        title: t('tab_manager.query_close.save_confirm_title'),
+        content: t('tab_manager.query_close.save_confirm_content', { label: dirtyLabel }),
         okText: t('tab_manager.sql_file_close.save_and_close'),
         cancelText: t('common.cancel'),
         closable: true,
@@ -559,21 +709,17 @@ const TabManager: React.FC = React.memo(() => {
         ),
         onOk: async () => {
           try {
-            for (const { tab, draft } of dirtyTabs) {
-              const filePath = getSQLFileTabPath(tab);
-              if (!filePath) continue;
-              const res = await WriteSQLFile(filePath, draft);
-              if (!res.success) {
-                throw new Error(t('tab_manager.sql_file_close.save_failed', {
-                  title: tab.title || filePath,
-                  detail: res.message || t('tab_manager.sql_file_close.unknown_error'),
-                }));
-              }
+            for (const entry of dirtyTabs) {
+              await saveDirtyQueryTab(entry, savedQueriesSnapshot, saveQueryFn);
             }
-            message.success(t('tab_manager.sql_file_close.saved'));
+            message.success(t('tab_manager.query_close.saved'));
             closeConfirmedTabsAndClearDrafts();
           } catch (error) {
-            message.error(error instanceof Error ? error.message : String(error));
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage === 'cancelled-query-save') {
+              throw error;
+            }
+            message.error(errorMessage);
             throw error;
           }
         },
@@ -604,22 +750,35 @@ const TabManager: React.FC = React.memo(() => {
     confirmDirtyTabsOrClose();
   }, []);
 
-  const closeTabsWithSQLFilePrompt = useCallback((targetIds: string[], closeConfirmedTabs: () => void) => {
+  const closeTabsWithQueryPrompt = useCallback((targetIds: string[], closeConfirmedTabs: () => void) => {
     const uniqueIds = Array.from(new Set(targetIds.map((id) => String(id || '').trim()).filter(Boolean)));
     if (uniqueIds.length === 0) return;
     const dedupeKey = uniqueIds.slice().sort().join('\n');
     if (pendingCloseTabIdsRef.current.has(dedupeKey)) return;
     pendingCloseTabIdsRef.current.add(dedupeKey);
     const targetTabs = tabs.filter((tab) => uniqueIds.includes(tab.id));
-    void requestCloseSQLFileTabs(targetTabs, closeConfirmedTabs).finally(() => {
+    void requestCloseQueryTabs(targetTabs, closeConfirmedTabs).finally(() => {
       pendingCloseTabIdsRef.current.delete(dedupeKey);
     });
-  }, [requestCloseSQLFileTabs, tabs]);
+  }, [requestCloseQueryTabs, tabs]);
+
+  React.useEffect(() => {
+    const handleCloseActiveTab = () => {
+      const currentActiveTabId = useStore.getState().activeTabId;
+      if (!currentActiveTabId) {
+        return;
+      }
+      closeTabsWithQueryPrompt([currentActiveTabId], () => closeTab(currentActiveTabId));
+    };
+
+    window.addEventListener('gonavi:close-active-tab', handleCloseActiveTab);
+    return () => window.removeEventListener('gonavi:close-active-tab', handleCloseActiveTab);
+  }, [closeTab, closeTabsWithQueryPrompt]);
 
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
     if (action === 'remove') {
       const id = String(targetKey || '');
-      closeTabsWithSQLFilePrompt([id], () => closeTab(id));
+      closeTabsWithQueryPrompt([id], () => closeTab(id));
     }
   };
 
@@ -730,26 +889,26 @@ const TabManager: React.FC = React.memo(() => {
         key: 'close-other',
         label: t('tab_manager.menu.close_other'),
         disabled: tabs.length <= 1,
-        onClick: () => closeTabsWithSQLFilePrompt(getCloseOtherTabIds(tabs, tab.id), () => closeOtherTabs(tab.id)),
+        onClick: () => closeTabsWithQueryPrompt(getCloseOtherTabIds(tabs, tab.id), () => closeOtherTabs(tab.id)),
       },
       {
         key: 'close-left',
         label: t('tab_manager.menu.close_left'),
         disabled: index === 0,
-        onClick: () => closeTabsWithSQLFilePrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id)),
+        onClick: () => closeTabsWithQueryPrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id)),
       },
       {
         key: 'close-right',
         label: t('tab_manager.menu.close_right'),
         disabled: index === tabs.length - 1,
-        onClick: () => closeTabsWithSQLFilePrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id)),
+        onClick: () => closeTabsWithQueryPrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id)),
       },
       { type: 'divider' },
       {
         key: 'close-all',
         label: t('tab_manager.menu.close_all'),
         disabled: tabs.length === 0,
-        onClick: () => closeTabsWithSQLFilePrompt(tabs.map((item) => item.id), () => closeAllTabs()),
+        onClick: () => closeTabsWithQueryPrompt(tabs.map((item) => item.id), () => closeAllTabs()),
       },
     ];
     
@@ -763,14 +922,14 @@ const TabManager: React.FC = React.memo(() => {
           connectionLabel={connection?.name}
           hostSummary={hostSummary}
           isV2Ui={isV2Ui}
-          onClose={() => closeTabsWithSQLFilePrompt([tab.id], () => closeTab(tab.id))}
+          onClose={() => closeTabsWithQueryPrompt([tab.id], () => closeTab(tab.id))}
         />
       ),
       key: tab.id,
       closable: !isV2Ui,
       children: <TabContent tab={tab} isActive={tabIsActive} />,
     };
-  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithSQLFilePrompt, isV2Ui, languagePreference]);
+  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithQueryPrompt, isV2Ui, languagePreference]);
 
   const handleOpenConnectionModal = () => {
     const target = document.querySelector<HTMLButtonElement>('[data-gonavi-create-connection-action="true"]');
@@ -902,6 +1061,13 @@ const TabManager: React.FC = React.memo(() => {
               gap: 7px;
               max-width: 100%;
             }
+            .main-tabs .tab-dnd-handle {
+              cursor: grab;
+              touch-action: none;
+            }
+            .main-tabs .tab-dnd-node.is-dragging .tab-dnd-handle {
+              cursor: grabbing !important;
+            }
             .main-tabs .tab-title-text {
               min-width: 0;
               overflow: hidden;
@@ -909,7 +1075,7 @@ const TabManager: React.FC = React.memo(() => {
               white-space: nowrap;
             }
             .main-tabs .tab-dnd-node.is-dragging,
-            .main-tabs .tab-dnd-node.is-dragging .tab-dnd-label {
+            .main-tabs .tab-dnd-node.is-dragging .tab-dnd-handle {
               cursor: grabbing !important;
             }
             body[data-theme='dark'] .main-tabs .ant-tabs-tab-btn:focus-visible {

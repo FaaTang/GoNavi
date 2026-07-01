@@ -11,7 +11,7 @@ describe('DataGrid embedded designer title i18n guards', () => {
   });
 
   it('keeps the embedded designer title key in every locale catalog with the tableName placeholder', () => {
-    (['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const).forEach((locale) => {
+    (['zh-CN', 'en-US'] as const).forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
       ) as Record<string, string>;

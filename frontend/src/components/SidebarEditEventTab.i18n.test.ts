@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
 
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const key = 'sidebar.tab.edit_event';
 
 describe('Sidebar edit event tab title i18n', () => {

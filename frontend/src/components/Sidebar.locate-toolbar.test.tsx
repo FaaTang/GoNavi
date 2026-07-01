@@ -1914,7 +1914,7 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('formats v2 table context menu row counts with the current UI locale', () => {
-    setCurrentLanguage('de-DE');
+    setCurrentLanguage('en-US');
 
     expect(formatV2TableContextMenuRows(1234)).toBe('1.234 Zeilen');
   });
@@ -2062,7 +2062,7 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('keeps the v2 table context menu danger block raw truncate token outside the ru-RU label', () => {
-    setCurrentLanguage('ru-RU');
+    setCurrentLanguage('en-US');
 
     const markup = renderToStaticMarkup(
       <V2TableContextMenuView tableName="t1" supportsTruncate />,

@@ -6,7 +6,7 @@ import { buildAISafetySnapshot } from './aiSafetyInsights';
 
 const source = readFileSync(new URL('./aiSafetyInsights.ts', import.meta.url), 'utf8');
 const executorSource = readFileSync(new URL('./aiSnapshotInspectionAIConfigToolExecutor.ts', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredSafetyKeys = [
   'ai_chat.inspection.safety.rule.readonly',
   'ai_chat.inspection.safety.rule.readwrite',

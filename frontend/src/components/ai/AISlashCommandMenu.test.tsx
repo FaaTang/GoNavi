@@ -10,7 +10,7 @@ import { filterAISlashCommands } from './aiSlashCommands';
 const source = readFileSync(new URL('./AISlashCommandMenu.tsx', import.meta.url), 'utf8');
 
 const renderWithProvider = (
-  language: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'de-DE' | 'ru-RU',
+  language: 'zh-CN' | 'en-US',
   commands = filterAISlashCommands('/'),
 ) => renderToStaticMarkup(
   <I18nProvider

@@ -14,12 +14,8 @@ import { t as catalogTranslate } from '../i18n/catalog';
 
 const sharedI18nDir = new URL('../../../shared/i18n/', import.meta.url);
 const sharedI18nLocaleFiles = [
-  'de-DE.json',
   'en-US.json',
-  'ja-JP.json',
-  'ru-RU.json',
   'zh-CN.json',
-  'zh-TW.json',
 ] as const;
 
 const schemaSqlI18nKeys = [

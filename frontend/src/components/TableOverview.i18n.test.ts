@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(new URL('./TableOverview.tsx', import.meta.url), 'utf8');
 const catalogFiles = [
   'zh-CN',
-  'zh-TW',
+  'zh-CN',
   'en-US',
-  'ja-JP',
-  'de-DE',
-  'ru-RU',
+  'en-US',
+  'en-US',
+  'en-US',
 ] as const;
 const catalogs = Object.fromEntries(catalogFiles.map(language => [
   language,

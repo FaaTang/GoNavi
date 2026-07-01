@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
 const objectActionsSource = readFileSync(new URL('./sidebar/useSidebarObjectActions.tsx', import.meta.url), 'utf8');
 const searchModelSource = readFileSync(new URL('./sidebar/useSidebarSearchModel.tsx', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'sidebar.message.ai_table_context_missing',
   'sidebar.ai_prompt.explain.intro',

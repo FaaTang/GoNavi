@@ -248,6 +248,7 @@ describe('tool center menu entries', () => {
       ['focusSidebarSearch', 'gonavi:focus-sidebar-search'],
       ['switchToNextTab', 'switchActiveTabByOffset(1);'],
       ['switchToPreviousTab', 'switchActiveTabByOffset(-1);'],
+      ['closeCurrentTab', 'gonavi:close-active-tab'],
       ['newConnection', 'handleCreateConnection();'],
       ['toggleAIPanel', 'toggleAIPanel();'],
       ['toggleLogPanel', 'handleToggleLogPanel();'],

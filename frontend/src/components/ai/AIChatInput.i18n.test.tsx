@@ -48,11 +48,7 @@ vi.mock('antd', async () => {
 const source = readFileSync(new URL('./AIChatInput.tsx', import.meta.url), 'utf8');
 const draftAttachmentsHookSource = readFileSync(new URL('./useAIChatDraftAttachments.ts', import.meta.url), 'utf8');
 const zhCnCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-CN.json', import.meta.url), 'utf8'));
-const zhTwCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-TW.json', import.meta.url), 'utf8'));
 const enUsCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/en-US.json', import.meta.url), 'utf8'));
-const jaJpCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ja-JP.json', import.meta.url), 'utf8'));
-const deDeCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/de-DE.json', import.meta.url), 'utf8'));
-const ruRuCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ru-RU.json', import.meta.url), 'utf8'));
 
 const baseProvider = {
   id: 'provider-1',
@@ -68,7 +64,7 @@ const baseProvider = {
 };
 
 const renderAIChatInput = (
-  language: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'de-DE' | 'ru-RU',
+  language: 'zh-CN' | 'en-US',
   overrides: Partial<React.ComponentProps<typeof AIChatInput>> = {},
 ) => renderToStaticMarkup(
   <I18nProvider
@@ -157,7 +153,7 @@ describe('AIChatInput i18n source guards', () => {
     expect(source).not.toContain('当前会话记忆已用字符。达到限制（');
   });
 
-  it('keeps required placeholder keys present in all six catalogs', () => {
+  it('keeps required placeholder keys present in supported catalogs', () => {
     const requiredKeys = [
       'ai_chat.input.placeholder',
       'ai_chat.input.placeholder_compact',
@@ -168,11 +164,7 @@ describe('AIChatInput i18n source guards', () => {
     ];
     for (const key of requiredKeys) {
       expect(zhCnCatalog[key]).toBeTruthy();
-      expect(zhTwCatalog[key]).toBeTruthy();
       expect(enUsCatalog[key]).toBeTruthy();
-      expect(jaJpCatalog[key]).toBeTruthy();
-      expect(deDeCatalog[key]).toBeTruthy();
-      expect(ruRuCatalog[key]).toBeTruthy();
     }
   });
 

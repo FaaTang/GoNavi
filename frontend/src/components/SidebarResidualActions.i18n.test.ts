@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const objectActionsSource = readFileSync(new URL('./sidebar/useSidebarObjectActions.tsx', import.meta.url), 'utf8');
 const legacyMenuSource = readFileSync(new URL('./sidebar/sidebarLegacyNodeMenu.tsx', import.meta.url), 'utf8');
 const v2ActionHandlersSource = readFileSync(new URL('./sidebar/useSidebarV2ActionHandlers.tsx', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 
 const requiredKeys = [
   'sidebar.message.saved_query_rename_failed',

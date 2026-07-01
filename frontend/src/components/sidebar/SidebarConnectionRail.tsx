@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip, Form } from 'antd';
+import { Tooltip } from 'antd';
 import {
   FolderOpenOutlined,
   TableOutlined,
@@ -9,6 +9,8 @@ import {
   RobotOutlined,
   ToolOutlined,
   SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 
 // V2 Connection Rail 子组件（从 Sidebar.tsx 抽取）。
@@ -21,6 +23,7 @@ import {
 // 主组件 props drilling 复杂度可控（只有一处调用点）。
 
 export interface SidebarConnectionRailProps {
+  showLabels: boolean;
   labels: {
     railSystemActions: string;
     railObjectActions: string;
@@ -33,6 +36,8 @@ export interface SidebarConnectionRailProps {
     aiAssistant: string;
     tools: string;
     settings: string;
+    expandButtonLabels: string;
+    collapseButtonLabels: string;
   };
   handlers: {
     openCreateTagModal: () => void;
@@ -43,102 +48,166 @@ export interface SidebarConnectionRailProps {
     toggleAI: () => void;
     openTools: () => void;
     openSettings: () => void;
+    toggleShowLabels: () => void;
   };
   canLocateActiveTab: boolean;
 }
 
-const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({ labels, handlers, canLocateActiveTab }) => (
-  <div className="gn-v2-connection-rail" aria-label={labels.railSystemActions}>
-    <div className="gn-v2-rail-primary-actions" aria-label={labels.railObjectActions}>
-      <Tooltip title={labels.newGroup} placement="right">
-        <button
-          type="button"
-          className="gn-v2-rail-tool gn-v2-rail-action"
+type RailActionButtonProps = {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  showLabels: boolean;
+  disabled?: boolean;
+  className?: string;
+  dataAttributes?: Record<string, string | boolean | undefined>;
+};
+
+const RailActionButton: React.FC<RailActionButtonProps> = ({
+  label,
+  icon,
+  onClick,
+  showLabels,
+  disabled = false,
+  className = 'gn-v2-rail-tool',
+  dataAttributes,
+}) => {
+  const button = (
+    <button
+      type="button"
+      className={className}
+      onClick={onClick}
+      aria-label={label}
+      disabled={disabled}
+      {...dataAttributes}
+    >
+      <span className="gn-v2-rail-tool-icon" aria-hidden="true">{icon}</span>
+      {showLabels ? <span className="gn-v2-rail-tool-label">{label}</span> : null}
+    </button>
+  );
+
+  if (showLabels) {
+    return button;
+  }
+
+  return (
+    <Tooltip title={label} placement="right">
+      {button}
+    </Tooltip>
+  );
+};
+
+const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
+  showLabels,
+  labels,
+  handlers,
+  canLocateActiveTab,
+}) => {
+  const toggleLabel = showLabels ? labels.collapseButtonLabels : labels.expandButtonLabels;
+
+  return (
+    <div
+      className={`gn-v2-connection-rail${showLabels ? ' is-labels-expanded' : ''}`}
+      aria-label={labels.railSystemActions}
+    >
+      <div className="gn-v2-rail-primary-actions" aria-label={labels.railObjectActions}>
+        <RailActionButton
+          label={labels.newGroup}
+          icon={<FolderOpenOutlined />}
           onClick={handlers.openCreateTagModal}
-          aria-label={labels.newGroup}
-          data-sidebar-create-group-action="true"
-        >
-          <FolderOpenOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={labels.batchTables} placement="right">
-        <button
-          type="button"
+          showLabels={showLabels}
           className="gn-v2-rail-tool gn-v2-rail-action"
+          dataAttributes={{ 'data-sidebar-create-group-action': true }}
+        />
+        <RailActionButton
+          label={labels.batchTables}
+          icon={<TableOutlined />}
           onClick={handlers.openBatchTableExport}
-          aria-label={labels.batchTables}
-          data-sidebar-batch-table-action="true"
-        >
-          <TableOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={labels.batchDatabases} placement="right">
-        <button
-          type="button"
+          showLabels={showLabels}
           className="gn-v2-rail-tool gn-v2-rail-action"
+          dataAttributes={{ 'data-sidebar-batch-table-action': true }}
+        />
+        <RailActionButton
+          label={labels.batchDatabases}
+          icon={<DatabaseOutlined />}
           onClick={handlers.openBatchDatabaseExport}
-          aria-label={labels.batchDatabases}
-          data-sidebar-batch-database-action="true"
-        >
-          <DatabaseOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={labels.openExternalSqlFile} placement="right">
-        <button
-          type="button"
+          showLabels={showLabels}
           className="gn-v2-rail-tool gn-v2-rail-action"
+          dataAttributes={{ 'data-sidebar-batch-database-action': true }}
+        />
+        <RailActionButton
+          label={labels.openExternalSqlFile}
+          icon={<FileAddOutlined />}
           onClick={handlers.openExternalSqlFile}
-          aria-label={labels.openExternalSqlFile}
-          data-sidebar-open-external-sql-file-action="true"
-        >
-          <FileAddOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={canLocateActiveTab ? labels.locateCurrentTable : labels.locateCurrentTableUnavailable} placement="right">
+          showLabels={showLabels}
+          className="gn-v2-rail-tool gn-v2-rail-action"
+          dataAttributes={{ 'data-sidebar-open-external-sql-file-action': true }}
+        />
         <span className="gn-v2-rail-action-wrap">
+          <RailActionButton
+            label={canLocateActiveTab ? labels.locateCurrentTable : labels.locateCurrentTableUnavailable}
+            icon={<AimOutlined />}
+            onClick={handlers.locateActiveTab}
+            showLabels={showLabels}
+            disabled={!canLocateActiveTab}
+            className="gn-v2-rail-tool gn-v2-rail-action"
+            dataAttributes={{ 'data-sidebar-locate-current-tab-action': true }}
+          />
+        </span>
+      </div>
+      <div className="gn-v2-rail-secondary-actions" aria-label={labels.railSystemActions}>
+        <RailActionButton
+          label={labels.aiAssistant}
+          icon={<RobotOutlined />}
+          onClick={handlers.toggleAI}
+          showLabels={showLabels}
+          dataAttributes={{ 'data-gonavi-ai-entry-action': true }}
+        />
+        <RailActionButton
+          label={labels.tools}
+          icon={<ToolOutlined />}
+          onClick={handlers.openTools}
+          showLabels={showLabels}
+          dataAttributes={{ 'data-gonavi-open-tools-action': true }}
+        />
+        <RailActionButton
+          label={labels.settings}
+          icon={<SettingOutlined />}
+          onClick={handlers.openSettings}
+          showLabels={showLabels}
+          dataAttributes={{ 'data-sidebar-action': 'settings' }}
+        />
+      </div>
+      <div className="gn-v2-rail-footer">
+        {showLabels ? (
           <button
             type="button"
-            className="gn-v2-rail-tool gn-v2-rail-action"
-            onClick={handlers.locateActiveTab}
-            aria-label={labels.locateCurrentTable}
-            data-sidebar-locate-current-tab-action="true"
-            disabled={!canLocateActiveTab}
+            className="gn-v2-rail-tool gn-v2-rail-toggle-labels"
+            onClick={handlers.toggleShowLabels}
+            aria-label={toggleLabel}
+            aria-pressed="true"
+            data-sidebar-rail-toggle-labels="true"
           >
-            <AimOutlined />
+            <span className="gn-v2-rail-tool-icon" aria-hidden="true"><MenuFoldOutlined /></span>
+            <span className="gn-v2-rail-tool-label">{toggleLabel}</span>
           </button>
-        </span>
-      </Tooltip>
+        ) : (
+          <Tooltip title={toggleLabel} placement="right">
+            <button
+              type="button"
+              className="gn-v2-rail-tool gn-v2-rail-toggle-labels"
+              onClick={handlers.toggleShowLabels}
+              aria-label={toggleLabel}
+              aria-pressed="false"
+              data-sidebar-rail-toggle-labels="true"
+            >
+              <span className="gn-v2-rail-tool-icon" aria-hidden="true"><MenuUnfoldOutlined /></span>
+            </button>
+          </Tooltip>
+        )}
+      </div>
     </div>
-    <div className="gn-v2-rail-secondary-actions" aria-label={labels.railSystemActions}>
-      <Tooltip title={labels.aiAssistant} placement="right">
-        <button
-          type="button"
-          className="gn-v2-rail-tool"
-          onClick={handlers.toggleAI}
-          aria-label={labels.aiAssistant}
-          data-gonavi-ai-entry-action="true"
-        >
-          <RobotOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={labels.tools} placement="right">
-        <button
-          type="button"
-          className="gn-v2-rail-tool"
-          onClick={handlers.openTools}
-          aria-label={labels.tools}
-          data-gonavi-open-tools-action="true"
-        >
-          <ToolOutlined />
-        </button>
-      </Tooltip>
-      <Tooltip title={labels.settings} placement="right">
-        <button type="button" className="gn-v2-rail-tool" onClick={handlers.openSettings} aria-label={labels.settings}>
-          <SettingOutlined />
-        </button>
-      </Tooltip>
-    </div>
-  </div>
-);
+  );
+};
 
 export default SidebarConnectionRail;

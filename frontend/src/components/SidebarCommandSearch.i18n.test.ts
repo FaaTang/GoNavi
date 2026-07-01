@@ -8,7 +8,7 @@ const source = [
   readSourceFile('./sidebar/useSidebarSearchModel.tsx'),
   readSourceFile('./sidebar/useSidebarCommandSearchRunner.ts'),
 ].join('\n');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'sidebar.command_search.recent_sql_fallback',
   'sidebar.command_search.action.new_query.meta',

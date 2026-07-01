@@ -6,7 +6,7 @@ const dropRoutineSource = source.slice(
   source.indexOf('const handleDropRoutine ='),
   source.indexOf('const resolveMessagePublishTarget ='),
 );
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 
 describe('Sidebar drop routine confirm i18n', () => {
   it('localizes the drop routine confirm dialog and feedback copy', () => {

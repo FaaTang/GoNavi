@@ -11,34 +11,22 @@ type Language string
 
 const (
 	LanguageZhCN Language = "zh-CN"
-	LanguageZhTW Language = "zh-TW"
 	LanguageEnUS Language = "en-US"
-	LanguageJaJP Language = "ja-JP"
-	LanguageDeDE Language = "de-DE"
-	LanguageRuRU Language = "ru-RU"
 )
 
 const PreferenceSystem = "system"
 
 var supportedLanguages = map[Language]struct{}{
 	LanguageZhCN: {},
-	LanguageZhTW: {},
 	LanguageEnUS: {},
-	LanguageJaJP: {},
-	LanguageDeDE: {},
-	LanguageRuRU: {},
 }
 
 var supportedLanguageOrder = []Language{
 	LanguageZhCN,
-	LanguageZhTW,
 	LanguageEnUS,
-	LanguageJaJP,
-	LanguageDeDE,
-	LanguageRuRU,
 }
 
-//go:embed zh-CN.json zh-TW.json en-US.json ja-JP.json de-DE.json ru-RU.json
+//go:embed zh-CN.json en-US.json
 var catalogFS embed.FS
 
 type Catalog map[string]string
@@ -50,18 +38,16 @@ func NormalizeLanguage(value string) (Language, bool) {
 	}
 	lower := strings.ToLower(normalized)
 	switch {
-	case lower == "zh-tw" || lower == "zh-hk" || lower == "zh-mo":
-		return LanguageZhTW, true
-	case lower == "zh-cn" || lower == "zh-sg" || lower == "zh":
+	case lower == "zh-cn" || lower == "zh-sg" || lower == "zh-tw" || lower == "zh-hk" || lower == "zh-mo" || lower == "zh":
 		return LanguageZhCN, true
 	case lower == "en-us" || strings.HasPrefix(lower, "en-"):
 		return LanguageEnUS, true
 	case lower == "ja" || strings.HasPrefix(lower, "ja-"):
-		return LanguageJaJP, true
+		return LanguageEnUS, true
 	case lower == "de" || strings.HasPrefix(lower, "de-"):
-		return LanguageDeDE, true
+		return LanguageEnUS, true
 	case lower == "ru" || strings.HasPrefix(lower, "ru-"):
-		return LanguageRuRU, true
+		return LanguageEnUS, true
 	default:
 		lang := Language(normalized)
 		_, ok := supportedLanguages[lang]

@@ -6,7 +6,7 @@ const source = [
   readFileSync(new URL('./sidebar/useSidebarTreeLoaders.tsx', import.meta.url), 'utf8'),
 ].join('\n');
 
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'sidebar.tree.default_schema',
   'sidebar.object_group.tables',

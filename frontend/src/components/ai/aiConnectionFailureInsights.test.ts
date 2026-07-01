@@ -10,22 +10,22 @@ describe('buildRecentConnectionFailureSnapshot', () => {
       'Retry after 29s',
     ],
     [
-      'zh-TW',
+      'zh-CN',
       '\u9023\u7dda\u6700\u8fd1\u5931\u6557\uff0c\u6b63\u5728\u51b7\u537b\u4e2d\uff0c\u8acb\u65bc 29s \u5f8c\u91cd\u8a66\uff1b\u4e0a\u6b21\u932f\u8aa4\uff1a\u9023\u7dda\u5efa\u7acb\u5f8c\u9a57\u8b49\u5931\u6557\uff1a127.0.0.1:3306 post-connect check returned mismatch',
       '\u8acb\u65bc 29s \u5f8c\u91cd\u8a66',
     ],
     [
-      'ja-JP',
+      'en-US',
       '\u63a5\u7d9a\u306f\u76f4\u8fd1\u3067\u5931\u6557\u3057\u3066\u304a\u308a\u3001\u73fe\u5728\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u4e2d\u3067\u3059\u300229s \u5f8c\u306b\u518d\u8a66\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u524d\u56de\u306e\u30a8\u30e9\u30fc: \u63a5\u7d9a\u78ba\u7acb\u5f8c\u306e\u691c\u8a3c\u306b\u5931\u6557\u3057\u307e\u3057\u305f: 127.0.0.1:3306 post-connect check returned mismatch',
       '29s \u5f8c\u306b\u518d\u8a66\u884c',
     ],
     [
-      'de-DE',
+      'en-US',
       'Die Verbindung ist vor Kurzem fehlgeschlagen und befindet sich in einer Abk\u00fchlphase. Versuchen Sie es in 29s erneut; letzter Fehler: Verbindung konnte nach dem Aufbau nicht verifiziert werden: 127.0.0.1:3306 post-connect check returned mismatch',
       'Versuchen Sie es in 29s erneut',
     ],
     [
-      'ru-RU',
+      'en-US',
       '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043d\u0435\u0434\u0430\u0432\u043d\u043e \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u043e\u0441\u044c \u043e\u0448\u0438\u0431\u043a\u043e\u0439 \u0438 \u0441\u0435\u0439\u0447\u0430\u0441 \u043d\u0430\u0445\u043e\u0434\u0438\u0442\u0441\u044f \u043d\u0430 \u043e\u0445\u043b\u0430\u0436\u0434\u0435\u043d\u0438\u0438. \u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0443 \u0447\u0435\u0440\u0435\u0437 29s; \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u043e\u0448\u0438\u0431\u043a\u0430: \u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f: 127.0.0.1:3306 post-connect check returned mismatch',
       '\u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0443 \u0447\u0435\u0440\u0435\u0437 29s',
     ],
@@ -106,19 +106,19 @@ describe('buildRecentConnectionFailureSnapshot', () => {
       'ClickHouse connection validation failed: used user-selected Native protocol for 127.0.0.1:8123. unexpected client protocol',
     ],
     [
-      'zh-TW',
+      'zh-CN',
       'ClickHouse \u9023\u7dda\u9a57\u8b49\u5931\u6557\uff1a\u5df2\u4f9d\u4f7f\u7528\u8005\u9078\u64c7\u4f7f\u7528 Native \u5354\u8b70\u9023\u7dda 127.0.0.1:8123\u3002unexpected client protocol',
     ],
     [
-      'ja-JP',
+      'en-US',
       'ClickHouse \u63a5\u7d9a\u691c\u8a3c\u306b\u5931\u6557\u3057\u307e\u3057\u305f: \u30e6\u30fc\u30b6\u30fc\u304c\u9078\u629e\u3057\u305f Native \u30d7\u30ed\u30c8\u30b3\u30eb\u3067 127.0.0.1:8123 \u306b\u63a5\u7d9a\u3057\u307e\u3057\u305f\u3002unexpected client protocol',
     ],
     [
-      'de-DE',
+      'en-US',
       'ClickHouse-Verbindungsvalidierung fehlgeschlagen: Benutzergew\u00e4hltes Protokoll Native wurde f\u00fcr 127.0.0.1:8123 verwendet. unexpected client protocol',
     ],
     [
-      'ru-RU',
+      'en-US',
       '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f ClickHouse \u043d\u0435 \u0443\u0434\u0430\u043b\u0430\u0441\u044c: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u043c \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b Native \u0434\u043b\u044f 127.0.0.1:8123. unexpected client protocol',
     ],
   ])('classifies localized ClickHouse validation wrapper %s as validation', (_locale, errorChain) => {
@@ -174,22 +174,22 @@ describe('buildRecentConnectionFailureSnapshot', () => {
       'detail log:',
     ],
     [
-      'zh-TW',
+      'zh-CN',
       'ClickHouse \u9023\u7dda\u9a57\u8b49\u5931\u6557\uff1a\u5df2\u4f9d\u4f7f\u7528\u8005\u9078\u64c7\u4f7f\u7528 Native \u5354\u8b70\u9023\u7dda 127.0.0.1:8123\u3002unexpected client protocol\uff08\u8a73\u7d30\u65e5\u8a8c\uff1aC:/Users/demo/.GoNavi/Logs/gonavi.log\uff09',
       '\u8a73\u7d30\u65e5\u8a8c\uff1a',
     ],
     [
-      'ja-JP',
+      'en-US',
       'ClickHouse \u63a5\u7d9a\u691c\u8a3c\u306b\u5931\u6557\u3057\u307e\u3057\u305f: \u30e6\u30fc\u30b6\u30fc\u304c\u9078\u629e\u3057\u305f Native \u30d7\u30ed\u30c8\u30b3\u30eb\u3067 127.0.0.1:8123 \u306b\u63a5\u7d9a\u3057\u307e\u3057\u305f\u3002unexpected client protocol\uff08\u8a73\u7d30\u30ed\u30b0\uff1aC:/Users/demo/.GoNavi/Logs/gonavi.log\uff09',
       '\u8a73\u7d30\u30ed\u30b0\uff1a',
     ],
     [
-      'de-DE',
+      'en-US',
       'ClickHouse-Verbindungsvalidierung fehlgeschlagen: Benutzergew\u00e4hltes Protokoll Native wurde f\u00fcr 127.0.0.1:8123 verwendet. unexpected client protocol (Detailprotokoll: C:/Users/demo/.GoNavi/Logs/gonavi.log)',
       'Detailprotokoll:',
     ],
     [
-      'ru-RU',
+      'en-US',
       '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f ClickHouse \u043d\u0435 \u0443\u0434\u0430\u043b\u0430\u0441\u044c: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u043c \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b Native \u0434\u043b\u044f 127.0.0.1:8123. unexpected client protocol (\u043f\u043e\u0434\u0440\u043e\u0431\u043d\u044b\u0439 \u0436\u0443\u0440\u043d\u0430\u043b: C:/Users/demo/.GoNavi/Logs/gonavi.log)',
       '\u043f\u043e\u0434\u0440\u043e\u0431\u043d\u044b\u0439 \u0436\u0443\u0440\u043d\u0430\u043b:',
     ],

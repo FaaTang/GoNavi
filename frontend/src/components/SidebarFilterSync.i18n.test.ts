@@ -6,7 +6,7 @@ const source = [
   readFileSync(new URL('./sidebar/SidebarSearchPanel.tsx', import.meta.url), 'utf8'),
 ].join('\n');
 
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'sidebar.command_search.sync_to_filter_tooltip',
   'sidebar.command_search.sync_to_filter_aria',

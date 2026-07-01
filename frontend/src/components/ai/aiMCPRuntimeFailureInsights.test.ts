@@ -5,22 +5,22 @@ import { buildMCPRuntimeFailureSnapshot } from './aiMCPRuntimeFailureInsights';
 describe('buildMCPRuntimeFailureSnapshot', () => {
   it.each([
     [
-      'zh-TW',
+      'zh-CN',
       '2026/06/11 10:00:00.000000 [ERROR] \u555f\u52d5 GoNavi MCP HTTP \u670d\u52d9\u5931\u6557: listen tcp 127.0.0.1:8765: bind: permission denied',
       '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP \u670d\u52d9\u7570\u5e38\u9000\u51fa: MCP HTTP \u5b50\u7a0b\u5e8f\u5df2\u9000\u51fa',
     ],
     [
-      'ja-JP',
+      'en-US',
       '2026/06/11 10:00:00.000000 [ERROR] GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f: listen tcp 127.0.0.1:8765: bind: permission denied',
       '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u304c\u7570\u5e38\u7d42\u4e86\u3057\u307e\u3057\u305f: MCP HTTP \u30b5\u30d6\u30d7\u30ed\u30bb\u30b9\u304c\u7d42\u4e86\u3057\u307e\u3057\u305f',
     ],
     [
-      'de-DE',
+      'en-US',
       '2026/06/11 10:00:00.000000 [ERROR] Starten des GoNavi MCP HTTP-Dienstes fehlgeschlagen: listen tcp 127.0.0.1:8765: bind: permission denied',
       '2026/06/11 10:00:01.000000 [ERROR] Der GoNavi MCP HTTP-Dienst wurde unerwartet beendet: Der MCP HTTP-Unterprozess wurde beendet',
     ],
     [
-      'ru-RU',
+      'en-US',
       '2026/06/11 10:00:00.000000 [ERROR] \u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u043b\u0443\u0436\u0431\u0443 GoNavi MCP HTTP: listen tcp 127.0.0.1:8765: bind: permission denied',
       '2026/06/11 10:00:01.000000 [ERROR] \u0421\u043b\u0443\u0436\u0431\u0430 GoNavi MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0430\u0441\u044c \u0430\u0432\u0430\u0440\u0438\u0439\u043d\u043e: \u041f\u043e\u0434\u043f\u0440\u043e\u0446\u0435\u0441\u0441 MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0441\u044f',
     ],
@@ -143,19 +143,19 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       '2026/06/11 10:00:00.000000 [WARN] 列出 MCP 工具失败(server=Filesystem): MCP command cannot be empty',
     ],
     [
-      'zh-TW',
+      'zh-CN',
       '2026/06/11 10:00:00.000000 [WARN] 列出 MCP 工具失败(server=Filesystem): MCP 命令不能為空',
     ],
     [
-      'ja-JP',
+      'en-US',
       '2026/06/11 10:00:00.000000 [WARN] 列出 MCP 工具失败(server=Filesystem): MCP コマンドは空にできません',
     ],
     [
-      'de-DE',
+      'en-US',
       '2026/06/11 10:00:00.000000 [WARN] 列出 MCP 工具失败(server=Filesystem): MCP-Befehl darf nicht leer sein',
     ],
     [
-      'ru-RU',
+      'en-US',
       '2026/06/11 10:00:00.000000 [WARN] 列出 MCP 工具失败(server=Filesystem): Команда MCP не может быть пустой',
     ],
   ])('extracts command-required cause from localized MCP discovery failure logs for %s', (_locale, line) => {
@@ -193,7 +193,7 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       '2026/06/11 10:00:00.000000 [WARN] \u5217\u51fa MCP \u5de5\u5177\u5931\u8d25(server=RemoteHTTP): \u6682\u4e0d\u652f\u6301\u7684 MCP \u4f20\u8f93\u65b9\u5f0f\uff1ahttp',
     ],
     [
-      'zh-TW',
+      'zh-CN',
       '2026/06/11 10:00:00.000000 [WARN] \u5217\u51fa MCP \u5de5\u5177\u5931\u8d25(server=RemoteHTTP): \u66ab\u4e0d\u652f\u63f4\u7684 MCP \u50b3\u8f38\u65b9\u5f0f\uff1ahttp',
     ],
   ])('extracts transport cause from localized MCP transport-unsupported discovery logs for %s', (_locale, line) => {

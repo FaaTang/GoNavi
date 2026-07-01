@@ -10,17 +10,17 @@ func TestResolveLanguagePreference(t *testing.T) {
 		want       Language
 	}{
 		{name: "explicit Chinese wins", preference: "zh-CN", system: []string{"en-US"}, want: LanguageZhCN},
-		{name: "explicit Traditional Chinese wins", preference: "zh-TW", system: []string{"en-US"}, want: LanguageZhTW},
+		{name: "legacy Traditional Chinese maps to simplified Chinese", preference: "zh-TW", system: []string{"en-US"}, want: LanguageZhCN},
 		{name: "explicit English wins", preference: "en-US", system: []string{"zh-CN"}, want: LanguageEnUS},
-		{name: "explicit Japanese wins", preference: "ja-JP", system: []string{"en-US"}, want: LanguageJaJP},
-		{name: "explicit German wins", preference: "de-DE", system: []string{"en-US"}, want: LanguageDeDE},
-		{name: "explicit Russian wins", preference: "ru-RU", system: []string{"en-US"}, want: LanguageRuRU},
+		{name: "legacy Japanese maps to English", preference: "ja-JP", system: []string{"zh-CN"}, want: LanguageEnUS},
+		{name: "legacy German maps to English", preference: "de-DE", system: []string{"zh-CN"}, want: LanguageEnUS},
+		{name: "legacy Russian maps to English", preference: "ru-RU", system: []string{"zh-CN"}, want: LanguageEnUS},
 		{name: "system Chinese region maps to simplified Chinese", preference: "system", system: []string{"zh-SG"}, want: LanguageZhCN},
-		{name: "system Traditional Chinese Hong Kong maps to Traditional Chinese", preference: "system", system: []string{"zh-HK"}, want: LanguageZhTW},
+		{name: "system Traditional Chinese Hong Kong maps to simplified Chinese", preference: "system", system: []string{"zh-HK"}, want: LanguageZhCN},
 		{name: "system English region maps to US English", preference: "system", system: []string{"en-IN"}, want: LanguageEnUS},
-		{name: "system Japanese maps to Japanese", preference: "system", system: []string{"ja"}, want: LanguageJaJP},
-		{name: "system German maps to German", preference: "system", system: []string{"de-DE"}, want: LanguageDeDE},
-		{name: "system Russian maps to Russian", preference: "system", system: []string{"ru-RU"}, want: LanguageRuRU},
+		{name: "system Japanese maps to English", preference: "system", system: []string{"ja"}, want: LanguageEnUS},
+		{name: "system German maps to English", preference: "system", system: []string{"de-DE"}, want: LanguageEnUS},
+		{name: "system Russian maps to English", preference: "system", system: []string{"ru-RU"}, want: LanguageEnUS},
 		{name: "unsupported system falls back to English", preference: "system", system: []string{"fr-FR"}, want: LanguageEnUS},
 	}
 
@@ -40,8 +40,8 @@ func TestCatalogKeysMatch(t *testing.T) {
 	}
 
 	languages := SupportedLanguages()
-	if len(languages) != 6 {
-		t.Fatalf("SupportedLanguages() length=%d, want 6", len(languages))
+	if len(languages) != 2 {
+		t.Fatalf("SupportedLanguages() length=%d, want 2", len(languages))
 	}
 
 	base := catalogs[LanguageEnUS]

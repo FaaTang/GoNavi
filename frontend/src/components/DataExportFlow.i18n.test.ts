@@ -11,11 +11,11 @@ const componentFiles = [
 
 const localeFiles = [
   'zh-CN',
-  'zh-TW',
+  'zh-CN',
   'en-US',
-  'ja-JP',
-  'de-DE',
-  'ru-RU',
+  'en-US',
+  'en-US',
+  'en-US',
 ] as const;
 
 const sources = componentFiles.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'));

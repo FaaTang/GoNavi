@@ -536,22 +536,22 @@ describe('DataViewer safe editing locator', () => {
 
   it.each([
     [
-      'zh-TW',
+      'zh-CN',
       '資料庫連線逾時：mysql 127.0.0.1:3306/crm：網路逾時',
       '查詢超過連線逾時時間，已中斷。請調高連線逾時時間，或縮小查詢範圍後再試。',
     ],
     [
-      'ja-JP',
+      'en-US',
       'データベース接続がタイムアウトしました: mysql 127.0.0.1:3306/crm: ネットワークタイムアウト',
       'クエリが接続タイムアウトを超えたため中断されました。接続タイムアウトを延長するか、クエリ範囲を絞って再試行してください。',
     ],
     [
-      'de-DE',
+      'en-US',
       'Zeitüberschreitung bei der Datenbankverbindung: mysql 127.0.0.1:3306/crm: Netzwerk-Timeout',
       'Die Abfrage hat das Verbindungstimeout überschritten und wurde unterbrochen. Erhöhen Sie das Verbindungstimeout oder verkleinern Sie den Abfragebereich und versuchen Sie es erneut.',
     ],
     [
-      'ru-RU',
+      'en-US',
       'Тайм-аут подключения к базе данных: mysql 127.0.0.1:3306/crm: тайм-аут сети',
       'Запрос превысил тайм-аут подключения и был прерван. Увеличьте тайм-аут подключения или сократите область запроса и повторите попытку.',
     ],

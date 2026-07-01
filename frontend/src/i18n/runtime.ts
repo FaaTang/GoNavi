@@ -1,9 +1,6 @@
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
-import "dayjs/locale/zh-tw";
-import "dayjs/locale/ja";
-import "dayjs/locale/de";
-import "dayjs/locale/ru";
+import "dayjs/locale/en";
 import type { SupportedLanguage } from "./types";
 
 const appApi = () => (window as any)?.go?.app?.App;
@@ -15,11 +12,7 @@ let activeSyncLoop: Promise<void> | null = null;
 export function applyDayjsLocale(language: SupportedLanguage): void {
   const localeByLanguage: Record<SupportedLanguage, string> = {
     "zh-CN": "zh-cn",
-    "zh-TW": "zh-tw",
     "en-US": "en",
-    "ja-JP": "ja",
-    "de-DE": "de",
-    "ru-RU": "ru",
   };
   dayjs.locale(localeByLanguage[language] || "en");
 }

@@ -42,3 +42,15 @@ export const clearSQLFileTabDraft = (tabId: string): void => {
 export const hasSQLFileTabDraft = (tabId: string): boolean => {
   return hasQueryTabDraft(tabId);
 };
+
+export const FLUSH_QUERY_TAB_DRAFTS_EVENT = 'gonavi:flush-query-tab-drafts';
+
+export const flushQueryTabDrafts = (tabIds: string[]): void => {
+  const normalizedTabIds = Array.from(new Set(tabIds.map((id) => String(id || '').trim()).filter(Boolean)));
+  if (typeof window === 'undefined' || normalizedTabIds.length === 0) {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(FLUSH_QUERY_TAB_DRAFTS_EVENT, {
+    detail: { tabIds: normalizedTabIds },
+  }));
+};

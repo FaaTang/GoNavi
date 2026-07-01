@@ -14,6 +14,7 @@ export type ShortcutAction =
   | 'sidebarViewTableDdl'
   | 'switchToNextTab'
   | 'switchToPreviousTab'
+  | 'closeCurrentTab'
   | 'newConnection'
   | 'toggleAIPanel'
   | 'toggleLogPanel'
@@ -113,6 +114,7 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'sidebarViewTableDdl',
   'switchToNextTab',
   'switchToPreviousTab',
+  'closeCurrentTab',
   'newConnection',
   'toggleAIPanel',
   'toggleLogPanel',
@@ -203,6 +205,11 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
   switchToPreviousTab: {
     labelKey: 'app.shortcuts.action.switchToPreviousTab.label',
     descriptionKey: 'app.shortcuts.action.switchToPreviousTab.description',
+    allowInEditable: true,
+  },
+  closeCurrentTab: {
+    labelKey: 'app.shortcuts.action.closeCurrentTab.label',
+    descriptionKey: 'app.shortcuts.action.closeCurrentTab.description',
     allowInEditable: true,
   },
   newConnection: {
@@ -302,6 +309,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   switchToPreviousTab: {
     mac: { combo: 'Ctrl+Shift+Tab', enabled: true },
     windows: { combo: 'Ctrl+Shift+Tab', enabled: true },
+  },
+  closeCurrentTab: {
+    mac: { combo: 'Meta+W', enabled: true },
+    windows: { combo: 'Ctrl+W', enabled: true },
   },
   newConnection: {
     mac: { combo: 'Meta+Shift+N', enabled: true },

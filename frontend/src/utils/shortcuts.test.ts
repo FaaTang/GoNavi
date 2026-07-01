@@ -395,6 +395,10 @@ describe('shortcut defaults', () => {
       mac: { combo: 'Ctrl+Shift+Tab', enabled: true },
       windows: { combo: 'Ctrl+Shift+Tab', enabled: true },
     });
+    expect(DEFAULT_SHORTCUT_OPTIONS.closeCurrentTab).toEqual({
+      mac: { combo: 'Meta+W', enabled: true },
+      windows: { combo: 'Ctrl+W', enabled: true },
+    });
     expect(DEFAULT_SHORTCUT_OPTIONS.toggleLogPanel).toEqual({
       mac: { combo: 'Meta+Shift+H', enabled: true },
       windows: { combo: 'Ctrl+H', enabled: true },

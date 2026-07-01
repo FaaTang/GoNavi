@@ -9,10 +9,7 @@ vi.mock("dayjs", () => ({
 }));
 
 vi.mock("dayjs/locale/zh-cn", () => ({}));
-vi.mock("dayjs/locale/zh-tw", () => ({}));
-vi.mock("dayjs/locale/ja", () => ({}));
-vi.mock("dayjs/locale/de", () => ({}));
-vi.mock("dayjs/locale/ru", () => ({}));
+vi.mock("dayjs/locale/en", () => ({}));
 
 describe("syncLanguageRuntime", () => {
   afterEach(() => {
@@ -43,17 +40,11 @@ describe("syncLanguageRuntime", () => {
     vi.stubGlobal("window", {});
 
     const { applyDayjsLocale } = await import("./runtime");
-    applyDayjsLocale("zh-TW");
-    applyDayjsLocale("ja-JP");
-    applyDayjsLocale("de-DE");
-    applyDayjsLocale("ru-RU");
+    applyDayjsLocale("zh-CN");
     applyDayjsLocale("en-US");
 
-    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(1, "zh-tw");
-    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(2, "ja");
-    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(3, "de");
-    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(4, "ru");
-    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(5, "en");
+    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(1, "zh-cn");
+    expect(dayjsLocaleMock).toHaveBeenNthCalledWith(2, "en");
   });
 
   it("does not re-sync backend runtimes when the same language is requested repeatedly", async () => {
@@ -67,13 +58,13 @@ describe("syncLanguageRuntime", () => {
     });
 
     const { syncLanguageRuntime } = await import("./runtime");
-    await syncLanguageRuntime("ja-JP");
-    await syncLanguageRuntime("ja-JP");
+    await syncLanguageRuntime("en-US");
+    await syncLanguageRuntime("en-US");
 
     expect(appSetLanguage).toHaveBeenCalledTimes(1);
-    expect(appSetLanguage).toHaveBeenCalledWith("ja-JP");
+    expect(appSetLanguage).toHaveBeenCalledWith("en-US");
     expect(aiSetLanguage).toHaveBeenCalledTimes(1);
-    expect(aiSetLanguage).toHaveBeenCalledWith("ja-JP");
+    expect(aiSetLanguage).toHaveBeenCalledWith("en-US");
   });
 
   it("reuses the same in-flight sync for concurrent calls with the same language", async () => {
@@ -98,8 +89,8 @@ describe("syncLanguageRuntime", () => {
     });
 
     const { syncLanguageRuntime } = await import("./runtime");
-    const firstSync = syncLanguageRuntime("ja-JP");
-    const secondSync = syncLanguageRuntime("ja-JP");
+    const firstSync = syncLanguageRuntime("en-US");
+    const secondSync = syncLanguageRuntime("en-US");
 
     expect(appSetLanguage).toHaveBeenCalledTimes(1);
     expect(aiSetLanguage).toHaveBeenCalledTimes(1);
@@ -136,7 +127,7 @@ describe("syncLanguageRuntime", () => {
 
     const { syncLanguageRuntime } = await import("./runtime");
     const zhSync = syncLanguageRuntime("zh-CN");
-    const jaSync = syncLanguageRuntime("ja-JP");
+    const enSync = syncLanguageRuntime("en-US");
 
     expect(appSetLanguage).toHaveBeenCalledTimes(1);
     expect(appSetLanguage).toHaveBeenNthCalledWith(1, "zh-CN");
@@ -148,14 +139,14 @@ describe("syncLanguageRuntime", () => {
     await Promise.resolve();
 
     expect(appSetLanguage).toHaveBeenCalledTimes(2);
-    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
     expect(aiSetLanguage).toHaveBeenCalledTimes(2);
-    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
 
-    resolversByLanguage.get("ja-JP")?.forEach((resolve) => resolve());
-    await Promise.all([zhSync, jaSync]);
+    resolversByLanguage.get("en-US")?.forEach((resolve) => resolve());
+    await Promise.all([zhSync, enSync]);
 
-    await syncLanguageRuntime("ja-JP");
+    await syncLanguageRuntime("en-US");
     expect(appSetLanguage).toHaveBeenCalledTimes(2);
     expect(aiSetLanguage).toHaveBeenCalledTimes(2);
   });
@@ -168,7 +159,7 @@ describe("syncLanguageRuntime", () => {
       resolversByLanguage.set(language, resolvers);
     };
     const appSetLanguage = vi.fn((language: string) => {
-      if (language === "ja-JP") {
+      if (language === "en-US") {
         return new Promise<void>((resolve) => {
           recordResolver(language, resolve);
         });
@@ -176,7 +167,7 @@ describe("syncLanguageRuntime", () => {
       return Promise.resolve();
     });
     const aiSetLanguage = vi.fn((language: string) => {
-      if (language === "ja-JP") {
+      if (language === "en-US") {
         return new Promise<void>((resolve) => {
           recordResolver(language, resolve);
         });
@@ -193,16 +184,16 @@ describe("syncLanguageRuntime", () => {
     const { syncLanguageRuntime } = await import("./runtime");
     await syncLanguageRuntime("zh-CN");
 
-    const jaSync = syncLanguageRuntime("ja-JP");
+    const enSync = syncLanguageRuntime("en-US");
     const backToZhSync = syncLanguageRuntime("zh-CN");
 
     expect(appSetLanguage).toHaveBeenNthCalledWith(1, "zh-CN");
-    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
     expect(aiSetLanguage).toHaveBeenNthCalledWith(1, "zh-CN");
-    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
 
-    resolversByLanguage.get("ja-JP")?.forEach((resolve) => resolve());
-    await Promise.all([jaSync, backToZhSync]);
+    resolversByLanguage.get("en-US")?.forEach((resolve) => resolve());
+    await Promise.all([enSync, backToZhSync]);
 
     expect(appSetLanguage).toHaveBeenNthCalledWith(3, "zh-CN");
     expect(aiSetLanguage).toHaveBeenNthCalledWith(3, "zh-CN");
@@ -222,15 +213,15 @@ describe("syncLanguageRuntime", () => {
     });
 
     const { syncLanguageRuntime } = await import("./runtime");
-    await syncLanguageRuntime("ja-JP");
-    await syncLanguageRuntime("ja-JP");
+    await syncLanguageRuntime("en-US");
+    await syncLanguageRuntime("en-US");
 
     expect(appSetLanguage).toHaveBeenCalledTimes(2);
-    expect(appSetLanguage).toHaveBeenNthCalledWith(1, "ja-JP");
-    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(appSetLanguage).toHaveBeenNthCalledWith(1, "en-US");
+    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
     expect(aiSetLanguage).toHaveBeenCalledTimes(2);
-    expect(aiSetLanguage).toHaveBeenNthCalledWith(1, "ja-JP");
-    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(aiSetLanguage).toHaveBeenNthCalledWith(1, "en-US");
+    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
   });
 
   it("continues syncing when the language actually changes", async () => {
@@ -245,11 +236,11 @@ describe("syncLanguageRuntime", () => {
 
     const { syncLanguageRuntime } = await import("./runtime");
     await syncLanguageRuntime("zh-CN");
-    await syncLanguageRuntime("ja-JP");
+    await syncLanguageRuntime("en-US");
 
     expect(appSetLanguage).toHaveBeenNthCalledWith(1, "zh-CN");
-    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(appSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
     expect(aiSetLanguage).toHaveBeenNthCalledWith(1, "zh-CN");
-    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "ja-JP");
+    expect(aiSetLanguage).toHaveBeenNthCalledWith(2, "en-US");
   });
 });

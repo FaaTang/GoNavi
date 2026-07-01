@@ -16,11 +16,7 @@ vi.mock('../../i18n/runtime', () => ({
 const formSource = readFileSync(new URL('./AIMCPServerFormPanel.tsx', import.meta.url), 'utf8');
 const helpBlockSource = readFileSync(new URL('./AIMCPHelpBlock.tsx', import.meta.url), 'utf8');
 const zhCnCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-CN.json', import.meta.url), 'utf8'));
-const zhTwCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-TW.json', import.meta.url), 'utf8'));
 const enUsCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/en-US.json', import.meta.url), 'utf8'));
-const jaJpCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ja-JP.json', import.meta.url), 'utf8'));
-const deDeCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/de-DE.json', import.meta.url), 'utf8'));
-const ruRuCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ru-RU.json', import.meta.url), 'utf8'));
 
 const REQUIRED_KEYS = [
   'ai_settings.mcp_server.help.field_state.required',
@@ -152,14 +148,10 @@ describe('AIMCPServerFormPanel', () => {
     expect(helpBlockSource).not.toContain('例如：');
   });
 
-  it('keeps form keys present in all six catalogs', () => {
+  it('keeps form keys present in supported catalogs', () => {
     for (const key of REQUIRED_KEYS) {
       expect(zhCnCatalog[key]).toBeTruthy();
-      expect(zhTwCatalog[key]).toBeTruthy();
       expect(enUsCatalog[key]).toBeTruthy();
-      expect(jaJpCatalog[key]).toBeTruthy();
-      expect(deDeCatalog[key]).toBeTruthy();
-      expect(ruRuCatalog[key]).toBeTruthy();
     }
   });
 

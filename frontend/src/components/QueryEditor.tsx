@@ -40,7 +40,7 @@ import {
     ORACLE_ROWID_LOCATOR_COLUMN,
     type EditRowLocator,
 } from '../utils/rowLocator';
-import { getQueryTabDraft, hasQueryTabDraft, setQueryTabDraft, setSQLFileTabDraft } from '../utils/sqlFileTabDrafts';
+import { FLUSH_QUERY_TAB_DRAFTS_EVENT, getQueryTabDraft, hasQueryTabDraft, setQueryTabDraft, setSQLFileTabDraft } from '../utils/sqlFileTabDrafts';
 import {
     getColumnDefinitionComment,
     getColumnDefinitionKey,
@@ -538,6 +538,27 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       return () => {
           setSQLFileTabDraft(tab.id, getCurrentQuery());
       };
+  }, [isExternalSQLFileTab, tab.id]);
+
+  useEffect(() => {
+      const handleFlushQueryTabDrafts = (event: Event) => {
+          const detail = (event as CustomEvent<{ tabIds?: string[] }>).detail;
+          const tabIds = Array.isArray(detail?.tabIds)
+              ? detail.tabIds.map((id) => String(id || '').trim()).filter(Boolean)
+              : [];
+          if (!tabIds.includes(tab.id)) {
+              return;
+          }
+          const currentQuery = getCurrentQuery();
+          if (isExternalSQLFileTab) {
+              setSQLFileTabDraft(tab.id, currentQuery);
+              return;
+          }
+          setQueryTabDraft(tab.id, currentQuery);
+      };
+
+      window.addEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
+      return () => window.removeEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
   }, [isExternalSQLFileTab, tab.id]);
 
   // 当此 Tab 成为活跃 Tab 时，将本实例的状态同步到模块级共享变量

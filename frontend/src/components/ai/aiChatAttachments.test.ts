@@ -83,14 +83,10 @@ describe('aiChatAttachments', () => {
     expect(source).not.toContain('</用户上传附件>');
   });
 
-  it('keeps attachment prompt and worksheet keys present in all six catalogs', () => {
+  it('keeps attachment prompt and worksheet keys present in zh-CN and en-US catalogs', () => {
     const catalogs = [
       '../../../../shared/i18n/zh-CN.json',
-      '../../../../shared/i18n/zh-TW.json',
       '../../../../shared/i18n/en-US.json',
-      '../../../../shared/i18n/ja-JP.json',
-      '../../../../shared/i18n/de-DE.json',
-      '../../../../shared/i18n/ru-RU.json',
     ].map((path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')));
 
     const requiredKeys = [

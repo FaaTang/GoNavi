@@ -386,11 +386,11 @@ describe('main browser mock', () => {
     expect(syncLanguageRuntimeMock).not.toHaveBeenCalled();
 
     act(() => {
-      finishHydration('ja-JP');
+      finishHydration('en-US');
     });
 
-    expect(getCurrentLanguage()).toBe('ja-JP');
-    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['ja-JP']);
+    expect(getCurrentLanguage()).toBe('en-US');
+    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 
   it('applies the resolved runtime locale on the first visible frame after hydration', async () => {
@@ -444,16 +444,16 @@ describe('main browser mock', () => {
     dayjsLocaleMock.mockClear();
 
     act(() => {
-      finishHydration('ja-JP');
+      finishHydration('en-US');
     });
 
-    expect(getCurrentLanguage()).toBe('ja-JP');
+    expect(getCurrentLanguage()).toBe('en-US');
     expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
-    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['ja-JP']);
+    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 
   it('does not stay blank when hydration finishes in the gap before finish-hydration subscription starts listening', async () => {
-    let languagePreference = 'ja-JP';
+    let languagePreference = 'en-US';
     let hydrated = false;
     const storeListeners = new Set<VoidFunction>();
     const hydrationListeners = new Set<VoidFunction>();
@@ -501,9 +501,9 @@ describe('main browser mock', () => {
     expect(hydrationSubscriptionCount).toBeGreaterThan(0);
     expect(renderer).not.toBeNull();
     expect(renderer!.toJSON()).not.toBeNull();
-    expect(getCurrentLanguage()).toBe('ja-JP');
+    expect(getCurrentLanguage()).toBe('en-US');
     expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
-    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['ja-JP']);
+    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 
   it('renders immediately with the resolved locale when hydration is already complete on first load', async () => {
@@ -514,8 +514,8 @@ describe('main browser mock', () => {
         <T,>(selector: (state: { languagePreference: string; setLanguagePreference: (nextPreference: string) => void }) => T): T =>
           React.useSyncExternalStore(
             () => () => {},
-            () => selector({ languagePreference: 'ja-JP', setLanguagePreference }),
-            () => selector({ languagePreference: 'ja-JP', setLanguagePreference }),
+            () => selector({ languagePreference: 'en-US', setLanguagePreference }),
+            () => selector({ languagePreference: 'en-US', setLanguagePreference }),
           ),
         {
           persist: {
@@ -539,8 +539,8 @@ describe('main browser mock', () => {
 
     expect(renderer).not.toBeNull();
     expect(renderer!.toJSON()).not.toBeNull();
-    expect(getCurrentLanguage()).toBe('ja-JP');
+    expect(getCurrentLanguage()).toBe('en-US');
     expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
-    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['ja-JP']);
+    expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 });

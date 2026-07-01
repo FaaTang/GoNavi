@@ -163,7 +163,7 @@ vi.mock('@ant-design/icons', async () => {
   };
 });
 
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'snippet_settings.list.title',
   'snippet_settings.action.new',

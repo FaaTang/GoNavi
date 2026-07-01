@@ -283,16 +283,12 @@ describe("i18n", () => {
     expect(DEFAULT_LANGUAGE).toBe("en-US");
     expect(SUPPORTED_LANGUAGES).toEqual([
       "zh-CN",
-      "zh-TW",
       "en-US",
-      "ja-JP",
-      "de-DE",
-      "ru-RU",
     ]);
     expect(LANGUAGE_PREFERENCES).toEqual(["system", ...SUPPORTED_LANGUAGES]);
     expect(t("common.action.cancel", undefined, "zh-CN")).toBe("取消");
     expect(t("common.action.cancel", undefined, "en-US")).toBe("Cancel");
-    expect(t("common.cancel", undefined, "de-DE")).toBe("Abbrechen");
+    expect(t("common.cancel", undefined, "en-US")).toBe("Cancel");
     expect(t("connection.modal.title.create", { type: "MySQL" }, "zh-CN")).toBe(
       "新建 MySQL 连接",
     );
@@ -304,11 +300,11 @@ describe("i18n", () => {
   it("falls back to the key for missing messages and normalizes unsupported languages", () => {
     expect(t("missing.key", undefined, "en-US")).toBe("missing.key");
     expect(resolveLanguage("fr-FR")).toBe(DEFAULT_LANGUAGE);
-    expect(resolveLanguage("system", ["zh-HK"])).toBe("zh-TW");
+    expect(resolveLanguage("system", ["zh-HK"])).toBe("zh-CN");
     expect(t("common.action.cancel", undefined, "fr-FR")).toBe("Cancel");
   });
 
-  it.each(["zh-TW", "ja-JP", "de-DE", "ru-RU"] as const)(
+  it.each(["zh-CN", "en-US"] as const)(
     "keeps the remaining ConnectionModal slice keys localized in %s",
     (language) => {
       for (const expectation of remainingConnectionModalSliceExpectations) {

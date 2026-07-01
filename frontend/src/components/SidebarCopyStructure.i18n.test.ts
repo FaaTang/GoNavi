@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 
 describe('Sidebar copy structure i18n guard', () => {
   it('uses the shared localized success message when copying table structure', () => {

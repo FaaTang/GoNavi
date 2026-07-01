@@ -73,7 +73,7 @@ func TestImportConnectionsPayloadLocalizesPasswordRequiredErrorInGerman(t *testi
 		t.Fatalf("expected German password-required message %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "恢复包密码不能为空") {
-		t.Fatalf("expected no legacy Chinese password-required text in de-DE mode, got %q", err.Error())
+		t.Fatalf("expected no legacy Chinese password-required text in en-US mode, got %q", err.Error())
 	}
 }
 
@@ -92,7 +92,7 @@ func TestImportConnectionsPayloadLocalizesOversizedImportErrorInGerman(t *testin
 		t.Fatalf("expected German oversized-import message %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "连接导入文件过大") {
-		t.Fatalf("expected no legacy Chinese oversized-import text in de-DE mode, got %q", err.Error())
+		t.Fatalf("expected no legacy Chinese oversized-import text in en-US mode, got %q", err.Error())
 	}
 }
 
@@ -113,7 +113,7 @@ func TestImportConnectionsPayloadLocalizesMySQLWorkbenchParseFailureInGerman(t *
 		t.Fatalf("expected German MySQL Workbench parse error %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "解析 MySQL Workbench XML 失败") {
-		t.Fatalf("expected no legacy Chinese MySQL Workbench parse text in de-DE mode, got %q", err.Error())
+		t.Fatalf("expected no legacy Chinese MySQL Workbench parse text in en-US mode, got %q", err.Error())
 	}
 }
 
@@ -130,7 +130,7 @@ func TestImportConnectionsPayloadLocalizesMySQLWorkbenchNoConnectionsErrorInGerm
 		t.Fatalf("expected German MySQL Workbench no-connections error %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "未在 XML 中找到有效的连接配置") {
-		t.Fatalf("expected no legacy Chinese MySQL Workbench no-connections text in de-DE mode, got %q", err.Error())
+		t.Fatalf("expected no legacy Chinese MySQL Workbench no-connections text in en-US mode, got %q", err.Error())
 	}
 }
 

@@ -2614,6 +2614,11 @@ function App() {
               case 'switchToPreviousTab':
                   switchActiveTabByOffset(-1);
                   break;
+              case 'closeCurrentTab':
+                  if (activeTabId) {
+                      window.dispatchEvent(new CustomEvent('gonavi:close-active-tab'));
+                  }
+                  break;
               case 'newConnection':
                   handleCreateConnection();
                   break;
@@ -2644,7 +2649,7 @@ function App() {
       return () => {
           window.removeEventListener('keydown', handleGlobalShortcut, true);
       };
-  }, [activeShortcutPlatform, handleCreateConnection, handleManualResetWindowZoom, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
+  }, [activeShortcutPlatform, activeTabId, handleCreateConnection, handleManualResetWindowZoom, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
 
   useEffect(() => {
       if (!capturingShortcutAction) {

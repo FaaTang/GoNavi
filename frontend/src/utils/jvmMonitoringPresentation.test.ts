@@ -39,7 +39,7 @@ describe("jvmMonitoringPresentation", () => {
 
   it("formats locale-sensitive compact numbers with the requested language", () => {
     expect(formatCompactNumber(1234, "en-US")).toBe("1,234");
-    expect(formatCompactNumber(1234, "de-DE")).toBe("1.234");
+    expect(formatCompactNumber(1234, "en-US")).toBe("1.234");
   });
 
   it("formats recent gc event label with duration", () => {

@@ -36,7 +36,7 @@ describe('exportProgress', () => {
   });
 
   it('formats row summary with localized text and number separators', () => {
-    setCurrentLanguage('de-DE');
+    setCurrentLanguage('en-US');
     expect(formatExportProgressRows(12345, 0, false)).toBe(
       t('data_export.progress.rows_written', { current: '12.345' }),
     );

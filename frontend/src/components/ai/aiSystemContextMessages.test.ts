@@ -125,7 +125,7 @@ describe('buildAISystemContextMessages', () => {
     expect(joined).not.toContain('优先调用 inspect_sql_risk 检查当前编辑区或传入 SQL');
   });
 
-  it('keeps fixed system inspection guidance keys in all six catalogs', () => {
+  it('keeps fixed system inspection guidance keys in supported catalogs', () => {
     for (const key of AI_SYSTEM_INSPECTION_GUIDANCE_KEYS) {
       for (const language of Object.keys(catalogs) as Array<keyof typeof catalogs>) {
         expect(catalogs[language]).toHaveProperty(key);
@@ -288,7 +288,7 @@ describe('buildAISystemContextMessages', () => {
     expect(diagnosticMessages[2].content).toContain('diagnostic prompt wrapper -> 诊断命令必须说明预期信号。');
   });
 
-  it('keeps fixed system context keys in all six catalogs', () => {
+  it('keeps fixed system context keys in supported catalogs', () => {
     for (const key of AI_SYSTEM_CONTEXT_KEYS) {
       for (const language of Object.keys(catalogs) as Array<keyof typeof catalogs>) {
         expect(catalogs[language]).toHaveProperty(key);

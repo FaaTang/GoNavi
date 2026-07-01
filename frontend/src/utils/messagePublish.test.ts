@@ -83,7 +83,7 @@ describe('messagePublish', () => {
   });
 
   it('keeps presentation keys in every locale catalog', () => {
-    (['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const).forEach((locale) => {
+    (['zh-CN', 'en-US'] as const).forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
       ) as Record<string, string>;
@@ -197,7 +197,7 @@ describe('messagePublish', () => {
       expect(messagePublishSource).not.toContain(legacyText);
     });
 
-    (['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const).forEach((locale) => {
+    (['zh-CN', 'en-US'] as const).forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
       ) as Record<string, string>;

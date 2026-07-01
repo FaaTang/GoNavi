@@ -5,7 +5,7 @@ const sidebarSource = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'u
 const batchModalSource = readFileSync(new URL('./sidebar/SidebarBatchExportModals.tsx', import.meta.url), 'utf8');
 const batchHookSource = readFileSync(new URL('./sidebar/useSidebarBatchExport.ts', import.meta.url), 'utf8');
 const batchTabSource = readFileSync(new URL('../utils/tableExportTab.ts', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 
 const requiredKeys = [
   'sidebar.action.batch_tables',

@@ -15,11 +15,7 @@ vi.mock('../../i18n/runtime', () => ({
 
 const source = readFileSync(new URL('./AIMCPRemoteQuickStartPanel.tsx', import.meta.url), 'utf8');
 const zhCnCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-CN.json', import.meta.url), 'utf8'));
-const zhTwCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-TW.json', import.meta.url), 'utf8'));
 const enUsCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/en-US.json', import.meta.url), 'utf8'));
-const jaJpCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ja-JP.json', import.meta.url), 'utf8'));
-const deDeCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/de-DE.json', import.meta.url), 'utf8'));
-const ruRuCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ru-RU.json', import.meta.url), 'utf8'));
 
 const REQUIRED_KEYS = [
   'ai_settings.mcp_server.remote_quick_start.title',
@@ -106,8 +102,8 @@ describe('AIMCPRemoteQuickStartPanel', () => {
     }
   });
 
-  it('keeps remote quick start keys present in all six catalogs with matching placeholders', () => {
-    const catalogs = [zhCnCatalog, zhTwCatalog, enUsCatalog, jaJpCatalog, deDeCatalog, ruRuCatalog];
+  it('keeps remote quick start keys present in supported catalogs with matching placeholders', () => {
+    const catalogs = [zhCnCatalog, enUsCatalog];
     const placeholders = (value: string) => [...value.matchAll(/\{\{([^}]+)\}\}/g)].map((match) => match[1]).sort();
     for (const key of REQUIRED_KEYS) {
       const base = placeholders(enUsCatalog[key]);

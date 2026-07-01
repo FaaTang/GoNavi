@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { executeSnapshotInspectionToolCall } from './aiSnapshotInspectionToolExecutor';
 
 const source = readFileSync(new URL('./aiSnapshotInspectionToolExecutor.ts', import.meta.url), 'utf8');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const localInspectionErrorKeys = [
   'ai_chat.inspection.snapshot.error.inspect_current_connection',
   'ai_chat.inspection.snapshot.error.inspect_connection_capabilities',

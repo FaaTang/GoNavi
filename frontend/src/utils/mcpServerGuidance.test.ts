@@ -10,7 +10,7 @@ import {
 } from './mcpServerGuidance';
 
 const source = readFileSync(new URL('./mcpServerGuidance.ts', import.meta.url), 'utf8');
-const supportedLanguages = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const supportedLanguages = ['zh-CN', 'en-US'] as const;
 
 const getPlaceholders = (value: string) =>
   Array.from(value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g), (match) => match[1]).sort();

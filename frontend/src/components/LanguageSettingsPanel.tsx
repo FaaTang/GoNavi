@@ -31,11 +31,7 @@ const LanguageSettingsPanel: React.FC = () => {
   const options: { label: string; value: LanguagePreference }[] = [
     { label: t("settings.language.follow_system"), value: "system" },
     { label: t("settings.language.simplified_chinese"), value: "zh-CN" },
-    { label: t("settings.language.traditional_chinese"), value: "zh-TW" },
     { label: t("settings.language.english"), value: "en-US" },
-    { label: t("settings.language.japanese"), value: "ja-JP" },
-    { label: t("settings.language.german"), value: "de-DE" },
-    { label: t("settings.language.russian"), value: "ru-RU" },
   ];
 
   return (

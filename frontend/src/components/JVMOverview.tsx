@@ -70,7 +70,7 @@ const JVMOverview: React.FC<JVMOverviewProps> = ({ tab }) => {
   const allowedModeSummary = useMemo(() => {
     const items = allowedModes.length > 0 ? allowedModes : ["jmx"];
     const delimiter =
-      language.startsWith("zh") || language === "ja-JP" ? "、" : ", ";
+      language.startsWith("zh") || language === "en-US" ? "、" : ", ";
     return items.map((item) => resolveJVMModeMeta(item).label).join(delimiter);
   }, [allowedModes, language]);
 

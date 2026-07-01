@@ -4617,7 +4617,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps untitled fallback after a language switch when the tab title came from another locale', async () => {
-    setCurrentLanguage('ja-JP');
+    setCurrentLanguage('en-US');
 
     let renderer!: ReactTestRenderer;
     await act(async () => {
@@ -4640,7 +4640,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps untitled fallback for database-scoped new query titles after a language switch', async () => {
-    setCurrentLanguage('ja-JP');
+    setCurrentLanguage('en-US');
 
     let renderer!: ReactTestRenderer;
     await act(async () => {

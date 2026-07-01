@@ -78,11 +78,7 @@ vi.mock('@ant-design/icons', () => ({
 
 const source = readFileSync(new URL('./AIContextSelectorModal.tsx', import.meta.url), 'utf8');
 const zhCnCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-CN.json', import.meta.url), 'utf8'));
-const zhTwCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/zh-TW.json', import.meta.url), 'utf8'));
 const enUsCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/en-US.json', import.meta.url), 'utf8'));
-const jaJpCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ja-JP.json', import.meta.url), 'utf8'));
-const deDeCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/de-DE.json', import.meta.url), 'utf8'));
-const ruRuCatalog = JSON.parse(readFileSync(new URL('../../../../shared/i18n/ru-RU.json', import.meta.url), 'utf8'));
 
 const baseProps: React.ComponentProps<typeof AIContextSelectorModal> = {
   open: true,
@@ -107,7 +103,7 @@ const baseProps: React.ComponentProps<typeof AIContextSelectorModal> = {
 };
 
 const renderWithProvider = (
-  language: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'de-DE' | 'ru-RU',
+  language: 'zh-CN' | 'en-US',
   overrides: Partial<React.ComponentProps<typeof AIContextSelectorModal>> = {},
 ) => renderToStaticMarkup(
   <I18nProvider
@@ -138,7 +134,7 @@ describe('AIContextSelectorModal i18n guards', () => {
     expect(source).not.toContain('当前数据库没有可关联的表');
   });
 
-  it('keeps required selector keys present in all six catalogs', () => {
+  it('keeps required selector keys present in supported catalogs', () => {
     const requiredKeys = [
       'ai_chat.input.context.selector.title',
       'ai_chat.input.context.selector.confirm',
@@ -153,11 +149,7 @@ describe('AIContextSelectorModal i18n guards', () => {
 
     for (const key of requiredKeys) {
       expect(zhCnCatalog[key]).toBeTruthy();
-      expect(zhTwCatalog[key]).toBeTruthy();
       expect(enUsCatalog[key]).toBeTruthy();
-      expect(jaJpCatalog[key]).toBeTruthy();
-      expect(deDeCatalog[key]).toBeTruthy();
-      expect(ruRuCatalog[key]).toBeTruthy();
     }
   });
 

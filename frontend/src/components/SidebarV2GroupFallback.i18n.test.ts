@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const sidebarSource = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
 const sidebarV2UtilsSource = readFileSync(new URL('./sidebarV2Utils.ts', import.meta.url), 'utf8');
 
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 const requiredKeys = [
   'connection.sidebar.group.untitled',
   'connection.sidebar.group.badge',

@@ -521,6 +521,7 @@ const Sidebar: React.FC<{
       </div>
   );
   const v2SidebarSearchMode = appearance.v2SidebarSearchMode ?? 'command';
+  const v2SidebarRailShowLabels = appearance.v2SidebarRailShowLabels ?? true;
   const v2UseLegacySidebarFilter = isV2Ui && v2SidebarSearchMode === 'filter';
   const v2CommandSearchPersistentFilterEnabled = appearance.v2CommandSearchPersistentFilterEnabled === true;
   const v2PersistedSidebarFilter = appearance.v2SidebarPersistedFilter ?? '';
@@ -2544,6 +2545,8 @@ const Sidebar: React.FC<{
   const v2AiAssistantLabel = t('app.sidebar.ai_assistant');
   const v2ToolsLabel = t('app.sidebar.tools');
   const v2SettingsLabel = t('app.sidebar.settings');
+  const v2RailExpandButtonLabelsLabel = t('sidebar.rail.toggle_labels.expand');
+  const v2RailCollapseButtonLabelsLabel = t('sidebar.rail.toggle_labels.collapse');
   const v2ActiveConnectionHeaderLabel = t('sidebar.active_connection.current_host_database');
   const v2NoDatabaseSelectedLabel = t('sidebar.active_connection.no_database_selected');
   const v2ConnectionActionsLabel = t('sidebar.active_connection.actions');
@@ -2863,6 +2866,7 @@ const Sidebar: React.FC<{
 
   // V2 Connection Rail 子组件 props（从原 renderV2ConnectionRail 抽出，保留所有原行为）
   const v2ConnectionRailProps = {
+    showLabels: v2SidebarRailShowLabels,
     labels: {
       railSystemActions: v2RailSystemActionsLabel,
       railObjectActions: v2RailObjectActionsLabel,
@@ -2875,6 +2879,8 @@ const Sidebar: React.FC<{
       aiAssistant: v2AiAssistantLabel,
       tools: v2ToolsLabel,
       settings: v2SettingsLabel,
+      expandButtonLabels: v2RailExpandButtonLabelsLabel,
+      collapseButtonLabels: v2RailCollapseButtonLabelsLabel,
     },
     handlers: {
       openCreateTagModal: () => { setRenameViewTarget(null); createTagForm.resetFields(); setIsCreateTagModalOpen(true); },
@@ -2885,6 +2891,7 @@ const Sidebar: React.FC<{
       toggleAI: onToggleAI ?? (() => {}),
       openTools: onOpenTools ?? (() => {}),
       openSettings: onOpenSettings ?? (() => {}),
+      toggleShowLabels: () => setAppearance({ v2SidebarRailShowLabels: !v2SidebarRailShowLabels }),
     },
     canLocateActiveTab,
   };

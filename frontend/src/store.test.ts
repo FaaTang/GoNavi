@@ -112,15 +112,15 @@ describe('store appearance persistence', () => {
 
     expect(useStore.getState().languagePreference).toBe('system');
 
-    useStore.getState().setLanguagePreference('ja-JP');
-    expect(useStore.getState().languagePreference).toBe('ja-JP');
+    useStore.getState().setLanguagePreference('en-US');
+    expect(useStore.getState().languagePreference).toBe('en-US');
 
     let persisted = JSON.parse(storage.getItem('lite-db-storage') || '{}');
-    expect(persisted.state.languagePreference).toBe('ja-JP');
+    expect(persisted.state.languagePreference).toBe('en-US');
 
     vi.resetModules();
     let reloaded = await importStore();
-    expect(reloaded.useStore.getState().languagePreference).toBe('ja-JP');
+    expect(reloaded.useStore.getState().languagePreference).toBe('en-US');
 
     reloaded.useStore.getState().setLanguagePreference('system');
     expect(reloaded.useStore.getState().languagePreference).toBe('system');
@@ -931,7 +931,7 @@ describe('store appearance persistence', () => {
 
   it('uses localized external SQL directory fallback names without overriding explicit names or path segments', async () => {
     const i18n = await import('./i18n');
-    i18n.setCurrentLanguage('de-DE');
+    i18n.setCurrentLanguage('en-US');
     const { useStore } = await importStore();
 
     useStore.getState().saveExternalSQLDirectory({
@@ -991,7 +991,7 @@ describe('store appearance persistence', () => {
 
     vi.resetModules();
     const reloadedI18n = await import('./i18n');
-    reloadedI18n.setCurrentLanguage('ja-JP');
+    reloadedI18n.setCurrentLanguage('en-US');
     const reloaded = await importStore();
 
     expect(reloaded.useStore.getState().externalSQLDirectories.map((directory) => directory.name)).toEqual([
@@ -1081,7 +1081,7 @@ describe('store appearance persistence', () => {
     vi.useFakeTimers();
     try {
       const i18n = await import('./i18n');
-      i18n.setCurrentLanguage('ja-JP');
+      i18n.setCurrentLanguage('en-US');
       const { useStore } = await importStore();
 
       useStore.getState().addAIChatMessage('assistant-first', {

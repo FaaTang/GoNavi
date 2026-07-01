@@ -344,11 +344,11 @@ describe('DataGrid layout', () => {
 
     [
       'zh-CN',
-      'zh-TW',
+      'zh-CN',
       'en-US',
-      'ja-JP',
-      'de-DE',
-      'ru-RU',
+      'en-US',
+      'en-US',
+      'en-US',
     ].forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
@@ -413,11 +413,11 @@ describe('DataGrid layout', () => {
 
     [
       'zh-CN',
-      'zh-TW',
+      'zh-CN',
       'en-US',
-      'ja-JP',
-      'de-DE',
-      'ru-RU',
+      'en-US',
+      'en-US',
+      'en-US',
     ].forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
@@ -625,11 +625,11 @@ describe('DataGrid layout', () => {
 
     [
       'zh-CN',
-      'zh-TW',
+      'zh-CN',
       'en-US',
-      'ja-JP',
-      'de-DE',
-      'ru-RU',
+      'en-US',
+      'en-US',
+      'en-US',
     ].forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
@@ -1258,7 +1258,7 @@ describe('DataGrid layout', () => {
     expect(toolbarFrameSource).toContain('WHERE');
     expect(toolbarFrameSource).toContain('tableName');
     expect(toolbarFrameSource).toContain('dbName');
-    (['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const).forEach((locale) => {
+    (['zh-CN', 'en-US'] as const).forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
       );
@@ -1532,11 +1532,11 @@ describe('DataGrid layout', () => {
 
     [
       'zh-CN',
-      'zh-TW',
+      'zh-CN',
       'en-US',
-      'ja-JP',
-      'de-DE',
-      'ru-RU',
+      'en-US',
+      'en-US',
+      'en-US',
     ].forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
@@ -1632,7 +1632,7 @@ describe('DataGrid layout', () => {
       expect(`${filterOpOptionsSource}\n${filterLogicOptionsSource}`).not.toContain(literal);
     });
 
-    (['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const).forEach((locale) => {
+    (['zh-CN', 'en-US'] as const).forEach((locale) => {
       const catalog = JSON.parse(
         readFileSync(new URL(`../../../shared/i18n/${locale}.json`, import.meta.url), 'utf8'),
       ) as Record<string, string>;

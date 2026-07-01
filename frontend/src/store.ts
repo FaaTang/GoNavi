@@ -51,9 +51,12 @@ import { sanitizeFontFamilyInput } from "./utils/fontFamilies";
 import {
   DEFAULT_LANGUAGE,
   LANGUAGE_PREFERENCES,
+  SUPPORTED_LANGUAGES,
+  normalizeLanguage,
   resolveLanguage,
   t as translate,
   type LanguagePreference,
+  type SupportedLanguage,
 } from "./i18n";
 import {
   DEFAULT_TAB_DISPLAY_SETTINGS,
@@ -88,6 +91,7 @@ export interface AppearanceSettings extends DataGridDisplaySettings {
   v2SidebarSearchMode: "command" | "filter";
   v2CommandSearchPersistentFilterEnabled: boolean;
   v2SidebarPersistedFilter: string;
+  v2SidebarRailShowLabels: boolean;
   customUIFontFamily: string | null;
   customMonoFontFamily: string | null;
   tabDisplay: TabDisplaySettings;
@@ -103,6 +107,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   v2SidebarSearchMode: "command",
   v2CommandSearchPersistentFilterEnabled: false,
   v2SidebarPersistedFilter: "",
+  v2SidebarRailShowLabels: true,
   customUIFontFamily: null,
   customMonoFontFamily: null,
   tabDisplay: DEFAULT_TAB_DISPLAY_SETTINGS,
@@ -1880,15 +1885,18 @@ const sanitizeTheme = (value: unknown): "light" | "dark" =>
   value === "dark" ? "dark" : "light";
 
 const sanitizeLanguagePreference = (value: unknown): LanguagePreference => {
+  if (value === "system") {
+    return "system";
+  }
   if (
     typeof value === "string" &&
-    (LANGUAGE_PREFERENCES as readonly string[]).includes(value)
+    (SUPPORTED_LANGUAGES as readonly string[]).includes(value)
   ) {
-    return value as LanguagePreference;
+    return value as SupportedLanguage;
   }
   if (typeof value === "string" && value.trim() !== "") {
-    const resolved = resolveLanguage(value, []);
-    if (resolved !== DEFAULT_LANGUAGE) {
+    const resolved = normalizeLanguage(value);
+    if (resolved) {
       return resolved;
     }
   }
@@ -2082,6 +2090,10 @@ const sanitizeAppearance = (
     v2SidebarPersistedFilter: sanitizeV2SidebarPersistedFilter(
       appearance.v2SidebarPersistedFilter,
     ),
+    v2SidebarRailShowLabels:
+      typeof appearance.v2SidebarRailShowLabels === "boolean"
+        ? appearance.v2SidebarRailShowLabels
+        : DEFAULT_APPEARANCE.v2SidebarRailShowLabels,
     customUIFontFamily: sanitizeFontFamilyInput(appearance.customUIFontFamily),
     customMonoFontFamily: sanitizeFontFamilyInput(appearance.customMonoFontFamily),
     tabDisplay: sanitizeTabDisplaySettings(appearance.tabDisplay),

@@ -5,7 +5,7 @@ const source = [
   readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('./sidebar/useSidebarObjectActions.tsx', import.meta.url), 'utf8'),
 ].join('\n');
-const locales = ['zh-CN', 'zh-TW', 'en-US', 'ja-JP', 'de-DE', 'ru-RU'] as const;
+const locales = ['zh-CN', 'en-US'] as const;
 
 const requiredKeys = [
   'sidebar.copy_object_name.label.table',

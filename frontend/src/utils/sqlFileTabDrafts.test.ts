@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   clearQueryTabDraft,
   clearSQLFileTabDraft,
+  FLUSH_QUERY_TAB_DRAFTS_EVENT,
+  flushQueryTabDrafts,
   getQueryTabDraft,
   getSQLFileTabDraft,
   hasQueryTabDraft,
@@ -42,5 +44,21 @@ describe('sqlFileTabDrafts', () => {
     clearSQLFileTabDraft('tab-1');
 
     expect(hasSQLFileTabDraft('tab-1')).toBe(false);
+  });
+
+  it('dispatches a flush event for the requested tab ids', () => {
+    const seen: string[][] = [];
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ tabIds?: string[] }>).detail;
+      seen.push(detail?.tabIds || []);
+    };
+
+    window.addEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handler);
+    try {
+      flushQueryTabDrafts([' tab-a ', 'tab-b', 'tab-a', '']);
+      expect(seen).toEqual([['tab-a', 'tab-b']]);
+    } finally {
+      window.removeEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handler);
+    }
   });
 });

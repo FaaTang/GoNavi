@@ -16,23 +16,25 @@ import { catalogs } from '../i18n/catalog';
 import type { TabData } from '../types';
 import { buildTabDisplayModel } from '../utils/tabDisplay';
 
-const TAB_MANAGER_SQL_FILE_CLOSE_KEYS = [
+const TAB_MANAGER_QUERY_CLOSE_I18N_KEYS = [
   'tab_manager.sql_file_close.read_failed_cancel_close',
-  'tab_manager.sql_file_close.dirty_single_label',
-  'tab_manager.sql_file_close.dirty_multiple_label',
-  'tab_manager.sql_file_close.save_confirm_title',
-  'tab_manager.sql_file_close.save_confirm_content',
   'tab_manager.sql_file_close.save_and_close',
   'tab_manager.sql_file_close.discard',
-  'tab_manager.sql_file_close.save_failed',
   'tab_manager.sql_file_close.unknown_error',
-  'tab_manager.sql_file_close.saved',
   'tab_manager.sql_file_close.missing_single_label',
   'tab_manager.sql_file_close.missing_multiple_label',
   'tab_manager.sql_file_close.missing_confirm_title',
   'tab_manager.sql_file_close.missing_confirm_content',
   'tab_manager.sql_file_close.continue_close',
   'tab_manager.sql_file_close.close_tabs',
+  'tab_manager.query_close.dirty_multiple_label',
+  'tab_manager.query_close.dirty_single_label',
+  'tab_manager.query_close.name_empty',
+  'tab_manager.query_close.name_required_title',
+  'tab_manager.query_close.save_confirm_content',
+  'tab_manager.query_close.save_confirm_title',
+  'tab_manager.query_close.save_failed',
+  'tab_manager.query_close.saved',
 ] as const;
 
 const TAB_MANAGER_MENU_KEYS = [
@@ -333,13 +335,13 @@ describe('TabManager hover info', () => {
     expect(source).toMatch(/\.gn-v2-tab-hover-card \* \{[^}]*user-select: text;/s);
   });
 
-  it('guards closing opened SQL file tabs with save confirmation', () => {
+  it('guards closing query tabs with save confirmation', () => {
     const source = stripSourceComments(readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8'));
 
     expect(source).toContain('ReadSQLFile(filePath)');
     expect(source).toContain('isSQLFileMissingReadResult(res)');
     expect(source).toContain('isSQLFileMissingErrorMessage(errorMessage)');
-    TAB_MANAGER_SQL_FILE_CLOSE_KEYS.forEach((key) => {
+    TAB_MANAGER_QUERY_CLOSE_I18N_KEYS.forEach((key) => {
       expect(source).toContain(`t('${key}'`);
     });
     [
@@ -358,20 +360,29 @@ describe('TabManager hover info', () => {
       expect(source).not.toContain(text);
     });
     expect(source).toContain('confirmDirtyTabsOrClose();');
-    expect(source).toContain("getSQLFileTabDraft(tab.id, String(tab.query ?? ''))");
-    expect(source).toContain('hasSQLFileTabUnsavedChanges({ ...tab, query: draft }, normalizeSQLFileReadContent(res.data))');
-    expect(source).toContain('WriteSQLFile(filePath, draft)');
-    expect(source).toContain('clearSQLFileTabDraft(tab.id)');
-    expect(source).toContain('closeTabsWithSQLFilePrompt([id], () => closeTab(id))');
-    expect(source).toContain('closeTabsWithSQLFilePrompt(getCloseOtherTabIds(tabs, tab.id), () => closeOtherTabs(tab.id))');
-    expect(source).toContain('closeTabsWithSQLFilePrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id))');
-    expect(source).toContain('closeTabsWithSQLFilePrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id))');
-    expect(source).toContain('closeTabsWithSQLFilePrompt(tabs.map((item) => item.id), () => closeAllTabs())');
+    expect(source).toContain("getQueryTabDraft(tab.id, String(tab.query ?? ''))");
+    expect(source).toContain('hasQueryTabUnsavedChanges');
+    expect(source).toContain('closeTabsWithQueryPrompt([id], () => closeTab(id))');
+    expect(source).toContain('closeTabsWithQueryPrompt(getCloseOtherTabIds(tabs, tab.id), () => closeOtherTabs(tab.id))');
+    expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id))');
+    expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id))');
+    expect(source).toContain('closeTabsWithQueryPrompt(tabs.map((item) => item.id), () => closeAllTabs())');
+    expect(source).toContain('flushQueryTabDrafts(targetTabs.map((tab) => tab.id))');
+    expect(source).toContain("window.addEventListener('gonavi:close-active-tab', handleCloseActiveTab)");
   });
 
-  it('keeps SQL file close prompt keys in every catalog', () => {
+  it('closes inactive v2 tabs from the close button without relying on the active tab', () => {
+    const source = readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8');
+
+    expect(source).toContain('stopTabClosePointerActivation');
+    expect(source).toContain('onPointerDown={handleTabClosePointerDown}');
+    expect(source).toContain('gn-v2-tab-tooltip-target');
+    expect(source).not.toMatch(/\.\.\.listeners,\s*\n\s*className: `\$\{node\.props\.className/);
+  });
+
+  it('keeps query tab close prompt keys in every catalog', () => {
     Object.entries(catalogs).forEach(([language, catalog]) => {
-      TAB_MANAGER_SQL_FILE_CLOSE_KEYS.forEach((key) => {
+      TAB_MANAGER_QUERY_CLOSE_I18N_KEYS.forEach((key) => {
         expect(catalog, `${language}:${key}`).toHaveProperty(key);
       });
     });
