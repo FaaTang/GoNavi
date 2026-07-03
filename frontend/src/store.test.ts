@@ -1618,3 +1618,47 @@ describe('store appearance persistence', () => {
     expect(persistedSnippets[0].syntaxHelp).toBe('新说明：目标表、数据源、关联字段均可修改');
   });
 });
+
+describe('store queryOptions migration', () => {
+  let storage: MemoryStorage;
+
+  beforeEach(() => {
+    storage = new MemoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('defaults fresh installs to maxRows 100 with empty presets', async () => {
+    const { useStore } = await importStore();
+    expect(useStore.getState().queryOptions).toMatchObject({
+      maxRows: 100,
+      maxRowsCustomPresets: [],
+    });
+  });
+
+  it('keeps legacy maxRows=5000 and adds preset during hydration', async () => {
+    storage.setItem('lite-db-storage', JSON.stringify({
+      state: {
+        queryOptions: {
+          maxRows: 5000,
+          showColumnComment: true,
+          showColumnType: true,
+          showQueryResultsPanel: false,
+          askWhatToExecute: false,
+        },
+      },
+      version: 13,
+    }));
+
+    const { useStore } = await importStore();
+    expect(useStore.getState().queryOptions).toMatchObject({
+      maxRows: 5000,
+      maxRowsCustomPresets: [5000],
+    });
+  });
+});

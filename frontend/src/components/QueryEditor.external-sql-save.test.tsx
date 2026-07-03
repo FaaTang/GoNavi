@@ -54,6 +54,7 @@ const storeState = vi.hoisted(() => ({
   setSqlFormatOptions: vi.fn(),
   queryOptions: {
     maxRows: 5000,
+    maxRowsCustomPresets: [5000],
     showColumnComment: true,
     showColumnType: true,
     showQueryResultsPanel: false,
@@ -621,6 +622,7 @@ describe('QueryEditor external SQL save', () => {
     storeState.setAIPanelVisible.mockReset();
     storeState.queryOptions = {
       maxRows: 5000,
+      maxRowsCustomPresets: [5000],
       showColumnComment: true,
       showColumnType: true,
       showQueryResultsPanel: false,

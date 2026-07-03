@@ -4956,7 +4956,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         currentDb={currentDb}
         queryCapableConnections={queryCapableConnections}
         dbList={dbList}
-        maxRows={queryOptions?.maxRows ?? 5000}
+        maxRows={queryOptions?.maxRows ?? 100}
+        maxRowsCustomPresets={queryOptions?.maxRowsCustomPresets ?? []}
         sqlEditorCommitMode={sqlEditorCommitMode}
         sqlEditorAutoCommitDelayMs={sqlEditorAutoCommitDelayMs}
         pendingTransactionToolbar={pendingSqlTransaction ? sqlEditorTransactionToolbar : null}
@@ -4975,7 +4976,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             setCurrentDb('');
         }}
         onDatabaseChange={setCurrentDb}
-        onMaxRowsChange={(maxRows) => setQueryOptions({ maxRows })}
+        onMaxRowsChange={(next) => setQueryOptions(next)}
         onCommitModeChange={(mode) => setSqlEditorTransactionOptions(
             mode === 'auto'
                 ? { commitMode: mode, autoCommitDelayMs: 0 }

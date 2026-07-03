@@ -81,6 +81,7 @@ import {
   normalizeConnectionProtectionConfig,
   resolveConnectionProtectionConfig,
 } from "./utils/connectionReadOnly";
+import { migrateQueryMaxRows } from "./utils/queryMaxRows";
 
 export interface AppearanceSettings extends DataGridDisplaySettings {
   uiVersion: "legacy" | "v2";
@@ -147,7 +148,7 @@ const MIN_KEEPALIVE_INTERVAL_MINUTES = 1;
 const MAX_KEEPALIVE_INTERVAL_MINUTES = 1440;
 const DEFAULT_DIAGNOSTIC_TIMEOUT_SECONDS = 15;
 const MAX_DIAGNOSTIC_TIMEOUT_SECONDS = 300;
-const PERSIST_VERSION = 13;
+const PERSIST_VERSION = 14;
 const PERSIST_STORAGE_KEY = "lite-db-storage";
 const PERSIST_WRITE_DEBOUNCE_MS = 160;
 const MAX_PERSISTED_QUERY_TABS = 20;
@@ -1225,6 +1226,7 @@ export interface SqlLog {
 
 export interface QueryOptions {
   maxRows: number;
+  maxRowsCustomPresets: number[];
   showColumnComment: boolean;
   showColumnType: boolean;
   showQueryResultsPanel: boolean;
@@ -1918,7 +1920,7 @@ const sanitizeQueryOptions = (value: unknown): QueryOptions => {
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
       : {};
-  const maxRows = Number(raw.maxRows);
+  const migrated = migrateQueryMaxRows(raw);
   const showColumnComment =
     typeof raw.showColumnComment === "boolean" ? raw.showColumnComment : true;
   const showColumnType =
@@ -1927,17 +1929,9 @@ const sanitizeQueryOptions = (value: unknown): QueryOptions => {
     typeof raw.showQueryResultsPanel === "boolean" ? raw.showQueryResultsPanel : false;
   const askWhatToExecute =
     typeof raw.askWhatToExecute === "boolean" ? raw.askWhatToExecute : false;
-  if (!Number.isFinite(maxRows) || maxRows <= 0) {
-    return {
-      maxRows: 5000,
-      showColumnComment,
-      showColumnType,
-      showQueryResultsPanel,
-      askWhatToExecute,
-    };
-  }
   return {
-    maxRows: Math.min(50000, Math.trunc(maxRows)),
+    maxRows: migrated.maxRows,
+    maxRowsCustomPresets: migrated.maxRowsCustomPresets,
     showColumnComment,
     showColumnType,
     showQueryResultsPanel,
@@ -2368,7 +2362,8 @@ export const useStore = create<AppState>()(
       globalProxy: { ...DEFAULT_GLOBAL_PROXY },
       sqlFormatOptions: { keywordCase: "upper" },
       queryOptions: {
-        maxRows: 5000,
+        maxRows: 100,
+        maxRowsCustomPresets: [],
         showColumnComment: true,
         showColumnType: true,
         showQueryResultsPanel: false,

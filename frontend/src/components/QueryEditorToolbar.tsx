@@ -22,6 +22,8 @@ import {
 import QueryEditorTransactionSettings, {
   type SqlEditorCommitMode,
 } from "./QueryEditorTransactionSettings";
+import QueryEditorMaxRowsSelect from "./QueryEditorMaxRowsSelect";
+import type { QueryMaxRowsState } from "../utils/queryMaxRows";
 
 type QueryEditorToolbarProps = {
   isV2Ui: boolean;
@@ -30,6 +32,7 @@ type QueryEditorToolbarProps = {
   queryCapableConnections: SavedConnection[];
   dbList: string[];
   maxRows: number;
+  maxRowsCustomPresets: number[];
   sqlEditorCommitMode: SqlEditorCommitMode;
   sqlEditorAutoCommitDelayMs: number;
   pendingTransactionToolbar: React.ReactNode;
@@ -45,7 +48,7 @@ type QueryEditorToolbarProps = {
   onFormatSettingsOpenChange?: (open: boolean) => void;
   onConnectionChange: (connectionId: string) => void;
   onDatabaseChange: (dbName: string) => void;
-  onMaxRowsChange: (maxRows: number) => void;
+  onMaxRowsChange: (next: QueryMaxRowsState) => void;
   onCommitModeChange: (mode: SqlEditorCommitMode) => void;
   onAutoCommitDelayMsChange: (delayMs: number) => void;
   onCaptureEditorCursorPosition: () => void;
@@ -64,6 +67,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
   queryCapableConnections,
   dbList,
   maxRows,
+  maxRowsCustomPresets,
   sqlEditorCommitMode,
   sqlEditorAutoCommitDelayMs,
   pendingTransactionToolbar,
@@ -195,25 +199,12 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
         options={dbList.map((db) => ({ label: db, value: db }))}
         showSearch
       />
-      <Tooltip title={t("query_editor.max_rows.tooltip")}>
-        <Select
-          className={
-            isV2Ui
-              ? "gn-v2-query-toolbar-select gn-v2-query-toolbar-max-rows-select"
-              : undefined
-          }
-          style={isV2Ui ? undefined : { width: 170 }}
-          value={maxRows}
-          onChange={(val) => onMaxRowsChange(Number(val))}
-          options={[
-            { label: t("query_editor.max_rows.option_500"), value: 500 },
-            { label: t("query_editor.max_rows.option_1000"), value: 1000 },
-            { label: t("query_editor.max_rows.option_5000"), value: 5000 },
-            { label: t("query_editor.max_rows.option_20000"), value: 20000 },
-            { label: t("query_editor.max_rows.option_unlimited"), value: 0 },
-          ]}
-        />
-      </Tooltip>
+      <QueryEditorMaxRowsSelect
+        isV2Ui={isV2Ui}
+        maxRows={maxRows}
+        maxRowsCustomPresets={maxRowsCustomPresets}
+        onChange={onMaxRowsChange}
+      />
       <QueryEditorTransactionSettings
         isV2Ui={isV2Ui}
         commitMode={sqlEditorCommitMode}

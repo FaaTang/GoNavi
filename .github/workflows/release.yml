@@ -80,7 +80,7 @@ jobs:
       - name: Resolve published driver release source
         id: published_source
         env:
-          DRIVER_RELEASE_TOKEN: ${{ secrets.DRIVER_RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
@@ -93,7 +93,7 @@ jobs:
             echo "🧭 No previous stable tag found; full rebuild will be used"
             exit 0
           fi
-          SOURCE_COMMIT="$(python3 tools/resolve-driver-release-source.py --repo Syngnat/GoNavi-DriverAgents --tag "$PREV_TAG" --manifest-output "$manifest_path")"
+          SOURCE_COMMIT="$(python3 tools/resolve-driver-release-source.py --repo "${{ github.repository }}" --tag "$PREV_TAG" --manifest-output "$manifest_path")"
           echo "source_commit=${SOURCE_COMMIT}" >> "$GITHUB_OUTPUT"
           if [[ -s "$manifest_path" ]]; then
             echo "has_manifest=true" >> "$GITHUB_OUTPUT"
@@ -104,7 +104,7 @@ jobs:
           fi
           if [[ -n "$SOURCE_COMMIT" && -s "$manifest_path" ]]; then
             if bash ./tools/validate-driver-release-manifest.sh --commit "$SOURCE_COMMIT" --manifest "$manifest_path"; then
-              if python3 tools/validate-driver-release-assets.py --repo Syngnat/GoNavi-DriverAgents --tag "$PREV_TAG"; then
+              if python3 tools/validate-driver-release-assets.py --repo "${{ github.repository }}" --tag "$PREV_TAG"; then
                 echo "manifest_valid=true" >> "$GITHUB_OUTPUT"
                 echo "🧭 Published driver release manifest and actual assets are consistent with its source commit"
               else
@@ -936,10 +936,11 @@ jobs:
       - name: Complete Driver Agent Assets
         if: needs.driver_agents.outputs.has_changes == 'true' && needs.driver_agents.outputs.release_source != 'all'
         env:
-          DRIVER_RELEASE_TOKEN: ${{ secrets.DRIVER_RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 tools/complete-driver-release-assets.py \
             --assets-dir release-assets \
+            --repo "${{ github.repository }}" \
             --source "${{ needs.driver_agents.outputs.release_source }}" \
             --require-complete
 
@@ -984,35 +985,30 @@ jobs:
           fi
 
       - name: Package Driver Agents Bundle
-        id: driver_assets
         shell: bash
         run: |
           set -euo pipefail
           cd release-assets
           if [ ! -d drivers ]; then
             echo "⚠️ 未找到 drivers 目录，跳过驱动总包打包"
-            echo "has_driver_assets=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ -z "$(find drivers -type f 2>/dev/null | head -n 1)" ]; then
             echo "⚠️ drivers 目录为空，跳过驱动总包打包"
             rm -rf drivers
-            echo "has_driver_assets=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          echo "📦 打包驱动总包：GoNavi-DriverAgents.zip"
-          python3 ../tools/package-driver-release-assets.py \
-            drivers \
-            ../driver-release-assets
-
+          echo "📦 打包驱动总包至当前 release：GoNavi-DriverAgents.zip"
+          bundle_dir="$RUNNER_TEMP/driver-bundle"
+          rm -rf "$bundle_dir"
+          mkdir -p "$bundle_dir"
+          python3 ../tools/package-driver-release-assets.py drivers "$bundle_dir"
           python3 ../tools/generate-driver-release-manifest.py \
             --assets-dir drivers \
-            --output ../driver-release-assets/GoNavi-DriverAgents-Manifest.json
-
-          # GoNavi 主仓库只保留主程序包；驱动资产发布到独立仓库。
-          rm -rf drivers
-          echo "has_driver_assets=true" >> "$GITHUB_OUTPUT"
+            --output "$bundle_dir/GoNavi-DriverAgents-Manifest.json"
+          mv "$bundle_dir"/* .
+          rm -rf drivers "$bundle_dir"
 
       - name: Generate SHA256SUMS
         shell: bash
@@ -1030,47 +1026,6 @@ jobs:
           else
             sha256sum "${FILES[@]}" > SHA256SUMS
           fi
-
-      - name: Generate Driver SHA256SUMS
-        if: steps.driver_assets.outputs.has_driver_assets == 'true'
-        shell: bash
-        run: |
-          cd driver-release-assets
-          FILES=()
-          while IFS= read -r file; do
-            if [ -n "$file" ]; then
-              FILES+=("$file")
-            fi
-          done < <(find . -maxdepth 1 -type f ! -name SHA256SUMS -exec basename {} \; | sort)
-          if [ ${#FILES[@]} -eq 0 ]; then
-            echo "❌ 未找到驱动发布资产"
-            exit 1
-          fi
-          sha256sum "${FILES[@]}" > SHA256SUMS
-
-      - name: Create Driver Agents Release
-        if: startsWith(github.ref, 'refs/tags/') && steps.driver_assets.outputs.has_driver_assets == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.DRIVER_RELEASE_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t DRIVER_RELEASE_ASSETS < <(find driver-release-assets -maxdepth 1 -type f | sort)
-          if [ ${#DRIVER_RELEASE_ASSETS[@]} -eq 0 ]; then
-            echo "未找到 driver release assets"
-            exit 1
-          fi
-
-          NOTES_FILE="$RUNNER_TEMP/driver-release-notes.md"
-          cat > "$NOTES_FILE" <<'EOF'
-            GoNavi driver-agent assets for `${{ github.ref_name }}`.
-          EOF
-
-          gh release create "${{ github.ref_name }}" "${DRIVER_RELEASE_ASSETS[@]}" \
-            --repo Syngnat/GoNavi-DriverAgents \
-            --title "GoNavi Driver Agents ${{ github.ref_name }}" \
-            --notes-file "$NOTES_FILE" \
-            --latest
 
       - name: Checkout code for changelog
         uses: actions/checkout@v5
