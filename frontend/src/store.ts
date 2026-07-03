@@ -82,6 +82,12 @@ import {
   resolveConnectionProtectionConfig,
 } from "./utils/connectionReadOnly";
 import { migrateQueryMaxRows } from "./utils/queryMaxRows";
+import {
+  DEFAULT_UPDATE_PREFERENCES,
+  normalizeVersion,
+  sanitizeUpdatePreferences,
+  type UpdatePreferences,
+} from "./utils/updatePromptPolicy";
 
 export interface AppearanceSettings extends DataGridDisplaySettings {
   uiVersion: "legacy" | "v2";
@@ -148,7 +154,7 @@ const MIN_KEEPALIVE_INTERVAL_MINUTES = 1;
 const MAX_KEEPALIVE_INTERVAL_MINUTES = 1440;
 const DEFAULT_DIAGNOSTIC_TIMEOUT_SECONDS = 15;
 const MAX_DIAGNOSTIC_TIMEOUT_SECONDS = 300;
-const PERSIST_VERSION = 14;
+const PERSIST_VERSION = 15;
 const PERSIST_STORAGE_KEY = "lite-db-storage";
 const PERSIST_WRITE_DEBOUNCE_MS = 160;
 const MAX_PERSISTED_QUERY_TABS = 20;
@@ -1271,6 +1277,7 @@ interface AppState {
   globalProxy: GlobalProxyConfig;
   sqlFormatOptions: { keywordCase: "upper" | "lower" };
   queryOptions: QueryOptions;
+  updatePreferences: UpdatePreferences;
   dataEditTransactionOptions: DataEditTransactionOptions;
   sqlEditorTransactionOptions: SqlEditorTransactionOptions;
   sqlEditorPendingTransactions: Record<string, SqlEditorPendingTransactionState>;
@@ -1392,6 +1399,8 @@ interface AppState {
   replaceGlobalProxy: (proxy: Partial<GlobalProxyConfig>) => void;
   setSqlFormatOptions: (options: { keywordCase: "upper" | "lower" }) => void;
   setQueryOptions: (options: Partial<QueryOptions>) => void;
+  setUpdateAutoPromptEnabled: (enabled: boolean) => void;
+  skipUpdateVersion: (version: string) => void;
   setDataEditTransactionOptions: (
     options: Partial<DataEditTransactionOptions>,
   ) => void;
@@ -2369,6 +2378,7 @@ export const useStore = create<AppState>()(
         showQueryResultsPanel: false,
         askWhatToExecute: false,
       },
+      updatePreferences: { ...DEFAULT_UPDATE_PREFERENCES },
       dataEditTransactionOptions: {
         commitMode: "manual",
         autoCommitDelayMs: 5000,
@@ -3176,6 +3186,26 @@ export const useStore = create<AppState>()(
         set((state) => ({
           queryOptions: { ...state.queryOptions, ...options },
         })),
+      setUpdateAutoPromptEnabled: (enabled) =>
+        set((state) => ({
+          updatePreferences: sanitizeUpdatePreferences({
+            ...state.updatePreferences,
+            autoPromptEnabled: enabled,
+          }),
+        })),
+      skipUpdateVersion: (version) =>
+        set((state) => {
+          const normalized = normalizeVersion(version);
+          if (!normalized) {
+            return { updatePreferences: state.updatePreferences };
+          }
+          return {
+            updatePreferences: sanitizeUpdatePreferences({
+              ...state.updatePreferences,
+              skippedVersion: normalized,
+            }),
+          };
+        }),
       setDataEditTransactionOptions: (options) =>
         set((state) => ({
           dataEditTransactionOptions: sanitizeDataEditTransactionOptions({
@@ -3653,6 +3683,7 @@ export const useStore = create<AppState>()(
           state.sqlFormatOptions,
         );
         nextState.queryOptions = sanitizeQueryOptions(state.queryOptions);
+        nextState.updatePreferences = sanitizeUpdatePreferences(state.updatePreferences);
         nextState.dataEditTransactionOptions =
           sanitizeDataEditTransactionOptions(state.dataEditTransactionOptions);
         nextState.sqlEditorTransactionOptions =
@@ -3766,6 +3797,7 @@ export const useStore = create<AppState>()(
 
           sqlFormatOptions: sanitizeSqlFormatOptions(state.sqlFormatOptions),
           queryOptions: sanitizeQueryOptions(state.queryOptions),
+          updatePreferences: sanitizeUpdatePreferences(state.updatePreferences),
           dataEditTransactionOptions: sanitizeDataEditTransactionOptions(
             state.dataEditTransactionOptions,
           ),
@@ -3802,6 +3834,7 @@ export const useStore = create<AppState>()(
               : toPersistedGlobalProxy(state.globalProxy),
           sqlFormatOptions: state.sqlFormatOptions,
           queryOptions: state.queryOptions,
+          updatePreferences: state.updatePreferences,
           dataEditTransactionOptions: state.dataEditTransactionOptions,
           sqlEditorTransactionOptions: state.sqlEditorTransactionOptions,
           shortcutOptions: resolveShortcutOptionsForPersistence(state.shortcutOptions),

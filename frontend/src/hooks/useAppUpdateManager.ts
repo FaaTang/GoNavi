@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { message } from 'antd';
 import { EventsOn } from '../../wailsjs/runtime';
 import { resolveAboutDisplayVersion } from '../utils/appVersionDisplay';
+import { shouldAutoPromptUpdate } from '../utils/updatePromptPolicy';
+import { useStore } from '../store';
 
 type Translator = (key: string, params?: Record<string, any>) => string;
 
@@ -64,7 +66,8 @@ export const useAppUpdateManager = ({
   const updateInstallTriggeredVersionRef = useRef<string | null>(null);
   const updateDownloadMetaRef = useRef<UpdateDownloadResultData | null>(null);
   const updateNotifiedVersionRef = useRef<string | null>(null);
-  const updateMutedVersionRef = useRef<string | null>(null);
+  const skipUpdateVersion = useStore((state) => state.skipUpdateVersion);
+  const setUpdateAutoPromptEnabled = useStore((state) => state.setUpdateAutoPromptEnabled);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const isAboutOpenRef = useRef(false);
   const [aboutLoading, setAboutLoading] = useState(false);
@@ -305,9 +308,15 @@ export const useAppUpdateManager = ({
       if (silent && aboutOpen) {
         setAboutUpdateStatus(statusText);
       }
-      if (silent && !aboutOpen && updateMutedVersionRef.current !== info.latestVersion && updateNotifiedVersionRef.current !== info.latestVersion) {
-        updateNotifiedVersionRef.current = info.latestVersion;
-        setIsAboutOpen(true);
+      if (silent && !aboutOpen) {
+        const prefs = useStore.getState().updatePreferences;
+        if (
+          shouldAutoPromptUpdate(info, prefs)
+          && updateNotifiedVersionRef.current !== info.latestVersion
+        ) {
+          updateNotifiedVersionRef.current = info.latestVersion;
+          setIsAboutOpen(true);
+        }
       }
     } else if (!silent) {
       setUpdateDownloadProgress((prev) => {
@@ -346,12 +355,17 @@ export const useAppUpdateManager = ({
     setAboutLoading(false);
   }, [t]);
 
-  const muteLatestUpdate = useCallback(() => {
+  const skipCurrentUpdateVersion = useCallback(() => {
     if (lastUpdateInfo?.latestVersion) {
-      updateMutedVersionRef.current = lastUpdateInfo.latestVersion;
+      skipUpdateVersion(lastUpdateInfo.latestVersion);
     }
     setIsAboutOpen(false);
-  }, [lastUpdateInfo?.latestVersion]);
+  }, [lastUpdateInfo?.latestVersion, skipUpdateVersion]);
+
+  const disableAutoUpdatePrompt = useCallback(() => {
+    setUpdateAutoPromptEnabled(false);
+    setIsAboutOpen(false);
+  }, [setUpdateAutoPromptEnabled]);
 
   const markUpdateProgressDismissed = useCallback(() => {
     updateUserDismissedRef.current = true;
@@ -431,7 +445,8 @@ export const useAppUpdateManager = ({
     isLatestUpdateDownloaded,
     lastUpdateInfo,
     markUpdateProgressDismissed,
-    muteLatestUpdate,
+    disableAutoUpdatePrompt,
+    skipCurrentUpdateVersion,
     setIsAboutOpen,
     showUpdateDownloadProgress,
     updateDownloadProgress,

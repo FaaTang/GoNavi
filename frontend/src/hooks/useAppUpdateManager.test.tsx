@@ -3,6 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAppUpdateManager } from './useAppUpdateManager';
+import { useStore } from '../store';
 
 const runtimeApi = vi.hoisted(() => ({
   EventsOn: vi.fn(() => vi.fn()),
@@ -73,6 +74,12 @@ describe('useAppUpdateManager', () => {
     messageApi.info.mockReset();
     messageApi.success.mockReset();
     messageApi.error.mockReset();
+    useStore.setState({
+      updatePreferences: {
+        autoPromptEnabled: true,
+        skippedVersion: null,
+      },
+    });
     vi.useFakeTimers();
     vi.stubGlobal('window', {
       setTimeout,
@@ -155,5 +162,94 @@ describe('useAppUpdateManager', () => {
     expect(backendApp.DownloadUpdate).toHaveBeenCalledTimes(1);
     expect(backendApp.OpenDownloadedUpdateDirectory).not.toHaveBeenCalled();
     expect(hook?.lastUpdateInfo?.downloaded).toBe(true);
+  });
+
+  it('auto-opens About on silent update check when auto prompt is enabled', async () => {
+    backendApp.CheckForUpdatesSilently.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+      },
+    });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(true);
+    });
+
+    expect(hook?.isAboutOpen).toBe(true);
+  });
+
+  it('does not auto-open About after skipping the current version', async () => {
+    backendApp.CheckForUpdatesSilently.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+      },
+    });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(true);
+    });
+    expect(hook?.isAboutOpen).toBe(true);
+
+    await act(async () => {
+      hook?.skipCurrentUpdateVersion();
+    });
+    expect(hook?.isAboutOpen).toBe(false);
+    expect(useStore.getState().updatePreferences.skippedVersion).toBe('0.8.2');
+
+    await act(async () => {
+      await hook?.checkForUpdates(true);
+    });
+    expect(hook?.isAboutOpen).toBe(false);
+  });
+
+  it('does not auto-open About when auto prompt is disabled', async () => {
+    useStore.getState().setUpdateAutoPromptEnabled(false);
+    backendApp.CheckForUpdatesSilently.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+      },
+    });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(true);
+    });
+
+    expect(hook?.isAboutOpen).toBe(false);
+  });
+
+  it('still reports updates on manual check when auto prompt is disabled', async () => {
+    useStore.getState().setUpdateAutoPromptEnabled(false);
+    backendApp.CheckForUpdates.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+      },
+    });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(false);
+    });
+
+    expect(messageApi.info).toHaveBeenCalled();
+    expect(hook?.isAboutOpen).toBe(false);
   });
 });

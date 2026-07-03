@@ -227,6 +227,8 @@ function App() {
   const replaceSavedQueries = useStore(state => state.replaceSavedQueries);
   const shortcutOptions = useStore(state => state.shortcutOptions);
   const updateShortcut = useStore(state => state.updateShortcut);
+  const updateAutoPromptEnabled = useStore(state => state.updatePreferences.autoPromptEnabled);
+  const setUpdateAutoPromptEnabled = useStore(state => state.setUpdateAutoPromptEnabled);
   const resetShortcutOptions = useStore(state => state.resetShortcutOptions);
   const darkMode = themeMode === 'dark';
   const isV2Ui = appearance.uiVersion === 'v2';
@@ -1445,7 +1447,8 @@ function App() {
       isLatestUpdateDownloaded,
       lastUpdateInfo,
       markUpdateProgressDismissed,
-      muteLatestUpdate,
+      skipCurrentUpdateVersion,
+      disableAutoUpdatePrompt,
       setIsAboutOpen,
       showUpdateDownloadProgress,
       updateDownloadProgress,
@@ -4157,7 +4160,10 @@ function App() {
                     <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
                 ) : null,
                 lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="mute" onClick={muteLatestUpdate}>{t('app.about.action.mute_this_version')}</Button>
+                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
+                ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
                 ) : null,
                 <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
                 <Button key="close" onClick={() => setIsAboutOpen(false)}>{t('common.close')}</Button>,
@@ -4190,6 +4196,20 @@ function App() {
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <div style={{ marginBottom: 6, fontWeight: 600 }}>{t('app.about.field.update_status')}</div>
                                 <div style={utilityMutedTextStyle}>{aboutUpdateStatus || t('app.about.update_status.not_checked')}</div>
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>{t('app.about.field.auto_update_prompt')}</div>
+                                        {!updateAutoPromptEnabled ? (
+                                            <div style={{ ...utilityMutedTextStyle, marginTop: 4 }}>{t('app.about.hint.auto_update_prompt_disabled')}</div>
+                                        ) : null}
+                                    </div>
+                                    <Switch
+                                        checked={updateAutoPromptEnabled}
+                                        onChange={setUpdateAutoPromptEnabled}
+                                    />
+                                </div>
                             </div>
                             {aboutInfo?.communityUrl ? (
                                 <div style={{ gridColumn: '1 / -1' }}>

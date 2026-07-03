@@ -1,14 +1,23 @@
 # GoNavi - 现代化轻量级数据库客户端
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Syngnat/GoNavi)](https://go.dev/)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/FaaTang/GoNavi)](https://go.dev/)
 [![Wails Version](https://img.shields.io/badge/Wails-v2-red)](https://wails.io)
 [![React Version](https://img.shields.io/badge/React-v18-blue)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/Syngnat/GoNavi/release.yml?label=Build)](https://github.com/Syngnat/GoNavi/actions)
-[![Stars](https://img.shields.io/github/stars/Syngnat/GoNavi?style=social)](https://github.com/Syngnat/GoNavi/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/Syngnat/GoNavi/total?color=blue&label=downloads)](https://github.com/Syngnat/GoNavi/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/FaaTang/GoNavi/release.yml?label=Build)](https://github.com/FaaTang/GoNavi/actions)
+[![Stars](https://img.shields.io/github/stars/FaaTang/GoNavi?style=social)](https://github.com/FaaTang/GoNavi/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/FaaTang/GoNavi/total?color=blue&label=downloads)](https://github.com/FaaTang/GoNavi/releases)
 
 **语言**: [English](README.md) | 简体中文
+
+> **Fork 说明**
+>
+> 本仓库（[FaaTang/GoNavi](https://github.com/FaaTang/GoNavi)）是基于上游项目 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) 的 **个人 fork**，用于**定制化开发**与个人使用。
+>
+> - 上游项目的版权与商标归 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) 原作者所有；本 fork 在 [Apache-2.0](LICENSE) 许可下基于上游代码修改与分发。
+> - 本仓库的 Release、Issue 与定制改动**由 fork 维护者独立维护**，**与上游项目无关联**。
+> - **不提供永久维护承诺**：更新节奏、缺陷修复与功能支持视个人时间与需求而定，不保证长期跟进上游或持续修复所有问题。
+> - 如需官方上游版本、稳定发布或参与上游贡献，请访问 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi)。
 
 GoNavi 是基于 **Wails (Go)** 与 **React** 构建的跨平台数据库管理工具，强调原生性能、低资源占用与多数据源统一工作流。
 
@@ -134,8 +143,8 @@ GoNavi 面向开发者与 DBA，核心目标是让数据库操作在桌面端做
 ### 开发模式
 
 ```shell
-# 克隆项目
-git clone https://github.com/Syngnat/GoNavi.git
+# 克隆本 fork
+git clone https://github.com/FaaTang/GoNavi.git
 cd GoNavi
 
 # 启动开发（热重载）
@@ -165,7 +174,8 @@ wails build -clean
 
 ### 跨平台发布（GitHub Actions）
 
-仓库内置发布流水线，推送 `v*` Tag 可自动构建并发布 Release。
+本 fork 使用独立的发布流水线。
+向 [FaaTang/GoNavi](https://github.com/FaaTang/GoNavi) 推送 `v*` Tag 可自动构建并发布 Release。
 Release 更新说明会基于已合并 Pull Request 自动生成，并按 `.github/release.yaml` 分类。
 
 支持目标：
@@ -211,23 +221,25 @@ fc-cache -fv
 
 ## 贡献指南
 
-欢迎提交 Issue 与 Pull Request。
+本仓库为个人 fork，欢迎提交 Issue 与 Pull Request，但**不承诺固定的 review 节奏或长期维护**。
 
-完整流程、分支模型与维护者同步规则请查看：
+如需参与上游项目贡献，请前往 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) 及其贡献说明。
+
+本 fork 本地说明（可能与上游不同）：
 
 - [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)
 
-外部贡献者应从 `dev` 拉出分支，并统一向 `dev` 发起 Pull Request。
-
 ## Star History (Star 增长趋势)
 
-<a href="https://www.star-history.com/?repos=Syngnat%2FGoNavi&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=FaaTang%2FGoNavi&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
  </picture>
 </a>
+
+上游项目：[Syngnat/GoNavi](https://github.com/Syngnat/GoNavi)
 
 ## 友情链接
 
@@ -236,4 +248,7 @@ fc-cache -fv
 
 ## 开源协议
 
-本项目采用 [Apache-2.0 协议](LICENSE)。
+本 fork 基于 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi)，在 [Apache-2.0](LICENSE) 协议下分发。
+
+- 源代码中的上游版权声明仍归原作者所有。
+- 本 fork 的定制改动按「现状」提供，不作任何担保，**不提供永久维护承诺**。

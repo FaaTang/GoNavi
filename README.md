@@ -1,14 +1,23 @@
 # GoNavi - A Modern Lightweight Database Client
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Syngnat/GoNavi)](https://go.dev/)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/FaaTang/GoNavi)](https://go.dev/)
 [![Wails Version](https://img.shields.io/badge/Wails-v2-red)](https://wails.io)
 [![React Version](https://img.shields.io/badge/React-v18-blue)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/Syngnat/GoNavi/release.yml?label=Build)](https://github.com/Syngnat/GoNavi/actions)
-[![Stars](https://img.shields.io/github/stars/Syngnat/GoNavi?style=social)](https://github.com/Syngnat/GoNavi/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/Syngnat/GoNavi/total?color=blue&label=downloads)](https://github.com/Syngnat/GoNavi/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/FaaTang/GoNavi/release.yml?label=Build)](https://github.com/FaaTang/GoNavi/actions)
+[![Stars](https://img.shields.io/github/stars/FaaTang/GoNavi?style=social)](https://github.com/FaaTang/GoNavi/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/FaaTang/GoNavi/total?color=blue&label=downloads)](https://github.com/FaaTang/GoNavi/releases)
 
 **Language**: English | [简体中文](README.zh-CN.md)
+
+> **Fork Notice**
+>
+> This repository ([FaaTang/GoNavi](https://github.com/FaaTang/GoNavi)) is a **personal fork** of the upstream project [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi), maintained for **customized development** and personal use.
+>
+> - Copyright and trademarks of the upstream project belong to the original [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) authors. This fork modifies and redistributes code under the [Apache-2.0](LICENSE) license.
+> - Releases, issues, and custom changes in **this fork are maintained independently** and are **not affiliated with** the upstream project.
+> - **No guarantee of long-term maintenance**: updates, bug fixes, and feature support depend on personal availability and needs. There is no commitment to permanently track upstream or fix every issue.
+> - For the official upstream project, stable releases, or upstream contributions, please visit [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi).
 
 GoNavi is a modern, high-performance, cross-platform database client built with **Wails (Go)** and **React**.
 It delivers native-like responsiveness with low resource usage.
@@ -140,8 +149,8 @@ GoNavi is designed for developers and DBAs who need a unified desktop experience
 ### Development Mode
 
 ```shell
-# Clone
-git clone https://github.com/Syngnat/GoNavi.git
+# Clone this fork
+git clone https://github.com/FaaTang/GoNavi.git
 cd GoNavi
 
 # Start development with hot reload
@@ -171,8 +180,8 @@ Artifacts are generated in `build/bin`.
 
 ### Cross-Platform Release (GitHub Actions)
 
-The repository includes a release workflow.
-Push a `v*` tag to trigger automated build and release.
+This fork includes its own release workflow.
+Push a `v*` tag to [FaaTang/GoNavi](https://github.com/FaaTang/GoNavi) to trigger automated build and release.
 Release notes are generated automatically from merged pull requests and categorized by `.github/release.yaml`.
 
 Target artifacts include:
@@ -228,22 +237,25 @@ fc-cache -fv
 
 ## Contributing
 
-Issues and pull requests are welcome.
+This is a personal fork. Issues and pull requests are welcome, but there is **no guarantee of review cadence or long-term maintenance**.
 
-For the full workflow, branch model, and maintainer sync rules, see:
+For the upstream project's contribution workflow, see [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) and its contributing guides.
+
+Local notes (may differ from upstream):
 
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 
-External contributors should branch from `dev` and open pull requests against `dev`.
-
 ## Star History
-<a href="https://www.star-history.com/?repos=Syngnat%2FGoNavi&type=date&legend=top-left">
+
+<a href="https://www.star-history.com/?repos=FaaTang%2FGoNavi&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=Syngnat/GoNavi&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
  </picture>
 </a>
+
+Upstream project: [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi)
 
 ## Links
 
@@ -252,4 +264,7 @@ External contributors should branch from `dev` and open pull requests against `d
 
 ## License
 
-Licensed under [Apache-2.0](LICENSE).
+This fork is based on [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) and is distributed under the [Apache-2.0](LICENSE) license.
+
+- Upstream copyright notices in source files remain with their original authors.
+- Custom changes in this fork are provided as-is, without warranty or a commitment to permanent maintenance.

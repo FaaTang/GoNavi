@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	updateRepo                  = "Syngnat/GoNavi"
+	updateRepo                  = "FaaTang/GoNavi"
 	updateAPIURL                = "https://api.github.com/repos/" + updateRepo + "/releases/latest"
 	updateChecksumAsset         = "SHA256SUMS"
 	updateDownloadProgressEvent = "update:download-progress"

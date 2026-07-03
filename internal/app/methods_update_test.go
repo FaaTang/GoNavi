@@ -25,7 +25,7 @@ func TestFetchLatestUpdateInfoSkipsChecksumWhenCurrentVersionIsAlreadyLatest(t *
 		return &githubRelease{
 			TagName: "v0.6.5",
 			Name:    "v0.6.5",
-			HTMLURL: "https://github.com/Syngnat/GoNavi/releases/tag/v0.6.5",
+			HTMLURL: "https://github.com/FaaTang/GoNavi/releases/tag/v0.6.5",
 			Assets: []githubAsset{
 				{
 					Name:               assetName,
@@ -78,7 +78,7 @@ func TestFetchLatestUpdateInfoFetchesChecksumWhenUpdateIsAvailable(t *testing.T)
 		return &githubRelease{
 			TagName: "v0.6.5",
 			Name:    "v0.6.5",
-			HTMLURL: "https://github.com/Syngnat/GoNavi/releases/tag/v0.6.5",
+			HTMLURL: "https://github.com/FaaTang/GoNavi/releases/tag/v0.6.5",
 			Assets: []githubAsset{
 				{
 					Name:               assetName,
