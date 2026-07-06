@@ -212,7 +212,7 @@ def validate_release_assets(release: dict, manifest: dict, runtime_platform=None
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", default="Syngnat/GoNavi-DriverAgents")
+    parser.add_argument("--repo", default="FaaTang/GoNavi")
     parser.add_argument("--tag", required=True)
     args = parser.parse_args()
 

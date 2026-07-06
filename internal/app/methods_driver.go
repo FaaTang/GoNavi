@@ -350,7 +350,7 @@ type driverBundleAssetIndex struct {
 const (
 	// 默认使用内置 manifest，避免依赖网络与外部仓库 404。
 	defaultDriverManifestURLValue       = "builtin://manifest"
-	driverReleaseRepo                   = "Syngnat/GoNavi-DriverAgents"
+	driverReleaseRepo                   = updateRepo
 	driverReleaseLatestAPIURL           = "https://api.github.com/repos/" + driverReleaseRepo + "/releases/latest"
 	driverReleaseDevTag                 = "dev-latest"
 	optionalDriverBundleAssetName       = "GoNavi-DriverAgents.zip"

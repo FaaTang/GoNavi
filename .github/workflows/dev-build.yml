@@ -13,6 +13,10 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  BUILD_DRIVER_AGENTS: ${{ vars.BUILD_DRIVER_AGENTS || 'false' }}
+  DRIVER_RELEASE_REPO: ${{ vars.DRIVER_RELEASE_REPO || github.repository }}
+
 jobs:
   frontend:
     name: Build frontend
@@ -94,13 +98,14 @@ jobs:
 
       - name: Resolve published driver release source
         id: published_source
+        if: env.BUILD_DRIVER_AGENTS == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           manifest_path="$RUNNER_TEMP/published-driver-manifest.json"
-          SOURCE_COMMIT="$(python3 tools/resolve-driver-release-source.py --repo "${{ github.repository }}" --tag dev-latest --manifest-output "$manifest_path")"
+          SOURCE_COMMIT="$(python3 tools/resolve-driver-release-source.py --repo "${{ env.DRIVER_RELEASE_REPO }}" --tag dev-latest --manifest-output "$manifest_path")"
           echo "source_commit=${SOURCE_COMMIT}" >> "$GITHUB_OUTPUT"
           if [[ -s "$manifest_path" ]]; then
             echo "has_manifest=true" >> "$GITHUB_OUTPUT"
@@ -111,7 +116,7 @@ jobs:
           fi
           if [[ -n "$SOURCE_COMMIT" && -s "$manifest_path" ]]; then
             if bash ./tools/validate-driver-release-manifest.sh --commit "$SOURCE_COMMIT" --manifest "$manifest_path"; then
-              if python3 tools/validate-driver-release-assets.py --repo "${{ github.repository }}" --tag dev-latest; then
+              if python3 tools/validate-driver-release-assets.py --repo "${{ env.DRIVER_RELEASE_REPO }}" --tag dev-latest; then
                 echo "manifest_valid=true" >> "$GITHUB_OUTPUT"
                 echo "🧭 Published dev driver release manifest and actual assets are consistent with its source commit"
               else
@@ -134,8 +139,24 @@ jobs:
       - name: Detect changed driver agents
         id: detect
         shell: bash
+        env:
+          BUILD_DRIVER_AGENTS: ${{ env.BUILD_DRIVER_AGENTS }}
         run: |
           set -euo pipefail
+          if [[ "$BUILD_DRIVER_AGENTS" != "true" ]]; then
+            echo "drivers=" >> "$GITHUB_OUTPUT"
+            echo "drivers_darwin_amd64=" >> "$GITHUB_OUTPUT"
+            echo "drivers_darwin_arm64=" >> "$GITHUB_OUTPUT"
+            echo "drivers_windows_amd64=" >> "$GITHUB_OUTPUT"
+            echo "drivers_windows_arm64=" >> "$GITHUB_OUTPUT"
+            echo "drivers_linux_amd64=" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "release_source=dev-latest" >> "$GITHUB_OUTPUT"
+            echo "compare_base=" >> "$GITHUB_OUTPUT"
+            echo "force_global_driver_builds=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️ BUILD_DRIVER_AGENTS is not true; skip driver agent build"
+            exit 0
+          fi
           merge_csv() {
             local current="$1"
             local incoming="$2"
@@ -977,11 +998,12 @@ jobs:
         run: |
           python3 tools/complete-driver-release-assets.py \
             --assets-dir release-assets \
-            --repo "${{ github.repository }}" \
+            --repo "${{ env.DRIVER_RELEASE_REPO }}" \
             --source "${{ needs.driver_agents.outputs.release_source }}" \
             --require-complete
 
       - name: Package Driver Agents Bundle
+        if: needs.driver_agents.outputs.has_changes == 'true'
         shell: bash
         run: |
           set -euo pipefail

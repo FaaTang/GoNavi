@@ -181,10 +181,10 @@ Artifacts are generated in `build/bin`.
 ### Cross-Platform Release (GitHub Actions)
 
 This fork includes its own release workflow.
-A Release build runs **only when you push a `v*` tag pointing to a commit on the configured release branch** (default: `own`; override with the `RELEASE_BRANCH` repository variable). Syncing upstream code or upstream tags will not publish automatically.
-The dev pre-release workflow is manual-only so syncing the `dev` branch does not trigger CI.
+A Release build runs only when you push a `v*` tag on the configured branch (default: `own`). Syncing upstream does not publish automatically.
+The dev pre-release workflow is manual-only.
 
-Set `RELEASE_BRANCH` under **Settings → Secrets and variables → Actions → Variables** to use a different branch; it defaults to `own` when unset.
+See [`.github/FORK_CI_VARIABLES.md`](.github/FORK_CI_VARIABLES.md) for repository variables (`RELEASE_BRANCH`, `BUILD_DRIVER_AGENTS`, etc.).
 
 ```bash
 git checkout own

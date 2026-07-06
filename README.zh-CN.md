@@ -175,10 +175,10 @@ wails build -clean
 ### 跨平台发布（GitHub Actions）
 
 本 fork 使用独立的发布流水线。
-仅在 **配置分支**（默认 `own`，可通过仓库变量 `RELEASE_BRANCH` 修改）上的提交推送 `v*` Tag 时才会触发构建与 Release（同步上游代码或上游 Tag 不会自动发布）。
-Dev 预发布流水线已改为仅支持手动触发，避免同步 `dev` 分支时误跑 CI。
+仅在配置分支（默认 `own`）上的提交推送 `v*` Tag 时才会触发构建与 Release；同步上游不会自动发布。
+Dev 预发布流水线仅支持手动触发。
 
-在 GitHub 仓库 **Settings → Secrets and variables → Actions → Variables** 中添加 `RELEASE_BRANCH` 可自定义发布分支名；不设置时默认为 `own`。
+**仓库变量**（`RELEASE_BRANCH`、`BUILD_DRIVER_AGENTS` 等）说明见 [`.github/FORK_CI_VARIABLES.md`](.github/FORK_CI_VARIABLES.md)。
 
 ```bash
 git checkout own

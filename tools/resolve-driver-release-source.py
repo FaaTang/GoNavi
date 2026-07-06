@@ -99,7 +99,7 @@ def find_manifest_asset(release):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", default="Syngnat/GoNavi-DriverAgents")
+    parser.add_argument("--repo", default="FaaTang/GoNavi")
     parser.add_argument("--tag", required=True, help="release tag name such as dev-latest or v1.0.0")
     parser.add_argument("--manifest-output", help="optional path to download the published revision manifest asset")
     args = parser.parse_args()

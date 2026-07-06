@@ -166,7 +166,7 @@ def verify_complete(target_root):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--assets-dir", required=True)
-    parser.add_argument("--repo", default="Syngnat/GoNavi-DriverAgents")
+    parser.add_argument("--repo", default="FaaTang/GoNavi")
     parser.add_argument(
         "--source",
         action="append",
