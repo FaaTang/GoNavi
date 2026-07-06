@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"GoNavi-Wails/internal/connection"
@@ -134,10 +135,20 @@ func DialContextThroughSSH(ctx context.Context, config connection.SSHConfig, net
 
 // sshClientCache stores SSH clients to avoid creating multiple connections
 var (
-	sshClientCache   = make(map[sshClientCacheKey]*ssh.Client)
-	sshClientCacheMu sync.RWMutex
-	localForwarders  = make(map[forwarderCacheKey]*LocalForwarder)
-	forwarderMu      sync.RWMutex
+	sshClientCache      = make(map[sshClientCacheKey]*ssh.Client)
+	sshClientCacheMu    sync.RWMutex
+	localForwarders     = make(map[forwarderCacheKey]*LocalForwarder)
+	forwarderMu         sync.RWMutex
+	forwarderLastUsedAt = make(map[forwarderCacheKey]time.Time)
+	forwarderLastUsedMu sync.Mutex
+
+	lowMemoryIdleSweepEnabled atomic.Bool
+	idleForwarderSweepStarted atomic.Bool
+)
+
+const (
+	forwarderIdleTimeout       = 10 * time.Minute
+	forwarderIdleSweepInterval = 2 * time.Minute
 )
 
 type sshClientCacheKey struct {
@@ -312,6 +323,66 @@ func (f *LocalForwarder) IsClosed() bool {
 	return f.closed
 }
 
+// SetLowMemoryIdleSweepEnabled toggles periodic cleanup of idle SSH port forwarders.
+func SetLowMemoryIdleSweepEnabled(enabled bool) {
+	lowMemoryIdleSweepEnabled.Store(enabled)
+	if enabled {
+		startIdleForwarderSweepIfNeeded()
+	}
+}
+
+func touchForwarderLastUsed(key forwarderCacheKey) {
+	forwarderLastUsedMu.Lock()
+	forwarderLastUsedAt[key] = time.Now()
+	forwarderLastUsedMu.Unlock()
+}
+
+func startIdleForwarderSweepIfNeeded() {
+	if !idleForwarderSweepStarted.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(forwarderIdleSweepInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			if !lowMemoryIdleSweepEnabled.Load() {
+				continue
+			}
+			sweepIdleForwarders()
+		}
+	}()
+}
+
+func sweepIdleForwarders() {
+	now := time.Now()
+	var staleKeys []forwarderCacheKey
+
+	forwarderMu.Lock()
+	for key, forwarder := range localForwarders {
+		forwarderLastUsedMu.Lock()
+		lastUsed, ok := forwarderLastUsedAt[key]
+		forwarderLastUsedMu.Unlock()
+		if !ok {
+			lastUsed = now
+		}
+		if now.Sub(lastUsed) < forwarderIdleTimeout {
+			continue
+		}
+		if forwarder != nil && !forwarder.IsClosed() {
+			_ = forwarder.Close()
+			logger.Infof("低内存模式释放空闲 SSH 端口转发：本地 %s -> 远程 %s", forwarder.LocalAddr, forwarder.RemoteAddr)
+		}
+		staleKeys = append(staleKeys, key)
+	}
+	for _, key := range staleKeys {
+		delete(localForwarders, key)
+		forwarderLastUsedMu.Lock()
+		delete(forwarderLastUsedAt, key)
+		forwarderLastUsedMu.Unlock()
+	}
+	forwarderMu.Unlock()
+}
+
 // GetOrCreateLocalForwarder returns a cached forwarder or creates a new one
 func GetOrCreateLocalForwarder(sshConfig connection.SSHConfig, remoteHost string, remotePort int) (*LocalForwarder, error) {
 	key := forwarderCacheKey{
@@ -329,6 +400,7 @@ func GetOrCreateLocalForwarder(sshConfig connection.SSHConfig, remoteHost string
 	// Check if exists and is still valid
 	if exists && forwarder != nil && !forwarder.IsClosed() {
 		logger.Infof("复用已有端口转发：%s", logKey)
+		touchForwarderLastUsed(key)
 		return forwarder, nil
 	}
 
@@ -347,6 +419,7 @@ func GetOrCreateLocalForwarder(sshConfig connection.SSHConfig, remoteHost string
 	forwarderMu.Lock()
 	localForwarders[key] = forwarder
 	forwarderMu.Unlock()
+	touchForwarderLastUsed(key)
 
 	return forwarder, nil
 }

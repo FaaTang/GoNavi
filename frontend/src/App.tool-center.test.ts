@@ -103,14 +103,11 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain("borderBottom: `1px solid ${overlayTheme.divider}`");
   });
 
-  it('keeps the v2 AI entry in the sidebar and the legacy AI entry on the content edge', () => {
+  it('routes AI through the sidebar rail without legacy content-edge handles', () => {
     expect(appSource).toContain('onToggleAI={toggleAIPanel}');
-    expect(appSource).toContain('renderLegacyAIEdgeHandle');
-    expect(appSource).toContain('resolveLegacyAIEdgeHandleDockStyle');
-    expect(appSource).toContain('data-gonavi-legacy-ai-edge-action="true"');
-    expect(appSource).toContain('{!isV2Ui && !aiPanelVisible && (');
-    expect(appSource).toContain('{!isV2Ui && (');
-    expect(appSource).not.toContain('data-gonavi-ai-entry-action="true"');
+    expect(appSource).not.toContain('renderLegacyAIEdgeHandle');
+    expect(appSource).not.toContain('resolveLegacyAIEdgeHandleDockStyle');
+    expect(appSource).not.toContain('data-gonavi-legacy-ai-edge-action="true"');
   });
 
   it('keeps sidebar utility handlers stable so v2 button clicks do not repaint the workspace', () => {
@@ -133,34 +130,20 @@ describe('tool center menu entries', () => {
     expect(appSource).not.toContain('const sqlLogs = useStore(state => state.sqlLogs);');
   });
 
-  it('lets the v2 Sidebar own the entire left layout instead of stacking legacy controls above it', () => {
-    const siderIndex = appSource.indexOf("className={isV2Ui ? 'gn-v2-app-sider' : undefined}");
-    const legacyGuardIndex = appSource.indexOf('{!isV2Ui && (', siderIndex);
-    const legacyCreateIndex = appSource.indexOf('<Button icon={<PlusOutlined />} onClick={handleCreateConnection}', legacyGuardIndex);
-    const legacyCreateTitleIndex = appSource.indexOf("title={t('connection.new')}", legacyCreateIndex);
-    const legacyQueryIndex = appSource.indexOf('<Button icon={<ConsoleSqlOutlined />} onClick={handleNewQuery}', legacyGuardIndex);
-    const legacyQueryTitleIndex = appSource.indexOf("title={t('query.new')}", legacyQueryIndex);
-    const sidebarIndex = appSource.indexOf('<Sidebar', legacyGuardIndex);
-    const floatingLogIndex = appSource.indexOf('Floating SQL Log Toggle', sidebarIndex);
-    const floatingLogGuardIndex = appSource.indexOf('{!isV2Ui && (', floatingLogIndex);
+  it('lets the v2 Sidebar own the entire left layout without legacy controls above it', () => {
+    const siderIndex = appSource.indexOf("className={'gn-v2-app-sider'}");
+    const sidebarIndex = appSource.indexOf('<Sidebar', siderIndex);
 
     expect(siderIndex).toBeGreaterThan(-1);
-    expect(legacyGuardIndex).toBeGreaterThan(siderIndex);
-    expect(legacyCreateIndex).toBeGreaterThan(legacyGuardIndex);
-    expect(legacyCreateIndex).toBeLessThan(sidebarIndex);
-    expect(legacyCreateTitleIndex).toBeGreaterThan(legacyCreateIndex);
-    expect(legacyQueryIndex).toBeGreaterThan(legacyCreateIndex);
-    expect(legacyQueryIndex).toBeLessThan(sidebarIndex);
-    expect(legacyQueryTitleIndex).toBeGreaterThan(legacyQueryIndex);
-    expect(appSource).toContain('paddingBottom: isV2Ui ? 0 : 58');
-    expect(floatingLogIndex).toBeGreaterThan(sidebarIndex);
-    expect(floatingLogGuardIndex).toBeGreaterThan(floatingLogIndex);
+    expect(sidebarIndex).toBeGreaterThan(siderIndex);
+    expect(appSource).toContain('paddingBottom: 0, paddingRight: sidebarResizeHandleWidth');
+    expect(appSource).not.toContain('Floating SQL Log Toggle');
+    expect(appSource).not.toContain('sidebarUtilityItems');
   });
 
-  it('uses the v2 green accent for sidebar and log resize guide lines', () => {
-    expect(appSource).toContain('const resizeGuideColor = isV2Ui');
-    expect(appSource).toContain("'var(--gn-accent, #16a34a)'");
-    expect(appSource).toContain("darkMode ? 'rgba(246, 196, 83, 0.55)' : 'rgba(24, 144, 255, 0.5)'");
+  it('uses the v2 green accent for sidebar resize guide lines', () => {
+    expect(appSource).toContain("const resizeGuideColor = 'var(--gn-accent, #16a34a)'");
+    expect(appSource).not.toContain("darkMode ? 'rgba(246, 196, 83, 0.55)' : 'rgba(24, 144, 255, 0.5)'");
   });
 
   it('does not start sidebar resize from right-clicking the resize handle', () => {
@@ -351,8 +334,8 @@ describe('global appearance tokens', () => {
     expect(linuxCJKFontBannerSource).not.toContain('Font Settings');
     expect(appSource).toContain("t('app.theme.font_family.linux_cjk_install_prefix')");
     expect(appSource).toContain("t('app.theme.font_family.linux_cjk_install_suffix')");
-    expect(appSource).not.toContain('Ubuntu/Linux 未检测到中文 CJK 字体');
-    expect(appSource).not.toContain('，然后重启 GoNavi。');
+    expect(appSource).not.toContain('Ubuntu/Linux ?????? CJK ??');
+    expect(appSource).not.toContain('????? GoNavi?');
     expect(appSource).toContain('setIsLinuxCJKFontBannerDismissed(true)');
     expect(appSource).toContain('matchFontFamilyOption');
     expect(appSource).toContain('showSearch');

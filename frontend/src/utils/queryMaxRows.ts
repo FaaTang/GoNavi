@@ -16,7 +16,10 @@ export const sanitizeMaxRowsCustomPresets = (value: unknown): number[] => {
   const unique = new Set<number>();
   for (const item of value) {
     const n = Number(item);
-    if (Number.isFinite(n) && n >= 1 && n <= MAX_MAX_ROWS) unique.add(clampMaxRows(n));
+    const clamped = clampMaxRows(n);
+    if (Number.isFinite(n) && n >= 1 && n <= MAX_MAX_ROWS && clamped !== DEFAULT_MAX_ROWS) {
+      unique.add(clamped);
+    }
   }
   return [...unique].sort((a, b) => a - b).slice(0, MAX_CUSTOM_PRESETS);
 };
@@ -63,6 +66,9 @@ export const addMaxRowsCustomPreset = (
   value: number,
 ): QueryMaxRowsState => {
   const next = clampMaxRows(value);
+  if (next === DEFAULT_MAX_ROWS) {
+    return { ...state, maxRows: DEFAULT_MAX_ROWS };
+  }
   if (state.maxRowsCustomPresets.includes(next)) {
     return { ...state, maxRows: next };
   }

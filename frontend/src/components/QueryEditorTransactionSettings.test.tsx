@@ -46,7 +46,6 @@ describe('QueryEditorTransactionSettings', () => {
     act(() => {
       renderer = create(
         <QueryEditorTransactionSettings
-          isV2Ui
           commitMode="manual"
           autoCommitDelayMs={0}
           onCommitModeChange={vi.fn()}

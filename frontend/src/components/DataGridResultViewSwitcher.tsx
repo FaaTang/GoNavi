@@ -6,27 +6,23 @@ type GridViewMode = 'table' | 'json' | 'text' | 'fields' | 'ddl' | 'er';
 
 export type DataGridResultViewTranslate = (key: string, params?: I18nParams) => string;
 
-export interface DataGridResultViewSwitcherProps {
-  isV2Ui: boolean;
-  darkMode: boolean;
+export interface DataGridResultViewSwitcherProps {  darkMode: boolean;
   viewMode: GridViewMode;
   onViewModeChange: (nextMode: GridViewMode) => void;
   translate?: DataGridResultViewTranslate;
 }
 
-const DataGridResultViewSwitcher: React.FC<DataGridResultViewSwitcherProps> = ({
-  isV2Ui,
-  darkMode,
+const DataGridResultViewSwitcher: React.FC<DataGridResultViewSwitcherProps> = ({  darkMode,
   viewMode,
   onViewModeChange,
   translate = defaultTranslate,
 }) => (
   <div
     data-grid-view-switcher="true"
-    className={isV2Ui ? 'gn-v2-data-grid-result-switcher' : undefined}
-    style={isV2Ui ? undefined : { display: 'flex', alignItems: 'center', gap: 8 }}
+    className={'gn-v2-data-grid-result-switcher'}
+    style={undefined}
   >
-    <span style={isV2Ui ? undefined : { fontSize: 12, color: darkMode ? '#999' : '#666' }}>{translate('data_grid.view.result_view')}</span>
+    <span style={undefined}>{translate('data_grid.view.result_view')}</span>
     <Segmented
       size="small"
       value={viewMode === 'json' || viewMode === 'text' ? viewMode : 'table'}

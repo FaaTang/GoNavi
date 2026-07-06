@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 interface UseAIChatPanelResizeOptions {
-  width: number;
-  isV2Ui: boolean;
-  onWidthChange?: (width: number) => void;
+  width: number;  onWidthChange?: (width: number) => void;
 }
 
 export const useAIChatPanelResize = ({
-  width,
-  isV2Ui,
-  onWidthChange,
+  width,  onWidthChange,
 }: UseAIChatPanelResizeOptions) => {
   const [panelWidth, setPanelWidth] = useState(width);
   const [isResizing, setIsResizing] = useState(false);
@@ -55,8 +51,8 @@ export const useAIChatPanelResize = ({
       }
       animationFrameId = requestAnimationFrame(() => {
         const delta = resizeStartX.current - event.clientX;
-        const minWidth = isV2Ui ? 300 : 280;
-        const maxWidth = isV2Ui ? 520 : 700;
+        const minWidth = 300;
+        const maxWidth = 520;
         const nextWidth = Math.min(Math.max(resizeStartWidth.current + delta, minWidth), maxWidth);
         dragWidthRef.current = nextWidth;
 
@@ -93,7 +89,7 @@ export const useAIChatPanelResize = ({
       document.body.style.userSelect = '';
       document.body.style.pointerEvents = '';
     };
-  }, [isResizing, isV2Ui, onWidthChange]);
+  }, [isResizing, onWidthChange]);
 
   return {
     ghostRef,

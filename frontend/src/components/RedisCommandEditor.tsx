@@ -115,15 +115,13 @@ const RedisCommandEditor: React.FC<RedisCommandEditorProps> = ({ connectionId, r
     const i18nLanguage = i18n?.language;
     const tr = (key: string, params?: I18nParams) => t(key, params, i18nLanguage);
     const connection = connections.find(c => c.id === connectionId);
-    const darkMode = theme === 'dark';
-    const isV2Ui = appearance.uiVersion === 'v2';
-    const resolvedAppearance = resolveAppearanceValues(appearance);
+    const darkMode = theme === 'dark';    const resolvedAppearance = resolveAppearanceValues(appearance);
     const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
     const blur = normalizeBlurForPlatform(resolvedAppearance.blur);
     const disableLocalBackdropFilter = isMacLikePlatform();
     const workbenchTheme = useMemo(
         () => buildRedisWorkbenchTheme({ darkMode, opacity, blur, disableBackdropFilter: disableLocalBackdropFilter }),
-        [blur, darkMode, disableLocalBackdropFilter, opacity, appearance.uiVersion],
+        [blur, darkMode, disableLocalBackdropFilter, opacity],
     );
 
     const [command, setCommand] = useState('');

@@ -18,7 +18,7 @@ const storeState = {
   }>,
   clearSqlLogs: vi.fn(),
   theme: "light",
-  appearance: { enabled: true, opacity: 1, blur: 0, uiVersion: "legacy" },
+  appearance: { enabled: true, opacity: 1, blur: 0 },
 };
 
 vi.mock("../store", () => ({

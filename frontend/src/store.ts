@@ -88,17 +88,26 @@ import {
   sanitizeUpdatePreferences,
   type UpdatePreferences,
 } from "./utils/updatePromptPolicy";
+import {
+  DEFAULT_MEMORY_SETTINGS,
+  resolveAiMessageMemoryLimit,
+  resolveMemoryPolicy,
+  resolveRuntimeSqlLogLimit,
+  sanitizeMemorySettings,
+  type MemoryAdvancedOptionKey,
+  type MemorySettings,
+} from "./utils/memoryPolicy";
+import { dispatchReleaseTabQueryResults } from "./utils/queryTabResults";
 
 export interface AppearanceSettings extends DataGridDisplaySettings {
-  uiVersion: "legacy" | "v2";
   enabled: boolean;
   opacity: number;
   blur: number;
   useNativeMacWindowControls: boolean;
-  v2SidebarSearchMode: "command" | "filter";
-  v2CommandSearchPersistentFilterEnabled: boolean;
-  v2SidebarPersistedFilter: string;
-  v2SidebarRailShowLabels: boolean;
+  sidebarSearchMode: "command" | "filter";
+  commandSearchPersistentFilterEnabled: boolean;
+  sidebarPersistedFilter: string;
+  sidebarRailShowLabels: boolean;
   customUIFontFamily: string | null;
   customMonoFontFamily: string | null;
   tabDisplay: TabDisplaySettings;
@@ -106,15 +115,14 @@ export interface AppearanceSettings extends DataGridDisplaySettings {
 }
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
-  uiVersion: "legacy",
   enabled: true,
   opacity: 1.0,
   blur: 0,
   useNativeMacWindowControls: false,
-  v2SidebarSearchMode: "command",
-  v2CommandSearchPersistentFilterEnabled: false,
-  v2SidebarPersistedFilter: "",
-  v2SidebarRailShowLabels: true,
+  sidebarSearchMode: "command",
+  commandSearchPersistentFilterEnabled: false,
+  sidebarPersistedFilter: "",
+  sidebarRailShowLabels: true,
   customUIFontFamily: null,
   customMonoFontFamily: null,
   tabDisplay: DEFAULT_TAB_DISPLAY_SETTINGS,
@@ -132,15 +140,15 @@ const LEGACY_DEFAULT_OPACITY = 0.95;
 const OPACITY_EPSILON = 1e-6;
 const MAX_SIDEBAR_PERSISTED_FILTER_LENGTH = 120;
 
-const sanitizeV2SidebarSearchMode = (
+const sanitizeSidebarSearchMode = (
   value: unknown,
-): AppearanceSettings["v2SidebarSearchMode"] => {
-  return value === "filter" ? "filter" : DEFAULT_APPEARANCE.v2SidebarSearchMode;
+): AppearanceSettings["sidebarSearchMode"] => {
+  return value === "filter" ? "filter" : DEFAULT_APPEARANCE.sidebarSearchMode;
 };
 
-const sanitizeV2SidebarPersistedFilter = (value: unknown): string => {
+const sanitizeSidebarPersistedFilter = (value: unknown): string => {
   if (typeof value !== "string") {
-    return DEFAULT_APPEARANCE.v2SidebarPersistedFilter;
+    return DEFAULT_APPEARANCE.sidebarPersistedFilter;
   }
   return value.trim().slice(0, MAX_SIDEBAR_PERSISTED_FILTER_LENGTH);
 };
@@ -154,7 +162,7 @@ const MIN_KEEPALIVE_INTERVAL_MINUTES = 1;
 const MAX_KEEPALIVE_INTERVAL_MINUTES = 1440;
 const DEFAULT_DIAGNOSTIC_TIMEOUT_SECONDS = 15;
 const MAX_DIAGNOSTIC_TIMEOUT_SECONDS = 300;
-const PERSIST_VERSION = 15;
+const PERSIST_VERSION = 17;
 const PERSIST_STORAGE_KEY = "lite-db-storage";
 const PERSIST_WRITE_DEBOUNCE_MS = 160;
 const MAX_PERSISTED_QUERY_TABS = 20;
@@ -1278,6 +1286,7 @@ interface AppState {
   sqlFormatOptions: { keywordCase: "upper" | "lower" };
   queryOptions: QueryOptions;
   updatePreferences: UpdatePreferences;
+  memorySettings: MemorySettings;
   dataEditTransactionOptions: DataEditTransactionOptions;
   sqlEditorTransactionOptions: SqlEditorTransactionOptions;
   sqlEditorPendingTransactions: Record<string, SqlEditorPendingTransactionState>;
@@ -1373,6 +1382,8 @@ interface AppState {
   closeTabsByDatabase: (connectionId: string, dbName: string) => void;
   moveTab: (sourceId: string, targetId: string) => void;
   closeAllTabs: () => void;
+  releaseTabQueryResults: (tabId: string) => void;
+  clearTabResultsClearedFlag: (tabId: string) => void;
   setActiveTab: (id: string) => void;
   setActiveContext: (
     context: { connectionId: string; dbName: string } | null,
@@ -1401,6 +1412,12 @@ interface AppState {
   setQueryOptions: (options: Partial<QueryOptions>) => void;
   setUpdateAutoPromptEnabled: (enabled: boolean) => void;
   skipUpdateVersion: (version: string) => void;
+  setMemorySettings: (settings: Partial<MemorySettings>) => void;
+  setMemoryAdvancedOption: <K extends MemoryAdvancedOptionKey>(
+    key: K,
+    value: MemorySettings["advanced"][K],
+  ) => void;
+  resetMemoryAdvancedOption: (key: MemoryAdvancedOptionKey) => void;
   setDataEditTransactionOptions: (
     options: Partial<DataEditTransactionOptions>,
   ) => void;
@@ -1845,16 +1862,35 @@ const sanitizeRuntimeSqlLogs = (value: unknown) =>
 const sanitizePersistedSqlLogs = (value: unknown) =>
   sanitizeSqlLogs(value, PERSISTED_SQL_LOG_SANITIZE_OPTIONS);
 
-const appendRuntimeSqlLog = (existing: SqlLog[], entry: SqlLog): SqlLog[] => {
+const appendRuntimeSqlLog = (
+  existing: SqlLog[],
+  entry: SqlLog,
+  limit = MAX_RUNTIME_SQL_LOGS,
+): SqlLog[] => {
   const nextEntry = sanitizeSqlLogEntry(entry, 0, RUNTIME_SQL_LOG_SANITIZE_OPTIONS);
   if (!nextEntry) {
     return existing;
   }
 
-  const nextLogs = [nextEntry, ...existing.slice(0, MAX_RUNTIME_SQL_LOGS - 1)];
+  const safeLimit = Number.isFinite(limit) && limit > 0
+    ? Math.trunc(limit)
+    : MAX_RUNTIME_SQL_LOGS;
+  const nextLogs = [nextEntry, ...existing.slice(0, safeLimit - 1)];
   return existing.some((item) => item.id === nextEntry.id)
     ? sanitizeRuntimeSqlLogs(nextLogs)
     : nextLogs;
+};
+
+const trimAiChatMessagesForRuntime = (
+  messages: AIChatMessage[],
+  state: Pick<AppState, "memorySettings" | "appearance">,
+): AIChatMessage[] => {
+  const policy = resolveMemoryPolicy(state.memorySettings, state.appearance);
+  const limit = resolveAiMessageMemoryLimit(policy);
+  if (limit == null || messages.length <= limit) {
+    return messages;
+  }
+  return messages.slice(-limit);
 };
 
 const hasLegacyConnectionSecrets = (
@@ -2061,12 +2097,9 @@ const sanitizeAppearance = (
   if (!appearance || typeof appearance !== "object") {
     return { ...DEFAULT_APPEARANCE };
   }
+  const rawAppearance = appearance as Partial<AppearanceSettings> & Record<string, unknown>;
   const dataGridDisplaySettings = sanitizeDataGridDisplaySettings(appearance);
   const nextAppearance = {
-    uiVersion:
-      appearance.uiVersion === "v2" || appearance.uiVersion === "legacy"
-        ? appearance.uiVersion
-        : DEFAULT_APPEARANCE.uiVersion,
     enabled:
       typeof appearance.enabled === "boolean"
         ? appearance.enabled
@@ -2083,20 +2116,26 @@ const sanitizeAppearance = (
       typeof appearance.useNativeMacWindowControls === "boolean"
         ? appearance.useNativeMacWindowControls
         : DEFAULT_APPEARANCE.useNativeMacWindowControls,
-    v2SidebarSearchMode: sanitizeV2SidebarSearchMode(
-      appearance.v2SidebarSearchMode,
+    sidebarSearchMode: sanitizeSidebarSearchMode(
+      rawAppearance.sidebarSearchMode ?? rawAppearance.v2SidebarSearchMode,
     ),
-    v2CommandSearchPersistentFilterEnabled:
-      typeof appearance.v2CommandSearchPersistentFilterEnabled === "boolean"
-        ? appearance.v2CommandSearchPersistentFilterEnabled
-        : DEFAULT_APPEARANCE.v2CommandSearchPersistentFilterEnabled,
-    v2SidebarPersistedFilter: sanitizeV2SidebarPersistedFilter(
-      appearance.v2SidebarPersistedFilter,
+    commandSearchPersistentFilterEnabled:
+      typeof (
+        rawAppearance.commandSearchPersistentFilterEnabled
+        ?? rawAppearance.v2CommandSearchPersistentFilterEnabled
+      ) === "boolean"
+        ? (
+          rawAppearance.commandSearchPersistentFilterEnabled
+          ?? rawAppearance.v2CommandSearchPersistentFilterEnabled
+        ) as boolean
+        : DEFAULT_APPEARANCE.commandSearchPersistentFilterEnabled,
+    sidebarPersistedFilter: sanitizeSidebarPersistedFilter(
+      rawAppearance.sidebarPersistedFilter ?? rawAppearance.v2SidebarPersistedFilter,
     ),
-    v2SidebarRailShowLabels:
-      typeof appearance.v2SidebarRailShowLabels === "boolean"
-        ? appearance.v2SidebarRailShowLabels
-        : DEFAULT_APPEARANCE.v2SidebarRailShowLabels,
+    sidebarRailShowLabels:
+      typeof (rawAppearance.sidebarRailShowLabels ?? rawAppearance.v2SidebarRailShowLabels) === "boolean"
+        ? (rawAppearance.sidebarRailShowLabels ?? rawAppearance.v2SidebarRailShowLabels) as boolean
+        : DEFAULT_APPEARANCE.sidebarRailShowLabels,
     customUIFontFamily: sanitizeFontFamilyInput(appearance.customUIFontFamily),
     customMonoFontFamily: sanitizeFontFamilyInput(appearance.customMonoFontFamily),
     tabDisplay: sanitizeTabDisplaySettings(appearance.tabDisplay),
@@ -2379,6 +2418,7 @@ export const useStore = create<AppState>()(
         askWhatToExecute: false,
       },
       updatePreferences: { ...DEFAULT_UPDATE_PREFERENCES },
+      memorySettings: { ...DEFAULT_MEMORY_SETTINGS },
       dataEditTransactionOptions: {
         commitMode: "manual",
         autoCommitDelayMs: 5000,
@@ -3045,6 +3085,49 @@ export const useStore = create<AppState>()(
 
       closeAllTabs: () => set(() => ({ tabs: [], activeTabId: null, activeContext: null })),
 
+      releaseTabQueryResults: (tabId) => {
+        const safeTabId = toTrimmedString(tabId);
+        if (!safeTabId) {
+          return;
+        }
+        let shouldDispatch = false;
+        set((state) => {
+          const target = state.tabs.find((tab) => tab.id === safeTabId);
+          if (
+            !target
+            || (target.type !== "query" && target.type !== "table")
+            || target.resultsCleared
+          ) {
+            return state;
+          }
+          shouldDispatch = true;
+          return {
+            tabs: state.tabs.map((tab) =>
+              tab.id === safeTabId ? { ...tab, resultsCleared: true } : tab,
+            ),
+          };
+        });
+        if (shouldDispatch) {
+          dispatchReleaseTabQueryResults([safeTabId]);
+        }
+      },
+      clearTabResultsClearedFlag: (tabId) =>
+        set((state) => {
+          const safeTabId = toTrimmedString(tabId);
+          if (!safeTabId) {
+            return state;
+          }
+          const target = state.tabs.find((tab) => tab.id === safeTabId);
+          if (!target?.resultsCleared) {
+            return state;
+          }
+          return {
+            tabs: state.tabs.map((tab) =>
+              tab.id === safeTabId ? { ...tab, resultsCleared: false } : tab,
+            ),
+          };
+        }),
+
       setActiveTab: (id) =>
         set((state) => ({
           activeTabId: id,
@@ -3206,6 +3289,36 @@ export const useStore = create<AppState>()(
             }),
           };
         }),
+      setMemorySettings: (settings) =>
+        set((state) => ({
+          memorySettings: sanitizeMemorySettings({
+            ...state.memorySettings,
+            ...settings,
+            advanced: settings.advanced
+              ? { ...state.memorySettings.advanced, ...settings.advanced }
+              : state.memorySettings.advanced,
+          }),
+        })),
+      setMemoryAdvancedOption: (key, value) =>
+        set((state) => ({
+          memorySettings: sanitizeMemorySettings({
+            ...state.memorySettings,
+            advanced: {
+              ...state.memorySettings.advanced,
+              [key]: value,
+            },
+          }),
+        })),
+      resetMemoryAdvancedOption: (key) =>
+        set((state) => ({
+          memorySettings: sanitizeMemorySettings({
+            ...state.memorySettings,
+            advanced: {
+              ...state.memorySettings.advanced,
+              [key]: DEFAULT_MEMORY_SETTINGS.advanced[key],
+            },
+          }),
+        })),
       setDataEditTransactionOptions: (options) =>
         set((state) => ({
           dataEditTransactionOptions: sanitizeDataEditTransactionOptions({
@@ -3290,7 +3403,13 @@ export const useStore = create<AppState>()(
         }),
 
       addSqlLog: (log) =>
-        set((state) => ({ sqlLogs: appendRuntimeSqlLog(state.sqlLogs, log) })),
+        set((state) => {
+          const policy = resolveMemoryPolicy(state.memorySettings, state.appearance);
+          const limit = resolveRuntimeSqlLogLimit(policy);
+          return {
+            sqlLogs: appendRuntimeSqlLog(state.sqlLogs, log, limit),
+          };
+        }),
       clearSqlLogs: () => set({ sqlLogs: [] }),
       upsertTableExportHistory: (historyKey, entry) =>
         set((state) => {
@@ -3429,7 +3548,10 @@ export const useStore = create<AppState>()(
         set((state) => {
           const history = { ...state.aiChatHistory };
           const messages = history[sessionId] || [];
-          history[sessionId] = [...messages, message];
+          history[sessionId] = trimAiChatMessagesForRuntime(
+            [...messages, message],
+            state,
+          );
 
           let newSessions = [...state.aiChatSessions];
           const existingSession = newSessions.find((s) => s.id === sessionId);
@@ -3465,7 +3587,10 @@ export const useStore = create<AppState>()(
           if (idx < 0) return state;
           const newMessages = [...messages];
           newMessages[idx] = { ...newMessages[idx], ...updates };
-          const history = { ...state.aiChatHistory, [sessionId]: newMessages };
+          const history = {
+            ...state.aiChatHistory,
+            [sessionId]: trimAiChatMessagesForRuntime(newMessages, state),
+          };
           const isContentOnlyUpdate =
             Object.keys(updates).length === 1 && "content" in updates;
           if (!isContentOnlyUpdate) {
@@ -3522,7 +3647,7 @@ export const useStore = create<AppState>()(
       replaceAIChatHistory: (sessionId, messages) => {
         set((state) => {
           const history = { ...state.aiChatHistory };
-          history[sessionId] = messages;
+          history[sessionId] = trimAiChatMessagesForRuntime(messages, state);
           return { aiChatHistory: history };
         });
         _debouncedPersistSession(sessionId);
@@ -3672,7 +3797,9 @@ export const useStore = create<AppState>()(
         nextState.languagePreference = sanitizeLanguagePreference(
           state.languagePreference,
         );
-        nextState.appearance = sanitizeAppearance(state.appearance, version);
+        nextState.appearance = version < 17
+          ? { ...DEFAULT_APPEARANCE }
+          : sanitizeAppearance(state.appearance, version);
         nextState.uiScale = sanitizeUiScale(state.uiScale);
         nextState.fontSize = sanitizeFontSize(state.fontSize);
         nextState.startupFullscreen = sanitizeStartupFullscreen(
@@ -3684,6 +3811,7 @@ export const useStore = create<AppState>()(
         );
         nextState.queryOptions = sanitizeQueryOptions(state.queryOptions);
         nextState.updatePreferences = sanitizeUpdatePreferences(state.updatePreferences);
+        nextState.memorySettings = sanitizeMemorySettings(state.memorySettings);
         nextState.dataEditTransactionOptions =
           sanitizeDataEditTransactionOptions(state.dataEditTransactionOptions);
         nextState.sqlEditorTransactionOptions =
@@ -3798,6 +3926,7 @@ export const useStore = create<AppState>()(
           sqlFormatOptions: sanitizeSqlFormatOptions(state.sqlFormatOptions),
           queryOptions: sanitizeQueryOptions(state.queryOptions),
           updatePreferences: sanitizeUpdatePreferences(state.updatePreferences),
+          memorySettings: sanitizeMemorySettings(state.memorySettings),
           dataEditTransactionOptions: sanitizeDataEditTransactionOptions(
             state.dataEditTransactionOptions,
           ),
@@ -3835,6 +3964,7 @@ export const useStore = create<AppState>()(
           sqlFormatOptions: state.sqlFormatOptions,
           queryOptions: state.queryOptions,
           updatePreferences: state.updatePreferences,
+          memorySettings: state.memorySettings,
           dataEditTransactionOptions: state.dataEditTransactionOptions,
           sqlEditorTransactionOptions: state.sqlEditorTransactionOptions,
           shortcutOptions: resolveShortcutOptionsForPersistence(state.shortcutOptions),

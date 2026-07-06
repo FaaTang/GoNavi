@@ -20,8 +20,8 @@ describe('TableOverview v2 context menu', () => {
     expect(source).toContain('gn-v2-table-overview-context-menu-portal');
     expect(source).toContain("['--gn-v2-context-menu-max-height' as any]");
     expect(source).toContain('renderV2OverviewTableContextMenu(v2ContextMenuTable)');
-    expect(cardSource).toContain('onContextMenu={isV2Ui ? (event) => openV2OverviewContextMenu(event, table) : undefined}');
-    expect(listSource).toContain('onContextMenu={isV2Ui ? (event) => openV2OverviewContextMenu(event, table) : undefined}');
+    expect(cardSource).toContain('onContextMenu={(event) => openV2OverviewContextMenu(event, table)}');
+    expect(listSource).toContain('onContextMenu={(event) => openV2OverviewContextMenu(event, table)}');
     expect(cardSource).not.toContain('popupRender');
     expect(listSource).not.toContain('popupRender');
   });

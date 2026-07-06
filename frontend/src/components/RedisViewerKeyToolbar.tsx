@@ -41,9 +41,7 @@ const getRedisTopologyLabel = (
   return tr('redis_viewer.topology.single');
 };
 
-type RedisViewerKeyToolbarProps = {
-  isV2Ui: boolean;
-  redisDB: number;
+type RedisViewerKeyToolbarProps = {  redisDB: number;
   connection?: SavedConnection;
   keyCount: number;
   selectedKeyCount: number;
@@ -65,9 +63,7 @@ type RedisViewerKeyToolbarProps = {
   onDeleteSelectedKeys: () => void;
 };
 
-const RedisViewerKeyToolbar: React.FC<RedisViewerKeyToolbarProps> = ({
-  isV2Ui,
-  redisDB,
+const RedisViewerKeyToolbar: React.FC<RedisViewerKeyToolbarProps> = ({  redisDB,
   connection,
   keyCount,
   selectedKeyCount,
@@ -136,7 +132,7 @@ const RedisViewerKeyToolbar: React.FC<RedisViewerKeyToolbarProps> = ({
           enterButton={<SearchOutlined />}
         />
       </Space.Compact>
-      <div className={isV2Ui ? 'gn-v2-redis-toolbar' : undefined} style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div className={'gn-v2-redis-toolbar'} style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <Space wrap size={8}>
           <Button size="small" style={actionButtonStyle} icon={<ReloadOutlined />} onClick={onRefresh}>{tr('redis_viewer.action.refresh')}</Button>
           <Button size="small" style={actionButtonStyle} icon={<PlusOutlined />} onClick={onCreateKey}>{tr('redis_viewer.action.new_key')}</Button>

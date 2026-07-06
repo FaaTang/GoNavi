@@ -13,6 +13,19 @@ vi.mock('antd', () => ({
   message: { error: vi.fn() },
 }));
 
+vi.mock('../../common/ResizableDraggableModal', () => ({
+  default: Object.assign(
+    ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    {
+      info: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      confirm: vi.fn(),
+    },
+  ),
+}));
+
 vi.mock('@ant-design/icons', () => ({
   ApiOutlined: () => null,
   CaretDownOutlined: () => null,

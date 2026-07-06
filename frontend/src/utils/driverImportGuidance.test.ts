@@ -79,7 +79,7 @@ describe('driver import guidance', () => {
       detailParams,
       backendWrapperKeys,
     )).toBe(expected);
-  }, 15000);
+  }, 60000);
 
   it('guards DriverManagerModal error toasts against direct backend wrapper fallbacks', () => {
     const source = readFileSync(

@@ -25,9 +25,7 @@ import QueryEditorTransactionSettings, {
 import QueryEditorMaxRowsSelect from "./QueryEditorMaxRowsSelect";
 import type { QueryMaxRowsState } from "../utils/queryMaxRows";
 
-type QueryEditorToolbarProps = {
-  isV2Ui: boolean;
-  currentConnectionId: string;
+type QueryEditorToolbarProps = {  currentConnectionId: string;
   currentDb: string;
   queryCapableConnections: SavedConnection[];
   dbList: string[];
@@ -60,9 +58,7 @@ type QueryEditorToolbarProps = {
   onAIAction: (action: "generate" | "explain" | "optimize" | "schema") => void;
 };
 
-const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
-  isV2Ui,
-  currentConnectionId,
+const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({  currentConnectionId,
   currentDb,
   queryCapableConnections,
   dbList,
@@ -144,8 +140,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
       onClick: () => onAIAction("schema"),
     },
   ];
-  const moreMenuItems: MenuProps["items"] = isV2Ui
-    ? [
+  const moreMenuItems: MenuProps["items"] = [
         ...baseMoreMenuItems,
         ...(baseMoreMenuItems.length > 0 ? [{ type: "divider" as const }] : []),
         {
@@ -158,11 +153,10 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           ),
           onClick: onToggleResultPanelVisibility,
         },
-      ]
-    : baseMoreMenuItems;
+      ];
   const selects = (
     <div
-      className={isV2Ui ? "gn-v2-query-toolbar-selects" : undefined}
+      className={"gn-v2-query-toolbar-selects"}
       style={{
         display: "flex",
         gap: "8px",
@@ -171,12 +165,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
       }}
     >
       <Select
-        className={
-          isV2Ui
-            ? "gn-v2-query-toolbar-select gn-v2-query-toolbar-connection-select"
-            : undefined
-        }
-        style={isV2Ui ? undefined : { width: 150 }}
+        className="gn-v2-query-toolbar-select gn-v2-query-toolbar-connection-select"
         placeholder={t("query_editor.placeholder.connection")}
         value={currentConnectionId}
         onChange={onConnectionChange}
@@ -187,12 +176,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
         showSearch
       />
       <Select
-        className={
-          isV2Ui
-            ? "gn-v2-query-toolbar-select gn-v2-query-toolbar-database-select"
-            : undefined
-        }
-        style={isV2Ui ? undefined : { width: 200 }}
+        className="gn-v2-query-toolbar-select gn-v2-query-toolbar-database-select"
         placeholder={t("query_editor.placeholder.database")}
         value={currentDb}
         onChange={onDatabaseChange}
@@ -200,25 +184,22 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
         showSearch
       />
       <QueryEditorMaxRowsSelect
-        isV2Ui={isV2Ui}
         maxRows={maxRows}
         maxRowsCustomPresets={maxRowsCustomPresets}
         onChange={onMaxRowsChange}
       />
       <QueryEditorTransactionSettings
-        isV2Ui={isV2Ui}
         commitMode={sqlEditorCommitMode}
         autoCommitDelayMs={sqlEditorAutoCommitDelayMs}
         onCommitModeChange={onCommitModeChange}
         onAutoCommitDelayMsChange={onAutoCommitDelayMsChange}
       />
-      {!isV2Ui && pendingTransactionToolbar}
     </div>
   );
 
   const actions = (
     <div
-      className={isV2Ui ? "gn-v2-query-toolbar-actions" : undefined}
+      className={"gn-v2-query-toolbar-actions"}
       style={{
         display: "flex",
         gap: "8px",
@@ -227,7 +208,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
       }}
     >
       <div
-        className={isV2Ui ? "gn-v2-query-toolbar-action-group" : undefined}
+        className={"gn-v2-query-toolbar-action-group"}
         style={{ display: "flex", gap: "8px", alignItems: "center" }}
       >
         <Tooltip
@@ -243,7 +224,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           }
         >
           <Button
-            className={isV2Ui ? "gn-v2-query-toolbar-run-action" : undefined}
+            className={"gn-v2-query-toolbar-run-action"}
             type="primary"
             icon={<PlayCircleOutlined />}
             onMouseDown={onCaptureEditorCursorPosition}
@@ -264,9 +245,9 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           </Button>
         )}
       </div>
-      {isV2Ui && pendingTransactionToolbar}
+      {pendingTransactionToolbar}
       <div
-        className={isV2Ui ? "gn-v2-query-toolbar-action-pair" : undefined}
+        className={"gn-v2-query-toolbar-action-pair"}
         style={{ display: "flex", gap: "8px", alignItems: "center" }}
       >
         <Tooltip
@@ -291,7 +272,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           trigger={["click"]}
         >
           <Button
-            className={isV2Ui ? "gn-v2-query-toolbar-ai-action" : undefined}
+            className={"gn-v2-query-toolbar-ai-action"}
             icon={<RobotOutlined />}
             style={{ color: "#818cf8" }}
           >
@@ -308,7 +289,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
       </div>
 
       <div
-        className={isV2Ui ? "gn-v2-query-toolbar-action-pair" : undefined}
+        className={"gn-v2-query-toolbar-action-pair"}
         style={{ display: "flex", gap: "8px", alignItems: "center" }}
       >
         <Tooltip title={t("query_editor.action.format_sql")}>
@@ -324,44 +305,15 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
           trigger={["click"]}
         >
           <Button
-            className={isV2Ui ? "gn-v2-query-toolbar-icon-action" : undefined}
+            className={"gn-v2-query-toolbar-icon-action"}
             icon={<SettingOutlined />}
           />
         </Dropdown>
       </div>
 
-      {!isV2Ui && (
-        <Tooltip title={toggleResultPanelTitle}>
-          <Button
-            icon={
-              isResultPanelVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />
-            }
-            onClick={onToggleResultPanelVisibility}
-          >
-            {t("query_editor.action.results")}
-          </Button>
-        </Tooltip>
-      )}
+      
     </div>
   );
-
-  if (!isV2Ui) {
-    return (
-      <div
-        className={undefined}
-        style={{
-          padding: "4px 8px 8px",
-          display: "flex",
-          gap: "8px",
-          flexShrink: 0,
-          alignItems: "center",
-        }}
-      >
-        {selects}
-        {actions}
-      </div>
-    );
-  }
 
   return (
     <div

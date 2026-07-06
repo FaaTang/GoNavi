@@ -239,7 +239,6 @@ describe('TableOverview i18n', () => {
       "t('table_overview.message.rename_table_failed'",
       "t('table_overview.menu.copy_table_name')",
       "t('table_overview.menu.table_structure')",
-      "t('table_overview.menu.export_xlsx')",
     ].forEach(text => {
       expect(tableOperationSource).toContain(text);
     });

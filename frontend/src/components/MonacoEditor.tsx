@@ -79,7 +79,6 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   ...props
 }) => {
   const [ready, setReady] = useState(isTestRuntime);
-  const uiVersion = useStore((state) => state.appearance.uiVersion);
   const dataTableFontSize = useStore((state) => state.appearance.dataTableFontSize);
   const dataTableFontSizeFollowGlobal = useStore((state) => state.appearance.dataTableFontSizeFollowGlobal);
   const monoFontFamily = useStore((state) => state.appearance.customMonoFontFamily);
@@ -112,13 +111,6 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   }, [beforeMount]);
 
   const resolvedOptions = useMemo(() => {
-    if (uiVersion !== 'v2') {
-      return {
-        ...options,
-        editContext: false,
-      };
-    }
-
     const effectiveGlobalFontSize = Math.min(
       MAX_FONT_SIZE,
       Math.max(MIN_FONT_SIZE, Math.round(Number(globalFontSize) || DEFAULT_FONT_SIZE)),
@@ -144,7 +136,6 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
     gonaviTypography,
     monoFontFamily,
     options,
-    uiVersion,
   ]);
 
   if (!ready) {

@@ -41,6 +41,7 @@ import {
     type EditRowLocator,
 } from '../utils/rowLocator';
 import { FLUSH_QUERY_TAB_DRAFTS_EVENT, getQueryTabDraft, hasQueryTabDraft, setQueryTabDraft, setSQLFileTabDraft } from '../utils/sqlFileTabDrafts';
+import { RELEASE_TAB_QUERY_RESULTS_EVENT } from '../utils/queryTabResults';
 import {
     getColumnDefinitionComment,
     getColumnDefinitionKey,
@@ -291,6 +292,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const addTab = useStore(state => state.addTab);
   const setActiveContext = useStore(state => state.setActiveContext);
   const updateQueryTabDraft = useStore(state => state.updateQueryTabDraft);
+  const clearTabResultsClearedFlag = useStore(state => state.clearTabResultsClearedFlag);
   const savedQueries = useStore(state => state.savedQueries);
   const currentConnectionIdRef = useRef(currentConnectionId);
   const currentDbRef = useRef(currentDb);
@@ -302,7 +304,6 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   void languagePreference;
   const appearance = useStore(state => state.appearance);
   const darkMode = theme === 'dark';
-  const isV2Ui = appearance.uiVersion === 'v2';
   const sqlFormatOptions = useStore(state => state.sqlFormatOptions);
   const setSqlFormatOptions = useStore(state => state.setSqlFormatOptions);
   const queryOptions = useStore(state => state.queryOptions);
@@ -560,6 +561,37 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       window.addEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
       return () => window.removeEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
   }, [isExternalSQLFileTab, tab.id]);
+
+  useEffect(() => {
+      const handleReleaseTabQueryResults = (event: Event) => {
+          const detail = (event as CustomEvent<{ tabIds?: string[] }>).detail;
+          const tabIds = Array.isArray(detail?.tabIds)
+              ? detail.tabIds.map((id) => String(id || '').trim()).filter(Boolean)
+              : [];
+          if (!tabIds.includes(tab.id)) {
+              return;
+          }
+          setResultSets([]);
+          setActiveResultKey('');
+          setExecutionError('');
+          setLoading(false);
+      };
+
+      if (typeof window === 'undefined') {
+          return;
+      }
+      window.addEventListener(RELEASE_TAB_QUERY_RESULTS_EVENT, handleReleaseTabQueryResults);
+      return () => window.removeEventListener(RELEASE_TAB_QUERY_RESULTS_EVENT, handleReleaseTabQueryResults);
+  }, [tab.id]);
+
+  useEffect(() => {
+      if (!tab.resultsCleared) {
+          return;
+      }
+      setResultSets([]);
+      setActiveResultKey('');
+      setExecutionError('');
+  }, [tab.id, tab.resultsCleared]);
 
   // 当此 Tab 成为活跃 Tab 时，将本实例的状态同步到模块级共享变量
   // 确保 completion provider 始终使用当前活跃 Tab 的上下文
@@ -3609,6 +3641,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             } else if (nextResultSets.length === 0) {
                 message.success(translate('query_editor.message.execution_success'));
             }
+            clearTabResultsClearedFlag(tab.id);
 
         } else {
             // 非 MongoDB：使用 DBQueryMulti 一次性执行多条 SQL，后端返回多结果集
@@ -3991,6 +4024,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             } else if (nextResultSets.length === 0) {
                 message.success(translate('query_editor.message.execution_success'));
             }
+            clearTabResultsClearedFlag(tab.id);
 
         }
     } catch (e: any) {
@@ -4032,6 +4066,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       sqlEditorAutoCommitDelayMs,
       sqlEditorCommitMode,
       updateResultPanelVisibility,
+      clearTabResultsClearedFlag,
+      tab.id,
       isActive,
   ]);
 
@@ -4930,7 +4966,6 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
   const sqlEditorTransactionToolbar = (
       <QueryEditorTransactionToolbar
-          isV2Ui={isV2Ui}
           darkMode={darkMode}
           transaction={pendingSqlTransaction}
           autoCommitRemainingSeconds={sqlEditorAutoCommitRemainingSeconds}
@@ -4939,7 +4974,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   );
 
   return (
-    <div ref={queryEditorRootRef} className={isV2Ui ? 'gn-v2-query-editor' : undefined} style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div ref={queryEditorRootRef} className={'gn-v2-query-editor'} style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <style>{`
         .gn-query-execution-setting-highlight {
           background: rgba(24, 144, 255, 0.12);
@@ -4947,11 +4982,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       `}</style>
       <div
         ref={editorPaneRef}
-        className={isV2Ui ? 'gn-v2-query-editor-pane' : undefined}
+        className={'gn-v2-query-editor-pane'}
         style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: isResultPanelVisible ? '0 0 auto' : '1 1 auto' }}
       >
       <QueryEditorToolbar
-        isV2Ui={isV2Ui}
         currentConnectionId={currentConnectionId}
         currentDb={currentDb}
         queryCapableConnections={queryCapableConnections}
@@ -4994,7 +5028,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
       <div
         ref={editorShellRef}
-        className={isV2Ui ? 'gn-v2-query-monaco-shell' : undefined}
+        className={'gn-v2-query-monaco-shell'}
         style={isResultPanelVisible ? { height: editorHeight, minHeight: '100px' } : { flex: '1 1 auto', minHeight: 0 }}
       >
         <Editor
@@ -5026,7 +5060,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
       {isResultPanelVisible && (
         <div
-          className={isV2Ui ? 'gn-v2-query-resizer' : undefined}
+          className={'gn-v2-query-resizer'}
           onMouseDown={handleMouseDown}
           style={{
               height: '5px',
@@ -5048,7 +5082,6 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           executionError={executionError}
           sqlLogCount={sqlLogCount}
           darkMode={darkMode}
-          isV2Ui={isV2Ui}
           currentDb={currentDb}
           currentConnectionId={currentConnectionId}
           toggleShortcutLabel={toggleQueryResultsPanelShortcutLabel}
@@ -5062,6 +5095,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           onReloadResult={handleReloadResult}
           onResultPageChange={handleResultPageChange}
           onDiagnoseExecutionError={handleDiagnoseExecutionError}
+          resultsClearedByLowMemory={Boolean(tab.resultsCleared && !loading && resultSets.length === 0)}
+          onRerunQuery={requestRun}
         />
       )}
 

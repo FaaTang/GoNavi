@@ -58,20 +58,19 @@ describe('store appearance persistence', () => {
           useNativeMacWindowControls: true,
         },
       },
-      version: 7,
+      version: 17,
     }));
 
     const { useStore } = await importStore();
     const appearance = useStore.getState().appearance;
 
-    expect(appearance.uiVersion).toBe('legacy');
     expect(appearance.enabled).toBe(false);
     expect(appearance.opacity).toBe(0.75);
     expect(appearance.blur).toBe(6);
     expect(appearance.useNativeMacWindowControls).toBe(true);
-    expect(appearance.v2SidebarSearchMode).toBe('command');
-    expect(appearance.v2CommandSearchPersistentFilterEnabled).toBe(false);
-    expect(appearance.v2SidebarPersistedFilter).toBe('');
+    expect(appearance.sidebarSearchMode).toBe('command');
+    expect(appearance.commandSearchPersistentFilterEnabled).toBe(false);
+    expect(appearance.sidebarPersistedFilter).toBe('');
     expect(appearance.showDataTableVerticalBorders).toBe(false);
     expect(appearance.dataTableDensity).toBe('comfortable');
     expect(appearance.dataTableFontSize).toBeNull();
@@ -172,24 +171,24 @@ describe('store appearance persistence', () => {
     const { useStore } = await importStore();
 
     useStore.getState().setAppearance({
-      v2SidebarSearchMode: 'filter',
-      v2CommandSearchPersistentFilterEnabled: true,
-      v2SidebarPersistedFilter: `  ${'orders'.repeat(40)}  `,
+      sidebarSearchMode: 'filter',
+      commandSearchPersistentFilterEnabled: true,
+      sidebarPersistedFilter: `  ${'orders'.repeat(40)}  `,
     });
 
     const persisted = JSON.parse(storage.getItem('lite-db-storage') || '{}');
-    expect(persisted.state.appearance.v2SidebarSearchMode).toBe('filter');
-    expect(persisted.state.appearance.v2CommandSearchPersistentFilterEnabled).toBe(true);
-    expect(persisted.state.appearance.v2SidebarPersistedFilter).toHaveLength(120);
-    expect(persisted.state.appearance.v2SidebarPersistedFilter.startsWith('orders')).toBe(true);
+    expect(persisted.state.appearance.sidebarSearchMode).toBe('filter');
+    expect(persisted.state.appearance.commandSearchPersistentFilterEnabled).toBe(true);
+    expect(persisted.state.appearance.sidebarPersistedFilter).toHaveLength(120);
+    expect(persisted.state.appearance.sidebarPersistedFilter.startsWith('orders')).toBe(true);
 
     vi.resetModules();
     const reloaded = await importStore();
     const appearance = reloaded.useStore.getState().appearance;
 
-    expect(appearance.v2SidebarSearchMode).toBe('filter');
-    expect(appearance.v2CommandSearchPersistentFilterEnabled).toBe(true);
-    expect(appearance.v2SidebarPersistedFilter).toHaveLength(120);
+    expect(appearance.sidebarSearchMode).toBe('filter');
+    expect(appearance.commandSearchPersistentFilterEnabled).toBe(true);
+    expect(appearance.sidebarPersistedFilter).toHaveLength(120);
   });
 
   it('persists tab display appearance settings and sanitizes invalid elements', async () => {
@@ -1660,5 +1659,113 @@ describe('store queryOptions migration', () => {
       maxRows: 5000,
       maxRowsCustomPresets: [5000],
     });
+  });
+});
+
+describe('store memory settings persistence', () => {
+  let storage: MemoryStorage;
+
+  beforeEach(() => {
+    storage = new MemoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('defaults lowMemoryMode to false during hydration', async () => {
+    storage.setItem('lite-db-storage', JSON.stringify({
+      state: {},
+      version: 16,
+    }));
+
+    const { useStore } = await importStore();
+    expect(useStore.getState().memorySettings).toEqual({
+      lowMemoryMode: false,
+      advanced: {
+        destroyInactiveTabs: true,
+        sidebarDbCacheLimit: 6,
+        runtimeSqlLogLimit: 60,
+        aiMessageMemoryLimit: 50,
+        sidebarIdleReleaseMinutes: 30,
+        goGCPercent: 40,
+      },
+    });
+  });
+
+  it('persists memory settings and restores advanced options', async () => {
+    const { useStore } = await importStore();
+    useStore.getState().setMemorySettings({ lowMemoryMode: true });
+    useStore.getState().setMemoryAdvancedOption('runtimeSqlLogLimit', 90);
+
+    const persisted = JSON.parse(storage.getItem('lite-db-storage') || '{}');
+    expect(persisted.state.memorySettings.lowMemoryMode).toBe(true);
+    expect(persisted.state.memorySettings.advanced.runtimeSqlLogLimit).toBe(90);
+
+    vi.resetModules();
+    const reloaded = await importStore();
+    expect(reloaded.useStore.getState().memorySettings.lowMemoryMode).toBe(true);
+    expect(reloaded.useStore.getState().memorySettings.advanced.runtimeSqlLogLimit).toBe(90);
+  });
+});
+
+describe('store appearance v17 migration', () => {
+  let storage: MemoryStorage;
+
+  beforeEach(() => {
+    storage = new MemoryStorage();
+    vi.stubGlobal('localStorage', storage);
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('resets appearance to defaults while preserving connections during v17 migration', async () => {
+    storage.setItem('lite-db-storage', JSON.stringify({
+      state: {
+        appearance: {
+          enabled: false,
+          opacity: 0.8,
+          blur: 12,
+          v2SidebarSearchMode: 'filter',
+          v2CommandSearchPersistentFilterEnabled: true,
+          v2SidebarPersistedFilter: 'orders',
+        },
+        connections: [
+          {
+            id: 'conn-1',
+            name: 'Orders DB',
+            config: {
+              id: 'conn-1',
+              type: 'mysql',
+              host: 'db.local',
+              port: 3306,
+              user: 'root',
+            },
+          },
+        ],
+      },
+      version: 16,
+    }));
+
+    const { DEFAULT_APPEARANCE, useStore } = await importStore();
+
+    expect(useStore.getState().appearance).toEqual(DEFAULT_APPEARANCE);
+    expect(useStore.getState().connections).toHaveLength(1);
+    expect(useStore.getState().connections[0]?.name).toBe('Orders DB');
+    expect(useStore.getState().appearance).not.toHaveProperty('uiVersion');
+  });
+
+  it('defaults fresh installs without uiVersion field', async () => {
+    const { DEFAULT_APPEARANCE, useStore } = await importStore();
+
+    expect(useStore.getState().appearance).toEqual(DEFAULT_APPEARANCE);
+    expect(useStore.getState().appearance).not.toHaveProperty('uiVersion');
   });
 });

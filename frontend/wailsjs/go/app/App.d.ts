@@ -106,6 +106,8 @@ export function DropView(arg1:connection.ConnectionConfig,arg2:string,arg3:strin
 
 export function DuplicateConnection(arg1:string):Promise<connection.SavedConnectionView>;
 
+export function EffectiveLowMemoryMode():Promise<boolean>;
+
 export function ExecuteSQLFile(arg1:connection.ConnectionConfig,arg2:string,arg3:string,arg4:string):Promise<connection.QueryResult>;
 
 export function ExportConnectionsPackage(arg1:app.ConnectionExportOptions):Promise<connection.QueryResult>;
@@ -161,6 +163,8 @@ export function GetSecurityUpdateStatus():Promise<app.SecurityUpdateStatus>;
 export function GetSlowQueries(arg1:connection.ConnectionConfig,arg2:string,arg3:string,arg4:number):Promise<connection.QueryResult>;
 
 export function GetUnboundSavedQueries():Promise<Array<connection.SavedQuery>>;
+
+export function GoGCPercent():Promise<number>;
 
 export function ImportConfigFile():Promise<connection.QueryResult>;
 
@@ -346,9 +350,13 @@ export function SetMacNativeWindowControls(arg1:boolean):Promise<void>;
 
 export function SetWindowTranslucency(arg1:number,arg2:number):Promise<void>;
 
+export function ShouldUseStreamingExportGuard():Promise<boolean>;
+
 export function Shutdown():Promise<void>;
 
 export function StartSecurityUpdate(arg1:app.StartSecurityUpdateRequest):Promise<app.SecurityUpdateStatus>;
+
+export function SyncMemoryPolicy(arg1:app.MemoryPolicyPayload):Promise<connection.QueryResult>;
 
 export function TestConnection(arg1:connection.ConnectionConfig):Promise<connection.QueryResult>;
 

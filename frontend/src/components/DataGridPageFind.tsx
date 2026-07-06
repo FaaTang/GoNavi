@@ -5,9 +5,7 @@ import { t as defaultTranslate, type I18nParams } from '../i18n';
 
 export type DataGridPageFindTranslate = (key: string, params?: I18nParams) => string;
 
-export interface DataGridPageFindProps {
-  isV2Ui: boolean;
-  darkMode: boolean;
+export interface DataGridPageFindProps {  darkMode: boolean;
   inputProps?: Record<string, unknown>;
   pageFindText: string;
   normalizedPageFindText: string;
@@ -23,9 +21,7 @@ export interface DataGridPageFindProps {
   translate?: DataGridPageFindTranslate;
 }
 
-const DataGridPageFind: React.FC<DataGridPageFindProps> = ({
-  isV2Ui,
-  darkMode,
+const DataGridPageFind: React.FC<DataGridPageFindProps> = ({  darkMode,
   inputProps,
   pageFindText,
   normalizedPageFindText,
@@ -49,11 +45,11 @@ const DataGridPageFind: React.FC<DataGridPageFindProps> = ({
     <Tooltip title={translate('data_grid.page_find.tooltip')}>
       <div
         data-grid-page-find="true"
-        className={isV2Ui ? 'gn-v2-data-grid-page-find' : undefined}
-        style={isV2Ui ? undefined : { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'nowrap', height: 32 }}
+        className={'gn-v2-data-grid-page-find'}
+        style={undefined}
       >
         <Input
-          className={isV2Ui ? 'gn-v2-data-grid-page-find-input' : undefined}
+          className={'gn-v2-data-grid-page-find-input'}
           {...inputProps}
           allowClear
           size="small"
@@ -69,30 +65,30 @@ const DataGridPageFind: React.FC<DataGridPageFindProps> = ({
               onCancel();
             }
           }}
-          style={isV2Ui ? undefined : { width: 168, height: 32 }}
+          style={undefined}
         />
         <Button
           data-grid-page-find-prev="true"
-          className={isV2Ui ? 'gn-v2-data-grid-page-find-prev' : undefined}
+          className={'gn-v2-data-grid-page-find-prev'}
           size="small"
           icon={<LeftOutlined />}
           disabled={!hasMatches}
           onClick={onNavigatePrevious}
-          style={isV2Ui ? undefined : { height: 32, minWidth: 32, paddingInline: 8 }}
+          style={undefined}
         />
         <Button
           data-grid-page-find-next="true"
-          className={isV2Ui ? 'gn-v2-data-grid-page-find-next' : undefined}
+          className={'gn-v2-data-grid-page-find-next'}
           size="small"
           icon={<RightOutlined />}
           disabled={!hasMatches}
           onClick={onNavigateNext}
-          style={isV2Ui ? undefined : { height: 32, minWidth: 32, paddingInline: 8 }}
+          style={undefined}
         />
         {normalizedPageFindText && (
           <span
             aria-live="polite"
-            style={isV2Ui ? undefined : {
+            style={{
               fontSize: 12,
               color: darkMode ? '#999' : '#666',
               lineHeight: 1.4,

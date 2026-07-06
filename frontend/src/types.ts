@@ -499,6 +499,8 @@ export interface TabData {
     query: string;
     createdAt: number;
   }; // Last SQL content before beautify, for cross-session restore
+  /** Low-memory mode: query/table results were cleared after tab deactivation */
+  resultsCleared?: boolean;
 }
 
 export interface JVMAIPlanContext {

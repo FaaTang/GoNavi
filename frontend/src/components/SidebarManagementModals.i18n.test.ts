@@ -1,13 +1,24 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sidebarSource = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './sidebar/SidebarEntityModals.tsx',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const sidebarSource = combinedSource;
 const locales = ['zh-CN', 'en-US'] as const;
 
 const requiredKeys = [
   'sidebar.action.new_group',
-  'sidebar.action.locate_current_tab',
-  'sidebar.message.locate_current_tab_unavailable',
+  'sidebar.action.locate_current_table',
+  'sidebar.message.locate_current_table_unavailable',
   'app.sidebar.sql_execution_log',
   'sidebar.modal.create_database.title',
   'sidebar.field.database_name',
@@ -24,7 +35,7 @@ const requiredKeys = [
 ] as const;
 
 describe('Sidebar management modals i18n', () => {
-  it('localizes legacy toolbar and management modal copy', () => {
+  it('localizes v2 toolbar and management modal copy', () => {
     [
       'title="新建数据库"',
       'label="数据库名称"',

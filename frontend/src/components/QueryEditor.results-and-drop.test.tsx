@@ -47,7 +47,7 @@ const storeState = vi.hoisted(() => ({
   saveQuery: vi.fn(),
   theme: 'light',
   languagePreference: 'zh-CN' as 'zh-CN' | 'en-US',
-  appearance: { uiVersion: 'legacy' as 'legacy' | 'v2' },
+  appearance: {},
   sqlFormatOptions: { keywordCase: 'upper' as const },
   setSqlFormatOptions: vi.fn(),
   queryOptions: {
@@ -86,6 +86,7 @@ const storeState = vi.hoisted(() => ({
   activeTabId: 'tab-1',
   aiPanelVisible: false,
   setAIPanelVisible: vi.fn(),
+  clearTabResultsClearedFlag: vi.fn(),
   sqlSnippets: [] as any[],
 }));
 
@@ -383,6 +384,7 @@ vi.mock('@ant-design/icons', () => {
     DatabaseOutlined: Icon,
     EyeOutlined: Icon,
     EyeInvisibleOutlined: Icon,
+    DeleteOutlined: Icon,
   };
 });
 
@@ -431,6 +433,14 @@ vi.mock('antd', () => {
       </section>
     ) : null),
     Input: ({ value, onChange, placeholder }: any) => <input value={value} onChange={onChange} placeholder={placeholder} />,
+    InputNumber: ({ value, onChange, onPressEnter }: any) => (
+      <input
+        type="number"
+        value={value ?? ''}
+        onChange={(event) => onChange?.(Number(event.target.value))}
+        onKeyDown={(event) => event.key === 'Enter' && onPressEnter?.()}
+      />
+    ),
     Form,
     Dropdown: ({ children, menu }: any) => (
       <>
@@ -665,8 +675,7 @@ describe('QueryEditor external SQL save', () => {
     storeState.clearSqlLogs.mockReset();
     storeState.connections[0].config.type = 'mysql';
     storeState.connections[0].config.database = 'main';
-    storeState.appearance.uiVersion = 'legacy';
-    autoFetchState.visible = false;
+autoFetchState.visible = false;
     dataGridState.latestProps = null;
     tabsState.activeKey = undefined;
     editorState.value = '';
@@ -1425,8 +1434,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps cursor statement execution available in v2 UI', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
       data: [{ columns: ['two'], rows: [{ two: 2 }] }],
     });
@@ -1457,8 +1465,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('renders V2 empty state copy for the active non-Chinese language', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    storeState.languagePreference = 'en-US';
+storeState.languagePreference = 'en-US';
     setCurrentLanguage('en-US');
 
     let renderer: ReactTestRenderer;
@@ -2535,7 +2542,10 @@ describe('QueryEditor external SQL save', () => {
 
   it('keeps the v2 query editor toolbar grouped and compact', () => {
     const source = readFileSync(new URL('./QueryEditor.tsx', import.meta.url), 'utf8');
-    const toolbarSource = readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8');
+    const toolbarSource = [
+      readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8'),
+      readFileSync(new URL('./QueryEditorMaxRowsSelect.tsx', import.meta.url), 'utf8'),
+    ].join('\n');
     const resultsPanelSource = readFileSync(new URL('./QueryEditorResultsPanel.tsx', import.meta.url), 'utf8');
     const transactionSettingsSource = readFileSync(new URL('./QueryEditorTransactionSettings.tsx', import.meta.url), 'utf8');
     const transactionToolbarSource = readFileSync(new URL('./QueryEditorTransactionToolbar.tsx', import.meta.url), 'utf8');
@@ -2559,28 +2569,28 @@ describe('QueryEditor external SQL save', () => {
     expect(transactionSettingsSource).toContain('query_editor.transaction.delay.seconds_commit');
     expect(transactionSettingsSource).not.toContain("label: '3s'");
     expect(source).toContain('QueryEditorTransactionToolbar');
-    expect(transactionToolbarSource).toContain("className={isV2Ui ? 'gn-v2-query-transaction-toolbar' : undefined}");
+    expect(transactionToolbarSource).toContain("className={'gn-v2-query-transaction-toolbar'}");
     expect(transactionToolbarSource).toContain(": null;");
     expect(transactionToolbarSource).toContain('gn-v2-query-transaction-commit-button');
     expect(transactionToolbarSource).toContain('gn-v2-toolbar-kbd');
     expect(transactionToolbarSource).toContain('query_editor.transaction.status.auto_committing');
     expect(transactionToolbarSource).toContain('onFinish');
-    expect(toolbarSource).toContain('{isV2Ui && pendingTransactionToolbar}');
+    expect(toolbarSource).toContain('{pendingTransactionToolbar}');
     expect(toolbarSource).not.toContain('gn-v2-query-toolbar-transaction-row');
     expect(resultsPanelSource).not.toContain('transactionToolbar?: React.ReactNode;');
     expect(toolbarSource).toContain('gn-v2-query-toolbar-action-group');
     expect(toolbarSource).toContain('gn-v2-query-toolbar-action-pair');
     expect(toolbarSource).toContain('const aiMenuItems');
     expect(toolbarSource).toContain('key: "toggle-result-panel"');
-    expect(toolbarSource).toContain('{!isV2Ui && (');
+    expect(toolbarSource).toContain('gn-v2-query-toolbar');
     expect(toolbarSource).toContain('trigger={["click"]}');
     expect(toolbarSource.indexOf('onClick={onQuickSave}')).toBeLessThan(toolbarSource.indexOf('menu={{ items: aiMenuItems }}'));
     expect(toolbarSource.indexOf('menu={{ items: aiMenuItems }}')).toBeLessThan(toolbarSource.indexOf('menu={{ items: moreMenuItems }}'));
     expect(toolbarSource.indexOf('menu={{ items: moreMenuItems }}')).toBeLessThan(toolbarSource.indexOf('icon={<FormatPainterOutlined />}'));
-    expect(transactionSettingsSource).toContain('style={isV2Ui ? undefined : { width: 78 }}');
-    expect(transactionSettingsSource).toContain('style={isV2Ui ? undefined : { width: 68 }}');
-    expect(toolbarSource).toContain('style={isV2Ui ? undefined : { width: 200 }}');
-    expect(toolbarSource).toContain('style={isV2Ui ? undefined : { width: 170 }}');
+    expect(transactionSettingsSource).toContain('style={undefined}');
+    expect(transactionSettingsSource).toContain('style={undefined}');
+    expect(toolbarSource).toContain('style={undefined}');
+    expect(toolbarSource).toContain('style={undefined}');
 
     expect(css).toContain('body[data-ui-version="v2"] .gn-v2-query-toolbar-selects');
     expect(css).toContain('body[data-ui-version="v2"] .gn-v2-query-toolbar-actions');

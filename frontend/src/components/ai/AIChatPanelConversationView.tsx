@@ -23,9 +23,7 @@ interface AIChatPanelConversationViewProps {
   quickActionBg: string;
   quickActionBorder: string;
   showScrollBottom: boolean;
-  contextTableNames: string[];
-  isV2Ui: boolean;
-  insights: AIChatInsightItem[];
+  contextTableNames: string[];  insights: AIChatInsightItem[];
   sessions: AIChatInlineHistorySession[];
   activeSessionId: string;
   activeConnectionId?: string;
@@ -52,9 +50,7 @@ const AIChatPanelConversationView: React.FC<AIChatPanelConversationViewProps> = 
   quickActionBg,
   quickActionBorder,
   showScrollBottom,
-  contextTableNames,
-  isV2Ui,
-  insights,
+  contextTableNames,  insights,
   sessions,
   activeSessionId,
   activeConnectionId,
@@ -82,7 +78,6 @@ const AIChatPanelConversationView: React.FC<AIChatPanelConversationViewProps> = 
             mutedColor={mutedColor}
             onQuickAction={onQuickAction}
             contextTableNames={contextTableNames}
-            isV2Ui={isV2Ui}
           />
         ) : (
           messages.map((message) => (

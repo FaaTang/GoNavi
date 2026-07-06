@@ -1,7 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sidebarSource = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 const batchModalSource = readFileSync(new URL('./sidebar/SidebarBatchExportModals.tsx', import.meta.url), 'utf8');
 const batchHookSource = readFileSync(new URL('./sidebar/useSidebarBatchExport.ts', import.meta.url), 'utf8');
 const batchTabSource = readFileSync(new URL('../utils/tableExportTab.ts', import.meta.url), 'utf8');
@@ -58,7 +68,7 @@ describe('Sidebar batch actions i18n', () => {
       '按对象批量导出结构、数据或完整备份。',
       '按数据库批量导出结构，或生成结构加数据的备份。',
     ].forEach((rawSnippet) => {
-      expect(sidebarSource).not.toContain(rawSnippet);
+      expect(source).not.toContain(rawSnippet);
     });
 
     [
@@ -113,7 +123,7 @@ describe('Sidebar batch actions i18n', () => {
       'sidebar.modal.batch_databases.title',
       'sidebar.modal.batch_databases.description',
     ].forEach((key) => {
-      expect(sidebarSource, key).toContain(`t('${key}'`);
+      expect(source, key).toContain(`t('${key}'`);
     });
 
     [

@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { setCurrentLanguage } from '../i18n';
 import JVMResourceBrowser from './JVMResourceBrowser';
 
 vi.mock('@monaco-editor/react', () => ({
@@ -78,6 +79,7 @@ describe('JVMResourceBrowser layout', () => {
   });
 
   it('shows the draft action field with a Chinese label', () => {
+    setCurrentLanguage('zh-CN');
     const markup = renderToStaticMarkup(
       <JVMResourceBrowser
         tab={{

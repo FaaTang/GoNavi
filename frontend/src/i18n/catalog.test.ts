@@ -196,15 +196,10 @@ describe("i18n catalog", () => {
       "app.theme.navigation_title",
       "app.theme.theme_settings_description",
       "app.theme.theme_settings_title",
-      "app.theme.ui_version.beta_warning",
-      "app.theme.ui_version.description",
-      "app.theme.ui_version.legacy.badge",
-      "app.theme.ui_version.legacy.description",
-      "app.theme.ui_version.legacy.label",
-      "app.theme.ui_version.platform_hint",
-      "app.theme.ui_version.title",
-      "app.theme.ui_version.v2.description",
-      "app.theme.ui_version.v2.label",
+      "app.appearance.sidebar_search.command",
+      "app.appearance.sidebar_search.filter",
+      "app.appearance.sidebar_search.hint",
+      "app.appearance.sidebar_search.title",
     ] as const;
 
     for (const language of SUPPORTED_LANGUAGES) {
@@ -391,7 +386,6 @@ describe("i18n catalog", () => {
       "data_grid.page_find.tooltip",
       "data_grid.page_find.placeholder",
       "data_grid.page_find.summary",
-      "data_grid.pagination.result_set",
       "data_grid.pagination.page_size_aria",
       "data_grid.pagination.page_size_option",
       "data_grid.pagination.jump_label",
@@ -737,11 +731,7 @@ describe("i18n catalog", () => {
       "const runSecurityUpdateRound = useCallback(async (mode: 'start' | 'retry' | 'restart') => {",
       "const handleSecurityUpdateIssueAction = useCallback((issue: SecurityUpdateIssue) => {",
     );
-    const sidebarUtilitySource = sliceBetween(
-      source,
-      "const sidebarUtilityItems = useMemo(() => {",
-      "const loadDataRootInfo = useCallback(async () => {",
-    );
+    const sidebarUtilitySource = readFileSync(new URL("../components/Sidebar.tsx", import.meta.url), "utf8");
     const dataRootFlowSource = sliceBetween(
       source,
       "const loadDataRootInfo = useCallback(async () => {",
@@ -803,7 +793,7 @@ describe("i18n catalog", () => {
     expect(sidebarUtilitySource).toContain("app.sidebar.settings");
     expect(sidebarUtilitySource).toContain("app.sidebar.ai_assistant");
     expect(source).toContain("app.sidebar.resize_width");
-    expect(source).toContain("app.sidebar.sql_execution_log");
+    expect(sidebarUtilitySource).toContain("app.sidebar.sql_execution_log");
     expect(sidebarUtilitySource).not.toContain("title: '工具'");
     expect(sidebarUtilitySource).not.toContain("title: '设置'");
     expect(sidebarUtilitySource).not.toContain("AI 助手");
@@ -2275,7 +2265,7 @@ describe("i18n catalog", () => {
     const source = readQueryEditorResultsPanelSource();
     const emptyStateSource = sliceBetween(
       source,
-      "<div className={isV2Ui ? 'gn-v2-query-empty' : undefined}",
+      "<div className={'gn-v2-query-empty'}",
       "                    </>",
     );
 

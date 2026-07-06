@@ -52,7 +52,7 @@ const baseProvider = {
   temperature: 0.2,
 };
 
-const renderModelSelect = (variant: 'legacy' | 'v2') => renderToStaticMarkup(
+const renderModelSelect = () => renderToStaticMarkup(
   <I18nProvider
     preference="en-US"
     systemLanguages={['en-US']}
@@ -62,19 +62,17 @@ const renderModelSelect = (variant: 'legacy' | 'v2') => renderToStaticMarkup(
       activeProvider={baseProvider}
       dynamicModels={[]}
       loadingModels={false}
-      variant={variant}
       onModelChange={() => undefined}
       onFetchModels={() => undefined}
     />
   </I18nProvider>,
 );
 
-const renderModelSelectWithoutProvider = (variant: 'legacy' | 'v2') => renderToStaticMarkup(
+const renderModelSelectWithoutProvider = () => renderToStaticMarkup(
   <AIChatProviderModelSelect
     activeProvider={baseProvider}
     dynamicModels={[]}
     loadingModels={false}
-    variant={variant}
     onModelChange={() => undefined}
     onFetchModels={() => undefined}
   />,
@@ -88,15 +86,12 @@ describe('AIChatProviderModelSelect i18n source guards', () => {
     expect(source).not.toContain('placeholder="选择模型"');
   });
 
-  it('renders the localized placeholder for both legacy and v2 variants', () => {
-    expect(renderModelSelect('legacy')).toContain('Select model');
-    expect(renderModelSelect('v2')).toContain('Select model');
+  it('renders the localized placeholder', () => {
+    expect(renderModelSelect()).toContain('Select model');
   });
 
   it('falls back to the English placeholder without an i18n provider', () => {
-    expect(() => renderModelSelectWithoutProvider('legacy')).not.toThrow();
-    expect(() => renderModelSelectWithoutProvider('v2')).not.toThrow();
-    expect(renderModelSelectWithoutProvider('legacy')).toContain('Select model');
-    expect(renderModelSelectWithoutProvider('v2')).toContain('Select model');
+    expect(() => renderModelSelectWithoutProvider()).not.toThrow();
+    expect(renderModelSelectWithoutProvider()).toContain('Select model');
   });
 });

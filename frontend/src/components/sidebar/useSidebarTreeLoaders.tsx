@@ -124,9 +124,7 @@ type UseSidebarTreeLoadersOptions = {
   savedQueries: SavedQuery[];
   tableSortPreference: Record<string, any>;
   tableAccessCount: Record<string, any>;
-  pinnedSidebarTables: any[];
-  isV2Ui: boolean;
-  loadingNodesRef: React.MutableRefObject<Set<string>>;
+  pinnedSidebarTables: any[];  loadingNodesRef: React.MutableRefObject<Set<string>>;
   setConnectionStates: React.Dispatch<React.SetStateAction<Record<string, SidebarConnectionState>>>;
   setLoadedKeys: React.Dispatch<React.SetStateAction<React.Key[]>>;
   replaceTreeNodeChildren: (key: React.Key, children: TreeNode[] | undefined) => TreeNode[];
@@ -141,9 +139,7 @@ export const useSidebarTreeLoaders = ({
   savedQueries,
   tableSortPreference,
   tableAccessCount,
-  pinnedSidebarTables,
-  isV2Ui,
-  loadingNodesRef,
+  pinnedSidebarTables,  loadingNodesRef,
   setConnectionStates,
   setLoadedKeys,
   replaceTreeNodeChildren,
@@ -640,7 +636,7 @@ export const useSidebarTreeLoaders = ({
 	                dbName: conn.dbName,
 	                sortBy,
 	                tableAccessCount: currentTableAccessCount,
-	                pinnedSidebarTables: isV2Ui ? currentPinnedSidebarTables : [],
+	                pinnedSidebarTables: currentPinnedSidebarTables,
 	            });
 
 	            // Sort views by name (case-insensitive)
@@ -661,7 +657,7 @@ export const useSidebarTreeLoaders = ({
 	            eventEntries.sort((a, b) => a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase()));
 
 	            const buildTableNode = (entry: { tableName: string; schemaName: string; displayName: string; rowCount?: number }): TreeNode => {
-	                const isPinned = isV2Ui && isSidebarTablePinned(
+	                const isPinned = isSidebarTablePinned(
 	                    currentPinnedSidebarTables,
 	                    conn.id,
 	                    conn.dbName,
@@ -769,7 +765,7 @@ export const useSidebarTreeLoaders = ({
 	            ): TreeNode => {
 	                const groupNodeKey = `${parentKey}-${groupKey}`;
 	                const groupedChildren = groupKey === 'tables'
-	                    ? buildSidebarTableChildrenForUi(groupNodeKey, children, isV2Ui)
+	                    ? buildSidebarTableChildrenForUi(groupNodeKey, children)
 	                    : children;
 	                return {
 	                    title: groupTitle,

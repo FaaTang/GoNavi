@@ -27,7 +27,6 @@ describe('AIChatPanelConversationView', () => {
         quickActionBorder="1px solid rgba(0,0,0,0.06)"
         showScrollBottom={false}
         contextTableNames={['sales.orders']}
-        isV2Ui
         insights={[]}
         sessions={[]}
         activeSessionId="session-1"
@@ -64,7 +63,6 @@ describe('AIChatPanelConversationView', () => {
         quickActionBorder="1px solid rgba(0,0,0,0.06)"
         showScrollBottom
         contextTableNames={[]}
-        isV2Ui
         insights={[]}
         sessions={[
           { id: 'session-1', title: '当前会话', updatedAt: 1710000000000 },

@@ -1,7 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './sidebar/SidebarEntityModals.tsx',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 
 const externalSqlDeleteBlock = source.slice(
   source.indexOf('const handleDeleteExternalSQLFile ='),

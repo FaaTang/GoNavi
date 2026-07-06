@@ -4,6 +4,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TabData } from '../types';
+import { setCurrentLanguage, t } from '../i18n';
 import { DUCKDB_ROWID_LOCATOR_COLUMN, ORACLE_ROWID_LOCATOR_COLUMN } from '../utils/rowLocator';
 import DataViewer from './DataViewer';
 
@@ -24,6 +25,7 @@ const storeState = vi.hoisted(() => ({
   ],
   languagePreference: 'zh-CN',
   addSqlLog: vi.fn(),
+  clearTabResultsClearedFlag: vi.fn(),
 }));
 
 const backendApp = vi.hoisted(() => ({
@@ -474,7 +476,7 @@ describe('DataViewer safe editing locator', () => {
         return {
           success: true,
           fields: ['total'],
-          data: [{ total: 500 }],
+          data: [{ total: pageQueryCount > 1 ? 500 : 100 }],
         };
       }
       pageQueryCount += 1;
@@ -490,6 +492,12 @@ describe('DataViewer safe editing locator', () => {
       renderer = create(<DataViewer tab={createTab({ dbName: 'main', tableName: 'users', title: 'users' })} />);
     });
     await flushPromises();
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (dataGridState.latestProps?.pagination?.totalKnown) {
+        break;
+      }
+      await flushPromises();
+    }
 
     expect(dataGridState.latestProps?.pagination).toMatchObject({
       total: 100,
@@ -538,24 +546,21 @@ describe('DataViewer safe editing locator', () => {
     [
       'zh-CN',
       '資料庫連線逾時：mysql 127.0.0.1:3306/crm：網路逾時',
-      '查詢超過連線逾時時間，已中斷。請調高連線逾時時間，或縮小查詢範圍後再試。',
     ],
     [
       'en-US',
       'データベース接続がタイムアウトしました: mysql 127.0.0.1:3306/crm: ネットワークタイムアウト',
-      'クエリが接続タイムアウトを超えたため中断されました。接続タイムアウトを延長するか、クエリ範囲を絞って再試行してください。',
     ],
     [
       'en-US',
       'Zeitüberschreitung bei der Datenbankverbindung: mysql 127.0.0.1:3306/crm: Netzwerk-Timeout',
-      'Die Abfrage hat das Verbindungstimeout überschritten und wurde unterbrochen. Erhöhen Sie das Verbindungstimeout oder verkleinern Sie den Abfragebereich und versuchen Sie es erneut.',
     ],
     [
       'en-US',
       'Тайм-аут подключения к базе данных: mysql 127.0.0.1:3306/crm: тайм-аут сети',
-      'Запрос превысил тайм-аут подключения и был прерван. Увеличьте тайм-аут подключения или сократите область запроса и повторите попытку.',
     ],
-  ])('maps localized connection-timeout wrappers to viewer timeout copy for %s', async (locale, backendMessage, expectedMessage) => {
+  ])('maps localized connection-timeout wrappers to viewer timeout copy for %s', async (locale, backendMessage) => {
+    setCurrentLanguage(locale as 'zh-CN' | 'en-US');
     storeState.languagePreference = locale;
     storeState.connections[0].config.type = 'mysql';
     storeState.connections[0].config.database = 'crm';
@@ -572,7 +577,7 @@ describe('DataViewer safe editing locator', () => {
 
     const renderer = await renderAndReload(createTab({ id: `tab-timeout-${locale}`, dbName: 'crm', tableName: 'orders', title: 'orders' }));
 
-    expect(messageApi.error).toHaveBeenCalledWith(expectedMessage);
+    expect(messageApi.error).toHaveBeenCalledWith(t('data_viewer.message.query_timeout', undefined, locale as 'zh-CN' | 'en-US'));
     expect(storeState.addSqlLog.mock.calls.some((call: any[]) => String(call[0]?.message || '').includes(backendMessage))).toBe(true);
     renderer.unmount();
   });

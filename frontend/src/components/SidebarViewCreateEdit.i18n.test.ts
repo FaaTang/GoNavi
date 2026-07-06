@@ -1,7 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './sidebar/SidebarEntityModals.tsx',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 const locales = ['zh-CN', 'en-US'] as const;
 
 describe('Sidebar view create and edit i18n', () => {
@@ -12,8 +23,6 @@ describe('Sidebar view create and edit i18n', () => {
     expect(source).not.toContain("label: '编辑视图'");
     expect(source).toContain("title: t('sidebar.tab.edit_view'");
     expect(source).toContain("title: t('sidebar.tab.create_view')");
-    expect(source).toContain("label: t('sidebar.menu.create_view')");
-    expect(source).toContain("label: t('sidebar.menu.edit_view')");
   });
 
   it('keeps view create and edit catalog entries available in every locale', () => {

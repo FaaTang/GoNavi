@@ -31,6 +31,9 @@ var (
 )
 
 func maybeReleaseFileTransferMemory(reason string, rows int64, filePath string) {
+	if !isRuntimeLowMemoryModeActive() {
+		return
+	}
 	if !shouldReleaseFileTransferMemory(rows, filePath) {
 		return
 	}

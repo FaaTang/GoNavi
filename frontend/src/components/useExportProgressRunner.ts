@@ -95,6 +95,9 @@ export function useExportProgressRunner(options?: UseExportProgressRunnerOptions
   const activeJobIdRef = useRef('');
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
     const off = EventsOn('export:progress', (event: ExportProgressEvent) => {
       if (!event || String(event.jobId || '') !== activeJobIdRef.current) {
         return;

@@ -170,12 +170,8 @@ export const buildV2SidebarTableSectionedChildren = (
 export const buildSidebarTableChildrenForUi = (
   parentKey: string,
   tableNodes: SidebarTreeNode[],
-  isV2Ui: boolean,
   translate: SidebarV2Translate = translateSidebarV2Current,
-): SidebarTreeNode[] => {
-  if (!isV2Ui) return tableNodes;
-  return buildV2SidebarTableSectionedChildren(parentKey, tableNodes, translate);
-};
+): SidebarTreeNode[] => buildV2SidebarTableSectionedChildren(parentKey, tableNodes, translate);
 
 export const formatSidebarRowCount = (count: number): string => {
   if (!Number.isFinite(count) || count < 0) return '';
@@ -886,4 +882,4 @@ export const resolveSidebarDatabaseTreePruneKeys = ({
   return candidates.slice(0, pruneCount);
 };
 
-export const shouldClearSidebarActiveContextOnEmptySelect = (isV2Ui: boolean): boolean => !isV2Ui;
+export const shouldClearSidebarActiveContextOnEmptySelect = (): boolean => false;

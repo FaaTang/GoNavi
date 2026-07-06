@@ -29,17 +29,13 @@ describe("LanguageSettingsPanel", () => {
     expect(text).toContain("Language");
     expect(text).toContain("Follow system");
     expect(text).toContain("Simplified Chinese");
-    expect(text).toContain("繁體中文");
     expect(text).toContain("English");
-    expect(text).toContain("日本語");
-    expect(text).toContain("Deutsch");
-    expect(text).toContain("Русский");
 
     const group = renderer!.root.findByProps({ role: "radiogroup", "aria-label": "Language" });
     expect(group.props.style.gridTemplateColumns).toBe("repeat(2, minmax(0, 1fr))");
 
     const radios = renderer!.root.findAll((node) => node.type === "button" && node.props.role === "radio");
-    expect(radios).toHaveLength(7);
+    expect(radios).toHaveLength(3);
     expect(radios[0]?.props["aria-checked"]).toBe(true);
 
     const simplifiedChinese = radios.find((node) => {

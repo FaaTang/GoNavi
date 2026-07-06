@@ -65,7 +65,7 @@ describe('TabManager hover info', () => {
     const source = readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8');
 
     expect(TAB_WORKBENCH_CLASS_NAME).toBe('tab-workbench');
-    expect(source).toContain("className={`${TAB_WORKBENCH_CLASS_NAME}${isV2Ui ? ' gn-v2-tab-workbench' : ''}`}");
+    expect(source).toContain("className={`${TAB_WORKBENCH_CLASS_NAME} gn-v2-tab-workbench`}");
     expect(source).toContain('.${TAB_WORKBENCH_CLASS_NAME} {');
     expect(source).toMatch(/\.\$\{TAB_WORKBENCH_CLASS_NAME\} \{[\s\S]*height: 100%;[\s\S]*flex: 1 1 auto;[\s\S]*min-height: 0;[\s\S]*display: flex;[\s\S]*flex-direction: column;[\s\S]*overflow: hidden;/);
   });
@@ -305,7 +305,7 @@ describe('TabManager hover info', () => {
     expect(source).not.toContain("label: '标签设置'");
     expect(source).toContain('icon: <SettingOutlined />');
     expect(source).toContain('onClick: openTabDisplaySettings');
-    expect(source).toContain("rootClassName={isV2Ui ? 'gn-v2-tab-context-menu-popup' : undefined}");
+    expect(source).toContain("rootClassName={'gn-v2-tab-context-menu-popup'}");
     expect(source).not.toContain('gn-v2-main-tabs-rich');
   });
 

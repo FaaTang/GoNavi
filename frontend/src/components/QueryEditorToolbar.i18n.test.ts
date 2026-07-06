@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8');
+const source = [
+  readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./QueryEditorMaxRowsSelect.tsx', import.meta.url), 'utf8'),
+].join('\n');
 
 const legacyLiterals = [
   '隐藏结果区',
@@ -31,11 +34,9 @@ const requiredKeys = [
   'query_editor.placeholder.connection',
   'query_editor.placeholder.database',
   'query_editor.max_rows.tooltip',
-  'query_editor.max_rows.option_500',
-  'query_editor.max_rows.option_1000',
-  'query_editor.max_rows.option_5000',
-  'query_editor.max_rows.option_20000',
-  'query_editor.max_rows.option_unlimited',
+  'query_editor.max_rows.option_100',
+  'query_editor.max_rows.option_custom',
+  'query_editor.max_rows.option_custom_value',
   'query_editor.action.run',
   'query_editor.action.run_with_shortcut',
   'query_editor.action.stop',
@@ -52,7 +53,6 @@ const requiredKeys = [
   'query_editor.action.hide_results_panel',
   'query_editor.action.show_results_panel_with_shortcut',
   'query_editor.action.hide_results_panel_with_shortcut',
-  'query_editor.action.results',
 ];
 
 describe('QueryEditorToolbar i18n', () => {

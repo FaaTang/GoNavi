@@ -1,13 +1,24 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './sidebar/SidebarEntityModals.tsx',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 const locales = ['zh-CN', 'en-US'] as const;
 
 describe('Sidebar materialized view create menu i18n', () => {
   it('localizes the materialized view group create action label', () => {
     expect(source).not.toContain("label: '新建物化视图'");
-    expect(source).toContain("label: t('sidebar.v2_database_menu.new_materialized_view')");
+    expect(source).toContain("t('sidebar.v2_database_menu.new_materialized_view')");
   });
 
   it('keeps the materialized view create action catalog entry available in every locale', () => {

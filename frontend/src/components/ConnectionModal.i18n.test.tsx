@@ -15,7 +15,7 @@ const storeState = {
     setCurrentLanguage(languagePreference);
     notifyStoreSubscribers();
   }),
-  appearance: { uiVersion: "legacy", opacity: 1 },
+  appearance: { opacity: 1 },
 };
 
 const storeSubscribers = new Set<() => void>();
@@ -339,8 +339,7 @@ describe("ConnectionModal i18n", () => {
     });
     storeState.theme = "light";
     storeState.languagePreference = "zh-CN";
-    storeState.appearance.uiVersion = "legacy";
-    storeState.appearance.opacity = 1;
+storeState.appearance.opacity = 1;
     backendApp.GetDriverStatusList.mockResolvedValue({ success: true, data: { drivers: [] } });
     backendApp.TestConnection.mockResolvedValue({ success: false, message: "saved connection not found: conn-1" });
     backendApp.DBGetDatabases.mockResolvedValue({ success: true, data: [] });
@@ -385,8 +384,7 @@ describe("ConnectionModal i18n", () => {
 
   it.each(["legacy", "v2"] as const)(
     "renders localized create flow copy for %s ui",
-    async (uiVersion) => {
-      storeState.appearance.uiVersion = uiVersion;
+    async (_uiVersion) => {
       mockFormValues = {
         type: "mysql",
         useSSL: true,
@@ -436,8 +434,7 @@ describe("ConnectionModal i18n", () => {
 
   it.each(["legacy", "v2"] as const)(
     "renders English titles, footer copy, and raw-preserving failure feedback for %s ui",
-    async (uiVersion) => {
-      storeState.appearance.uiVersion = uiVersion;
+    async (_uiVersion) => {
       setCurrentLanguage("en-US");
       const { default: ConnectionModal } = await import("./ConnectionModal");
 
@@ -536,8 +533,7 @@ describe("ConnectionModal i18n", () => {
   );
 
   it("renders English topology and authentication copy for legacy mysql, mongodb, and redis sections", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     const { default: ConnectionModal } = await import("./ConnectionModal");
 
     mockFormValues = {
@@ -613,8 +609,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English network, appearance, and raw-preserving copy for v2 ui", async () => {
-    storeState.appearance.uiVersion = "v2";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     mockFormValues = {
       type: "mysql",
       name: "prod",
@@ -751,8 +746,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English driver unavailable alert while preserving product names", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     backendApp.GetDriverStatusList.mockResolvedValue({
       success: true,
       data: {
@@ -788,8 +782,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English tail copy for SSL hints, driver confirm, Mongo discovery, ClickHouse auto, and examples", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     const { default: ConnectionModal } = await import("./ConnectionModal");
     const { Modal } = await import("antd");
 
@@ -968,8 +961,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English URI feedback and file picker error shell while preserving raw detail", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     backendApp.SelectDatabaseFile.mockResolvedValue({
       success: false,
       message: "backend raw error: /tmp/app.db",
@@ -989,7 +981,7 @@ describe("ConnectionModal i18n", () => {
       findButton(renderer!, "Generate URI").props.onClick();
     });
 
-    expect(textContent(renderer!.toJSON())).toContain("URI generated.");
+    expect(textContent(renderer!.toJSON())).toContain("URI generated");
 
     await act(async () => {
       findButton(renderer!, "Back").props.onClick();
@@ -1008,8 +1000,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("retranslates test failure feedback while preserving raw detail when language changes in-place", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("zh-CN");
+setCurrentLanguage("zh-CN");
     backendApp.TestConnection.mockResolvedValue({
       success: false,
       message: "backend raw error: /tmp/app.db",
@@ -1048,8 +1039,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English data source groups and hints for the remaining step one copy", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     mockFormValues = {
       jvmDiagnosticEnabled: true,
       jvmDiagnosticTransport: "agent-bridge",
@@ -1081,8 +1071,7 @@ describe("ConnectionModal i18n", () => {
   });
 
   it("renders English custom driver DSN copy after the module was loaded in another language", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("zh-CN");
+setCurrentLanguage("zh-CN");
     const { default: ConnectionModal } = await import("./ConnectionModal");
     setCurrentLanguage("en-US");
 
@@ -1101,15 +1090,14 @@ describe("ConnectionModal i18n", () => {
     });
 
     const pageText = textContent(renderer!.toJSON());
-    expect(pageText).toContain("Driver Name");
-    expect(pageText).toContain("Connection string (DSN)");
+    expect(pageText).toContain("Driver name");
+    expect(pageText).toContain("DSN");
     expect(pageText).toContain("Enter a Go database/sql driver name already registered by GoNavi");
     expect(pageText).toContain("Do not enter a system ODBC/JDBC driver name directly or import a JDBC Jar");
   });
 
   it("renders English JVM fields and diagnostic transport copy", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     const { default: ConnectionModal } = await import("./ConnectionModal");
 
     let renderer: ReactTestRenderer;
@@ -1137,28 +1125,27 @@ describe("ConnectionModal i18n", () => {
     expect(pageText).toContain("JMX host override");
     expect(pageText).toContain("JMX port");
     expect(pageText).toContain("JMX username");
-    expect(pageText).toContain("Endpoint address");
-    expect(pageText).toContain("Agent address");
+    expect(pageText).toContain("Endpoint URL");
+    expect(pageText).toContain("Agent URL");
     expect(pageText).toContain("Diagnostic transport");
     expect(pageText).toContain("Agent Bridge");
-    expect(pageText).toContain("Bridge diagnostic commands through GoNavi Agent.");
+    expect(pageText).toContain("Use the GoNavi Agent Bridge diagnostic endpoint.");
     expect(pageText).toContain("Observe commands");
     expect(pageText).toContain(
-      "Read-only troubleshooting commands such as thread, dashboard, and jvm.",
+      "Allow read-only commands such as dashboard, thread, and JVM info.",
     );
     expect(pageText).toContain("Trace commands");
     expect(pageText).toContain(
-      "Commands such as trace and watch that add extra overhead to the target.",
+      "Allow tracing and watch commands that add runtime overhead.",
     );
-    expect(pageText).toContain("High-risk commands");
+    expect(pageText).toContain("Mutating commands");
     expect(pageText).toContain(
-      "Commands that may change runtime state or cause noticeable performance impact.",
+      "Allow commands that may change runtime state. Use only in controlled environments.",
     );
   });
 
   it("renders English protocol and database service fields", async () => {
-    storeState.appearance.uiVersion = "legacy";
-    setCurrentLanguage("en-US");
+setCurrentLanguage("en-US");
     const { default: ConnectionModal } = await import("./ConnectionModal");
 
     let renderer: ReactTestRenderer;
@@ -1192,7 +1179,7 @@ describe("ConnectionModal i18n", () => {
     });
 
     pageText = textContent(renderer!.toJSON());
-    expect(pageText).toContain("Default connection database");
+    expect(pageText).toContain("Default database (optional)");
 
     await act(async () => {
       renderer!.update(

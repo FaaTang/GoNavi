@@ -8,7 +8,8 @@ import { t } from '../i18n';
 import ExportProgressBar from './ExportProgressBar';
 import { useExportProgressRunner } from './useExportProgressRunner';
 
-const { Text, Paragraph } = Typography;
+const Text = Typography.Text;
+const Paragraph = Typography.Paragraph;
 
 export function useExportProgressDialog() {
   const { state, reset, runExportWithProgress } = useExportProgressRunner();

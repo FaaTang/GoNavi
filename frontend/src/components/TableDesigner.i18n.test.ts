@@ -106,7 +106,7 @@ describe('TableDesigner i18n', () => {
   });
 
   it('does not use English Bucket fallback for newly localized non-English bucket labels', () => {
-    ['zh-CN', 'en-US'].forEach((locale) => {
+    ['zh-CN'].forEach((locale) => {
       const messages = readLocale(locale);
 
       [
@@ -146,33 +146,18 @@ describe('TableDesigner i18n', () => {
     });
   });
 
-  it('removes English StarRocks distribution words from Japanese and Russian labels', () => {
-    [
-      {
-        locale: 'en-US',
-        key: 'table_designer.starrocks.distribution.hash',
-        forbidden: 'Hash',
-      },
-      {
-        locale: 'en-US',
-        key: 'table_designer.starrocks.distribution.random',
-        forbidden: 'Random',
-      },
-      {
-        locale: 'en-US',
-        key: 'table_designer.starrocks.distribution.hash',
-        forbidden: 'Hash',
-      },
-      {
-        locale: 'en-US',
-        key: 'table_designer.starrocks.distribution.random',
-        forbidden: 'Random',
-      },
-    ].forEach(({ locale, key, forbidden }) => {
-      const message = readLocale(locale)[key];
+  it('removes English StarRocks distribution words from non-English labels', () => {
+    ['zh-CN'].forEach((locale) => {
+      const messages = readLocale(locale);
 
-      expect(message).toBeTruthy();
-      expect(message).not.toContain(forbidden);
+      [
+        messages['table_designer.starrocks.distribution.hash'],
+        messages['table_designer.starrocks.distribution.random'],
+      ].forEach((message) => {
+        expect(message).toBeTruthy();
+        expect(message).not.toContain('Hash');
+        expect(message).not.toContain('Random');
+      });
     });
   });
 
@@ -196,7 +181,7 @@ describe('TableDesigner i18n', () => {
       },
     ];
 
-    ['zh-CN', 'en-US'].forEach((locale) => {
+    ['zh-CN'].forEach((locale) => {
       const messages = readLocale(locale);
 
       expectationEntries.forEach(({ key, forbidden }) => {

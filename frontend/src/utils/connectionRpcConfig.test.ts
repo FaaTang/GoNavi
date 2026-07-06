@@ -183,7 +183,12 @@ describe('buildRpcConnectionConfig', () => {
       host: 'db.local',
       port: 5432,
       user: 'postgres',
-      readOnly: true,
+      protection: {
+        restrictDataEdit: true,
+        restrictStructureEdit: true,
+        restrictScriptExecution: true,
+        restrictDataImport: true,
+      },
     } as any);
 
     expect(result.readOnly).toBe(true);

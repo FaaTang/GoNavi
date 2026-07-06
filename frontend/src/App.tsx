@@ -12,7 +12,6 @@ import DataSyncModal from './components/DataSyncModal';
 import { type DataSyncEntryMode } from './components/dataSyncEntryMode';
 import DriverManagerModal from './components/DriverManagerModal';
 import LinuxCJKFontBanner from './components/LinuxCJKFontBanner';
-import LogPanel from './components/LogPanel';
 import AISettingsModal from './components/AISettingsModal';
 import AIChatPanel from './components/AIChatPanel';
 import AIPanelErrorBoundary from './components/ai/AIPanelErrorBoundary';
@@ -21,6 +20,7 @@ import SecurityUpdateIntroModal from './components/SecurityUpdateIntroModal';
 import SecurityUpdateProgressModal from './components/SecurityUpdateProgressModal';
 import SecurityUpdateSettingsModal from './components/SecurityUpdateSettingsModal';
 import LanguageSettingsPanel from './components/LanguageSettingsPanel';
+import MemorySettingsPanel from './components/MemorySettingsPanel';
 import { DEFAULT_APPEARANCE, useStore } from './store';
 import { SavedConnection, SecurityUpdateIssue, SecurityUpdateStatus } from './types';
 import { blurToFilter, normalizeBlurForPlatform, normalizeOpacityForPlatform, isWindowsPlatform, resolveAppearanceValues } from './utils/appearance';
@@ -100,22 +100,15 @@ import {
 } from './utils/shortcuts';
 import { resolveTitleBarToggleIconKey, resolveWindowsScaleCheckDelayMs, shouldApplyWindowsScaleFix, shouldResetWebViewZoomForScaleFix, shouldToggleMaximisedWindowForScaleFix, type WindowScaleFixReason, type WindowsScaleCheckTrigger } from './utils/windowStateUi';
 import { resolveVisibleStartupWindowBounds } from './utils/windowRestoreBounds';
-import {
-  SIDEBAR_UTILITY_ITEM_KEYS,
-  resolveAIEntryPlacement,
-  resolveLegacyAIEdgeHandleAttachment,
-  resolveLegacyAIEdgeHandleDockStyle,
-  resolveLegacyAIEdgeHandleStyle,
-} from './utils/aiEntryLayout';
 import { DEFAULT_AI_PANEL_WIDTH, resolveOverlayAIPanelWidth, shouldOverlayAIPanel } from './utils/aiPanelLayout';
 import { safeWindowRuntimeCall } from './utils/wailsRuntime';
 import { useAppUpdateManager } from './hooks/useAppUpdateManager';
-import { useAppLogPanelResize } from './hooks/useAppLogPanelResize';
 import { useAppSidebarResize } from './hooks/useAppSidebarResize';
 import { useAppUtilityStyles } from './hooks/useAppUtilityStyles';
-import { ApplyDataRootDirectory, GetDataRootDirectoryInfo, GetSavedConnections, ListInstalledFontFamilies, OpenDataRootDirectory, SelectDataRootDirectory, SetMacNativeWindowControls, SetWindowTranslucency } from '../wailsjs/go/app/App';
+import { ApplyDataRootDirectory, GetDataRootDirectoryInfo, GetSavedConnections, ListInstalledFontFamilies, OpenDataRootDirectory, SelectDataRootDirectory, SetMacNativeWindowControls, SetWindowTranslucency, SyncMemoryPolicy } from '../wailsjs/go/app/App';
 import { getAntdLocale } from './i18n/frameworkLocale';
 import { useI18n } from './i18n/provider';
+import { buildMemoryPolicyPayload, resolveMemoryPolicy } from './utils/memoryPolicy';
 import './App.css';
 import './v2-theme.css';
 import './styles/v2-theme-workbench.css';
@@ -214,6 +207,7 @@ function App() {
   const setTheme = useStore(state => state.setTheme);
   const appearance = useStore(state => state.appearance);
   const setAppearance = useStore(state => state.setAppearance);
+  const memorySettings = useStore(state => state.memorySettings);
   const uiScale = useStore(state => state.uiScale);
   const setUiScale = useStore(state => state.setUiScale);
   const fontSize = useStore(state => state.fontSize);
@@ -231,7 +225,6 @@ function App() {
   const setUpdateAutoPromptEnabled = useStore(state => state.setUpdateAutoPromptEnabled);
   const resetShortcutOptions = useStore(state => state.resetShortcutOptions);
   const darkMode = themeMode === 'dark';
-  const isV2Ui = appearance.uiVersion === 'v2';
   const effectiveUiScale = Math.min(MAX_UI_SCALE, Math.max(MIN_UI_SCALE, Number(uiScale) || DEFAULT_UI_SCALE));
   const effectiveFontSize = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(Number(fontSize) || DEFAULT_FONT_SIZE)));
   const tokenFontSize = Math.round(effectiveFontSize * effectiveUiScale);
@@ -443,6 +436,11 @@ function App() {
         void SetWindowTranslucency(resolvedAppearance.opacity, resolvedAppearance.blur).catch(() => undefined);
     } catch(e) { /* ignore */ }
   }, [resolvedAppearance.blur, resolvedAppearance.opacity]);
+
+  useEffect(() => {
+    const policy = resolveMemoryPolicy(memorySettings, appearance);
+    void SyncMemoryPolicy(buildMemoryPolicyPayload(policy)).catch(() => undefined);
+  }, [appearance, memorySettings]);
 
   useEffect(() => {
       let cancelled = false;
@@ -1978,10 +1976,7 @@ function App() {
   const [dataRootLoading, setDataRootLoading] = useState(false);
   const [dataRootApplying, setDataRootApplying] = useState(false);
   const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
-  const aiEntryPlacement = resolveAIEntryPlacement();
-  const legacyAiEdgeHandleAttachment = resolveLegacyAIEdgeHandleAttachment(aiPanelVisible);
   const aiPanelOverlayActive = aiPanelVisible && shouldOverlayAIPanel({
-      isV2Ui,
       viewportWidth,
       sidebarWidth,
       panelWidth: DEFAULT_AI_PANEL_WIDTH,
@@ -1993,17 +1988,6 @@ function App() {
           panelWidth: DEFAULT_AI_PANEL_WIDTH,
       })
       : DEFAULT_AI_PANEL_WIDTH;
-  const legacyAiEdgeHandleDockStyle = useMemo(
-      () => resolveLegacyAIEdgeHandleDockStyle(legacyAiEdgeHandleAttachment),
-      [legacyAiEdgeHandleAttachment],
-  );
-  const legacyAiEdgeHandleStyle = useMemo(() => (
-      resolveLegacyAIEdgeHandleStyle({
-          darkMode,
-          aiPanelVisible,
-          effectiveUiScale,
-      })
-  ), [aiPanelVisible, darkMode, effectiveUiScale]);
   const handleOpenToolsModal = useCallback((group: ToolCenterGroupKey = 'config') => {
       setToolCenterBackGroupKey(null);
       setActiveToolCenterPane(null);
@@ -2027,41 +2011,9 @@ function App() {
       setActiveToolCenterPane(null);
       setIsToolsModalOpen(true);
   }, [toolCenterBackGroupKey]);
-  const sidebarUtilityItems = useMemo(() => {
-      const itemMap = {
-          tools: {
-              key: 'tools',
-              title: t('app.sidebar.tools'),
-              icon: <ToolOutlined />,
-              onClick: () => handleOpenToolsModal(),
-          },
-          settings: {
-              key: 'settings',
-              title: t('app.sidebar.settings'),
-              icon: <SettingOutlined />,
-              onClick: () => handleOpenSettingsModal(),
-          },
-      } as const;
-
-      return SIDEBAR_UTILITY_ITEM_KEYS.map((key) => itemMap[key]);
-  }, [handleOpenSettingsModal, handleOpenToolsModal, t]);
   const handleFocusSidebarSearch = useCallback(() => {
       window.dispatchEvent(new CustomEvent('gonavi:focus-sidebar-search'));
   }, []);
-  const renderLegacyAIEdgeHandle = () => (
-      <Tooltip title={t('app.sidebar.ai_assistant')}>
-          <Button
-              type="text"
-              icon={<RobotOutlined />}
-              onClick={toggleAIPanel}
-              style={legacyAiEdgeHandleStyle}
-              data-gonavi-legacy-ai-edge-action="true"
-          >
-              AI
-          </Button>
-      </Tooltip>
-  );
-
   const loadDataRootInfo = useCallback(async () => {
       setDataRootLoading(true);
       try {
@@ -2141,24 +2093,9 @@ function App() {
   }, [t]);
 
 
-  const {
-      handleCloseLogPanel: handleCloseLegacyLogPanel,
-      handleLogResizeStart,
-      handleToggleLogPanel: toggleLegacyLogPanel,
-      isLogPanelOpen,
-      logGhostRef,
-      logPanelHeight,
-  } = useAppLogPanelResize();
   const handleToggleLogPanel = useCallback(() => {
-      if (isV2Ui) {
-          window.dispatchEvent(new CustomEvent('gonavi:show-sql-execution-log'));
-          return;
-      }
-      toggleLegacyLogPanel();
-  }, [isV2Ui, toggleLegacyLogPanel]);
-  const handleCloseLogPanel = useCallback(() => {
-      handleCloseLegacyLogPanel();
-  }, [handleCloseLegacyLogPanel]);
+      window.dispatchEvent(new CustomEvent('gonavi:show-sql-execution-log'));
+  }, []);
   
   const handleCreateConnection = useCallback(() => {
       setSecurityUpdateRepairSource(null);
@@ -2480,7 +2417,7 @@ function App() {
     document.body.style.backgroundColor = 'transparent';
     document.body.style.color = darkMode ? '#ffffff' : '#000000';
     document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-    document.body.setAttribute('data-ui-version', appearance.uiVersion);
+    document.body.setAttribute('data-ui-version', 'v2');
     document.body.setAttribute('data-platform', runtimePlatform || '');
     document.body.style.fontSize = `${effectiveFontSize}px`;
     document.body.style.setProperty('--gn-font-sans', resolvedUiFontFamily);
@@ -2498,7 +2435,6 @@ function App() {
     document.documentElement.style.setProperty('--gn-control-height', `${tokenControlHeight}px`);
     document.documentElement.style.setProperty('--gn-control-height-sm', `${tokenControlHeightSM}px`);
   }, [
-    appearance.uiVersion,
     darkMode,
     effectiveDataTableFontSize,
     effectiveFontSize,
@@ -2727,9 +2663,7 @@ function App() {
   } as any;
 
   const showLinuxResizeHandles = isLinuxRuntime;
-  const resizeGuideColor = isV2Ui
-      ? 'var(--gn-accent, #16a34a)'
-      : (darkMode ? 'rgba(246, 196, 83, 0.55)' : 'rgba(24, 144, 255, 0.5)');
+  const resizeGuideColor = 'var(--gn-accent, #16a34a)';
   const antdTheme = useMemo(() => ({
       algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
       token: {
@@ -2788,7 +2722,6 @@ function App() {
   }), [
       darkMode,
       effectiveOpacity,
-      isV2Ui,
       tokenControlHeight,
       tokenControlHeightLG,
       tokenControlHeightSM,
@@ -2908,39 +2841,15 @@ function App() {
           <Sider 
             ref={siderRef}
             width={sidebarWidth} 
-            className={isV2Ui ? 'gn-v2-app-sider' : undefined}
+            className={'gn-v2-app-sider'}
             style={{ 
-                borderRight: isV2Ui ? 'none' : '1px solid rgba(128,128,128,0.2)',
+                borderRight: 'none',
                 position: 'relative',
-                background: isV2Ui ? 'var(--gn-bg-panel-2)' : bgMain
+                background: 'var(--gn-bg-panel-2)'
             }}
           >
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                {!isV2Ui && (
-                <>
-                <div style={{ padding: `12px ${sidebarHorizontalPadding}px 8px`, borderBottom: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${sidebarUtilityItems.length}, minmax(0, 1fr))`, gap: 8, width: '100%' }}>
-                        {sidebarUtilityItems.map((item) => (
-                            <Tooltip key={item.key} title={item.title}>
-                                <Button type="text" icon={item.icon} style={utilityButtonStyle} onClick={item.onClick} />
-                            </Tooltip>
-                        ))}
-                    </div>
-                </div>
-                <div style={{ padding: `0 ${sidebarHorizontalPadding}px 10px`, borderBottom: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: isSidebarCompact ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8, width: '100%' }}>
-                        <Button icon={<PlusOutlined />} onClick={handleCreateConnection} title={t('connection.new')} style={sidebarCreateConnectionActionStyle}>
-                            {t('connection.new')}
-                        </Button>
-                        <Button icon={<ConsoleSqlOutlined />} onClick={handleNewQuery} title={t('query.new')} style={sidebarQueryActionStyle}>
-                            {t('query.new')}
-                        </Button>
-                    </div>
-                </div>
-                </>
-                )}
-                
-                <div style={{ flex: 1, overflow: 'hidden', paddingBottom: isV2Ui ? 0 : 58, paddingRight: sidebarResizeHandleWidth, position: 'relative' }}>
+                <div style={{ flex: 1, overflow: 'hidden', paddingBottom: 0, paddingRight: sidebarResizeHandleWidth, position: 'relative' }}>
                     <div style={{ height: '100%', opacity: connectionWorkbenchState.ready ? 1 : 0.72, pointerEvents: connectionWorkbenchState.ready ? 'auto' : 'none' }}>
                         <Sidebar
                             onCreateConnection={handleCreateConnection}
@@ -2950,7 +2859,6 @@ function App() {
                             onToggleAI={toggleAIPanel}
                             onToggleLogPanel={handleToggleLogPanel}
                             sqlLogCount={sqlLogCount}
-                            uiVersion={appearance.uiVersion}
                             onFocusCommandSearch={handleFocusSidebarSearch}
                         />
                     </div>
@@ -3012,45 +2920,6 @@ function App() {
                         }}
                     />
                 </div>
-
-                {/* Floating SQL Log Toggle */}
-                {!isV2Ui && (
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: 10,
-                        right: 14,
-                        bottom: 10,
-                        zIndex: 20,
-                        pointerEvents: 'none'
-                    }}
-                >
-                    <Button
-                        type={isLogPanelOpen ? "primary" : "text"}
-                        icon={<BugOutlined />}
-                        onClick={handleToggleLogPanel}
-                        style={isLogPanelOpen ? {
-                            width: '100%',
-                            height: floatingLogButtonHeight,
-                            borderRadius: 999,
-                            boxShadow: floatingLogButtonShadow,
-                            pointerEvents: 'auto'
-                        } : {
-                            width: '100%',
-                            height: floatingLogButtonHeight,
-                            borderRadius: 999,
-                            border: `1px solid ${floatingLogButtonBorderColor}`,
-                            color: floatingLogButtonTextColor,
-                            background: floatingLogButtonBgColor,
-                            boxShadow: floatingLogButtonShadow,
-                            backdropFilter: blurFilter,
-                            pointerEvents: 'auto'
-                        }}
-                    >
-                        {t('app.sidebar.sql_execution_log')}
-                    </Button>
-                </div>
-                )}
             </div>
           </Sider>
            <Content style={{ background: bgContent, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
@@ -3070,18 +2939,9 @@ function App() {
                 />
              )}
              <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'row', position: 'relative' }}>
-               <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: bgContent, marginBottom: isLogPanelOpen ? 8 : 0, borderRadius: isLogPanelOpen ? 'var(--gonavi-border-radius)' : 0, clipPath: isLogPanelOpen ? 'inset(0 round var(--gonavi-border-radius))' : 'none' }}>
+               <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: bgContent }}>
                   <TabManager />
                </div>
-               {!isV2Ui && !aiPanelVisible && (
-               <>
-               {aiEntryPlacement === 'content-edge' && legacyAiEdgeHandleAttachment === 'content-shell' && (
-                  <div style={legacyAiEdgeHandleDockStyle}>
-                      {renderLegacyAIEdgeHandle()}
-                  </div>
-               )}
-               </>
-               )}
                {aiPanelVisible && (
                   <div
                     className={aiPanelOverlayActive ? 'gn-v2-ai-panel-overlay' : undefined}
@@ -3119,15 +2979,6 @@ function App() {
                             }
                           : undefined}
                       >
-                      {!isV2Ui && (
-                      <>
-                      {aiEntryPlacement === 'content-edge' && legacyAiEdgeHandleAttachment === 'panel-shell' && (
-                          <div style={legacyAiEdgeHandleDockStyle}>
-                              {renderLegacyAIEdgeHandle()}
-                          </div>
-                      )}
-                      </>
-                      )}
                       <AIPanelErrorBoundary
                         key={aiPanelRenderNonce}
                         onError={handleAIPanelRenderError}
@@ -3193,13 +3044,6 @@ function App() {
                   </div>
                )}
              </div>
-             {!isV2Ui && isLogPanelOpen && (
-                  <LogPanel
-                     height={logPanelHeight}
-                     onClose={handleCloseLogPanel}
-                    onResizeStart={handleLogResizeStart} 
-                />
-            )}
           </Content>
           </Layout>
           {isConnectionModalMounted && (
@@ -4305,113 +4149,19 @@ function App() {
                       {themeModalSection === 'theme' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                               <div style={utilityPanelStyle}>
-                                  <div style={{ marginBottom: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <span>{t('app.theme.ui_version.title')}</span>
-                                      <span style={{
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          padding: '1px 6px',
-                                          background: darkMode ? 'rgba(56,189,248,0.18)' : 'rgba(2,132,199,0.10)',
-                                          color: darkMode ? '#7dd3fc' : '#0284c7',
-                                          borderRadius: 4,
-                                      }}>
-                                          {t('app.theme.ui_version.badge.new')}
-                                      </span>
+                                  <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.appearance.sidebar_search.title')}</div>
+                                  <Segmented
+                                      block
+                                      options={[
+                                          { label: t('app.appearance.sidebar_search.command'), value: 'command' },
+                                          { label: t('app.appearance.sidebar_search.filter'), value: 'filter' },
+                                      ]}
+                                      value={appearance.sidebarSearchMode ?? 'command'}
+                                      onChange={(value) => setAppearance({ sidebarSearchMode: value as 'command' | 'filter' })}
+                                  />
+                                  <div style={{ ...utilityMutedTextStyle, marginTop: 8 }}>
+                                      {t('app.appearance.sidebar_search.hint')}
                                   </div>
-                                  <div style={{ ...utilityMutedTextStyle, marginBottom: 12 }}>
-                                      {t('app.theme.ui_version.description')}
-                                  </div>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-                                      {[
-                                          { key: 'legacy', label: t('app.theme.ui_version.legacy.label'), description: t('app.theme.ui_version.legacy.description'), badge: t('app.theme.ui_version.legacy.badge') },
-                                          { key: 'v2', label: t('app.theme.ui_version.v2.label'), description: t('app.theme.ui_version.v2.description'), badge: t('app.theme.ui_version.v2.badge') },
-                                      ].map((item) => {
-                                          const active = (appearance.uiVersion ?? 'legacy') === item.key;
-                                          return (
-                                              <button
-                                                  key={item.key}
-                                                  type="button"
-                                                  onClick={() => setAppearance({ uiVersion: item.key as 'legacy' | 'v2' })}
-                                                  style={{
-                                                      textAlign: 'left',
-                                                      padding: '14px 14px',
-                                                      borderRadius: 14,
-                                                      border: `1px solid ${active
-                                                          ? (darkMode ? 'rgba(34,197,94,0.36)' : 'rgba(22,163,74,0.32)')
-                                                          : (darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(16,24,40,0.08)')}`,
-                                                      background: active
-                                                          ? (darkMode ? 'linear-gradient(180deg, rgba(34,197,94,0.14) 0%, rgba(34,197,94,0.06) 100%)' : 'linear-gradient(180deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.05) 100%)')
-                                                          : (darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.72)'),
-                                                      color: active ? (darkMode ? '#f5f7ff' : '#162033') : (darkMode ? 'rgba(255,255,255,0.82)' : '#3f4b5e'),
-                                                      cursor: 'pointer',
-                                                  }}
-                                              >
-                                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                                                          <span style={{ fontSize: 14, fontWeight: 700 }}>{item.label}</span>
-                                                          <span style={{
-                                                              fontSize: 10,
-                                                              fontWeight: 600,
-                                                              padding: '1px 6px',
-                                                              background: item.key === 'v2'
-                                                                  ? (darkMode ? 'rgba(56,189,248,0.18)' : 'rgba(2,132,199,0.10)')
-                                                                  : (darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(16,24,40,0.06)'),
-                                                              color: item.key === 'v2'
-                                                                  ? (darkMode ? '#7dd3fc' : '#0284c7')
-                                                                  : (darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(16,24,40,0.6)'),
-                                                              borderRadius: 4,
-                                                          }}>
-                                                              {item.badge}
-                                                          </span>
-                                                      </span>
-                                                      {active ? <CheckOutlined style={{ color: darkMode ? '#4ade80' : '#16a34a' }} /> : null}
-                                                  </div>
-                                                  <div style={{
-                                                      marginTop: 6,
-                                                      fontSize: 12,
-                                                      lineHeight: 1.6,
-                                                      color: active ? (darkMode ? 'rgba(255,255,255,0.68)' : 'rgba(22,32,51,0.68)') : utilityMutedTextStyle.color,
-                                                  }}>
-                                                      {item.description}
-                                                  </div>
-                                              </button>
-                                          );
-                                      })}
-                                  </div>
-                                  <div style={{ ...utilityMutedTextStyle, marginTop: 10 }}>
-                                      {t('app.theme.ui_version.platform_hint')}
-                                  </div>
-                                  {appearance.uiVersion === 'v2' && (
-                                      <div style={{
-                                          marginTop: 10,
-                                          padding: '8px 10px',
-                                          background: darkMode ? 'rgba(245,158,11,0.10)' : 'rgba(245,158,11,0.08)',
-                                          border: `1px solid ${darkMode ? 'rgba(245,158,11,0.24)' : 'rgba(245,158,11,0.22)'}`,
-                                          borderRadius: 8,
-                                          fontSize: 11.5,
-                                          color: darkMode ? 'rgba(252,211,77,0.92)' : 'rgba(120,53,15,0.85)',
-                                          lineHeight: 1.55,
-                                      }}>
-                                          {t('app.theme.ui_version.beta_warning')}
-                                      </div>
-                                  )}
-                                  {appearance.uiVersion === 'v2' && (
-                                      <div style={{ marginTop: 14 }}>
-                                          <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.theme.ui_version.sidebar_search.title')}</div>
-                                          <Segmented
-                                              block
-                                              options={[
-                                                  { label: t('app.theme.ui_version.sidebar_search.command'), value: 'command' },
-                                                  { label: t('app.theme.ui_version.sidebar_search.filter'), value: 'filter' },
-                                              ]}
-                                              value={appearance.v2SidebarSearchMode ?? 'command'}
-                                              onChange={(value) => setAppearance({ v2SidebarSearchMode: value as 'command' | 'filter' })}
-                                          />
-                                          <div style={{ ...utilityMutedTextStyle, marginTop: 8 }}>
-                                              {t('app.theme.ui_version.sidebar_search.hint')}
-                                          </div>
-                                      </div>
-                                  )}
                               </div>
                               <div style={utilityPanelStyle}>
                                   <div style={{ marginBottom: 10, fontWeight: 600 }}>{t('app.theme.mode_title')}</div>
@@ -4919,6 +4669,17 @@ function App() {
                                   </div>
                               ) : null}
                               <div style={utilityPanelStyle}>
+                                  <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.memory.section.title')}</div>
+                                  <MemorySettingsPanel
+                                      mutedTextStyle={utilityMutedTextStyle}
+                                      onLowMemoryModeChange={(enabled) => {
+                                          if (enabled) {
+                                              message.info(t('app.memory.low_memory.restart_required'));
+                                          }
+                                      }}
+                                  />
+                              </div>
+                              <div style={utilityPanelStyle}>
                                   <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.theme.startup_window.title')}</div>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                                       <span>{isWindowsRuntime ? t('app.theme.startup_window.fullscreen_windows') : t('app.theme.startup_window.fullscreen')}</span>
@@ -5231,22 +4992,6 @@ function App() {
                   zIndex: 9999,
                   pointerEvents: 'none',
                   display: 'none'
-              }}
-          />
-          
-          {/* Ghost Resize Line for Log Panel */}
-          <div 
-              ref={logGhostRef}
-              style={{
-                  position: 'fixed',
-                  left: sidebarWidth, // Start from sidebar edge
-                  right: 0,
-                  height: '4px',
-                  background: resizeGuideColor,
-                  zIndex: 9999,
-                  pointerEvents: 'none',
-                  display: 'none',
-                  cursor: 'row-resize'
               }}
           />
         </Layout>

@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const dataGridSource = readFileSync(new URL('./DataGrid.tsx', import.meta.url), 'utf8');
+const dataGridSource = [
+  readFileSync(new URL('./DataGrid.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./DataGridShell.tsx', import.meta.url), 'utf8'),
+].join('\n');
 
 describe('DataGrid embedded designer title i18n guards', () => {
   it('localizes the embedded table designer tab title while preserving the raw table name parameter', () => {

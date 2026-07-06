@@ -16,6 +16,7 @@ import {
   normalizeQuickWhereCondition,
   validateQuickWhereCondition,
 } from '../utils/dataGridWhereFilter';
+import { RELEASE_TAB_QUERY_RESULTS_EVENT } from '../utils/queryTabResults';
 import {
   DUCKDB_ROWID_LOCATOR_COLUMN,
   ORACLE_ROWID_LOCATOR_COLUMN,
@@ -357,11 +358,11 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
   const [loading, setLoading] = useState(false);
   const connections = useStore(state => state.connections);
   const addSqlLog = useStore(state => state.addSqlLog);
+  const clearTabResultsClearedFlag = useStore(state => state.clearTabResultsClearedFlag);
   const appearance = useStore(state => state.appearance);
   const languagePreference = useStore(state => state.languagePreference);
   const language = resolveLanguage(languagePreference);
   const tr = useCallback((key: string, params?: I18nParams) => translate(key, params, language), [language]);
-  const isV2Ui = appearance?.uiVersion === 'v2';
   const fetchSeqRef = useRef(0);
   const countSeqRef = useRef(0);
   const countKeyRef = useRef<string>('');
@@ -455,6 +456,34 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
       } : undefined);
     };
   }, [tab.id, persistViewerSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const handleReleaseTabQueryResults = (event: Event) => {
+      const detail = (event as CustomEvent<{ tabIds?: string[] }>).detail;
+      const tabIds = Array.isArray(detail?.tabIds)
+        ? detail.tabIds.map((id) => String(id || '').trim()).filter(Boolean)
+        : [];
+      if (!tabIds.includes(tab.id)) {
+        return;
+      }
+      setData([]);
+      setColumnNames([]);
+      setLoading(false);
+    };
+    window.addEventListener(RELEASE_TAB_QUERY_RESULTS_EVENT, handleReleaseTabQueryResults);
+    return () => window.removeEventListener(RELEASE_TAB_QUERY_RESULTS_EVENT, handleReleaseTabQueryResults);
+  }, [tab.id]);
+
+  useEffect(() => {
+    if (!tab.resultsCleared) {
+      return;
+    }
+    setData([]);
+    setColumnNames([]);
+  }, [tab.id, tab.resultsCleared]);
 
   useEffect(() => {
     const snapshot = getViewerFilterSnapshot(tab.id);
@@ -885,6 +914,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
                 if (row && typeof row === 'object') row[GONAVI_ROW_KEY] = `row-${offset + i}`;
             });
             setData(resultData);
+            clearTabResultsClearedFlag(tab.id);
             const countKey = `${tab.connectionId}|${dbName}|${tableName}|${whereSQL}`;
             const derivedTotalKnown = !hasMore;
             const derivedTotal = derivedTotalKnown ? offset + resultData.length : currentPage * size + 1;
@@ -1124,7 +1154,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
         });
     }
     if (fetchSeqRef.current === seq) setLoading(false);
-  }, [connections, tab, sortInfo, filterConditions, quickWhereCondition, pkColumns, editLocator, forceReadOnly, pagination.total, pagination.totalKnown, pagination.totalApprox, pagination.approximateTotal, preferManualTotalCount, supportsApproximateTableCount, supportsApproximateTotalPages, tr]);
+  }, [connections, tab, clearTabResultsClearedFlag, sortInfo, filterConditions, quickWhereCondition, pkColumns, editLocator, forceReadOnly, pagination.total, pagination.totalKnown, pagination.totalApprox, pagination.approximateTotal, preferManualTotalCount, supportsApproximateTableCount, supportsApproximateTotalPages, tr]);
   // 依赖定位列：在无手动排序时可回退到安全定位列稳定排序。
   // 定位信息只会在表上下文变化后重新加载，避免循环查询。
 
@@ -1199,7 +1229,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
   }, [tab.id, tab.connectionId, tab.dbName, tab.tableName, sortInfo, filterConditions, quickWhereCondition]); // Initial load and re-load on sort/filter
 
   return (
-    <div className={isV2Ui ? 'gn-v2-data-viewer' : undefined} style={{ flex: '1 1 auto', minHeight: 0, minWidth: 0, height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div className={'gn-v2-data-viewer'} style={{ flex: '1 1 auto', minHeight: 0, minWidth: 0, height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <DataGrid
           data={data}
           columnNames={columnNames}

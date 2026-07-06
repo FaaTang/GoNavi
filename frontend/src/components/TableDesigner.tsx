@@ -481,9 +481,7 @@ const TableDesigner: React.FC<{ tab: TabData; embedded?: boolean }> = ({ tab, em
   const theme = useStore(state => state.theme);
   const appearance = useStore(state => state.appearance);
   const i18nLanguage = useTableDesignerI18nLanguage();
-  const darkMode = theme === 'dark';
-  const isV2Ui = appearance.uiVersion === 'v2';
-  const resizeGuideColor = darkMode ? '#f6c453' : '#1890ff';
+  const darkMode = theme === 'dark';  const resizeGuideColor = darkMode ? '#f6c453' : '#1890ff';
   const readOnly = !!tab.readOnly;
   const designerTableTitle = tab.tableName || newTableName || t('table_designer.title.untitled_table', undefined, i18nLanguage);
   const designerDbTitle = tab.dbName || t('table_designer.title.default_database', undefined, i18nLanguage);
@@ -2652,7 +2650,7 @@ END;`;
   const columnsTabContent = (
       <div
           ref={containerRef}
-          className={`table-designer-wrapper${isV2Ui ? ' gn-v2-designer-table-shell' : ''}`}
+          className={`table-designer-wrapper gn-v2-designer-table-shell`}
           style={{
               height: '100%',
               overflow: 'hidden',
@@ -2712,7 +2710,7 @@ END;`;
   return (
     <div
         ref={shellRef}
-        className={`table-designer-shell${isV2Ui ? ' gn-v2-table-designer' : ''}${embedded ? ' is-embedded' : ''}`}
+        className={`table-designer-shell gn-v2-table-designer${embedded ? ' is-embedded' : ''}`}
         style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: embedded ? 0 : '6px 0', position: 'relative' }}
     >
         <style>{`
@@ -3015,7 +3013,7 @@ END;`;
             willChange: 'transform',
           }}
         />
-        {isV2Ui && (
+        {(
             <div className="gn-v2-designer-header">
                 <div className="gn-v2-designer-title">
                     <span>{t('table_designer.title.schema_designer', undefined, i18nLanguage)}</span>
@@ -3029,7 +3027,7 @@ END;`;
             </div>
         )}
         <div
-            className={isV2Ui ? 'gn-v2-designer-toolbar' : undefined}
+            className={'gn-v2-designer-toolbar'}
             style={{
                 padding: '10px 12px 8px 12px',
                 borderBottom: `1px solid ${panelToolbarBorder}`,
@@ -3101,7 +3099,7 @@ END;`;
             <div style={{ flex: 1 }} />
         </div>
         <Tabs 
-            className={isV2Ui ? 'gn-v2-designer-tabs' : undefined}
+            className={'gn-v2-designer-tabs'}
             activeKey={activeKey}
             onChange={(key) => React.startTransition(() => setActiveKey(key))}
             style={{
@@ -3133,9 +3131,9 @@ END;`;
                         key: 'indexes',
                         label: t('table_designer.tab.indexes', undefined, i18nLanguage),
                         children: (
-                            <div className={`index-table-wrap${isV2Ui ? ' gn-v2-designer-tab-content gn-v2-designer-index-table' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div className={`index-table-wrap gn-v2-designer-tab-content gn-v2-designer-index-table`} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {!readOnly && (
-                                    <div className={isV2Ui ? 'gn-v2-designer-actionbar' : undefined} style={{ display: 'flex', gap: 8 }}>
+                                    <div className={'gn-v2-designer-actionbar'} style={{ display: 'flex', gap: 8 }}>
                                         <Button size="small" icon={<PlusOutlined />} disabled={!supportsIndexSchemaOps()} onClick={openCreateIndexModal}>{t('table_designer.action.add', undefined, i18nLanguage)}</Button>
                                         <Button size="small" icon={<EditOutlined />} disabled={!supportsIndexSchemaOps() || selectedIndexKeys.length !== 1} onClick={openEditIndexModal}>{t('table_designer.action.edit', undefined, i18nLanguage)}</Button>
                                         <Button size="small" icon={<DeleteOutlined />} danger disabled={!supportsIndexSchemaOps() || selectedIndexKeys.length === 0} onClick={handleDeleteIndex}>{t('table_designer.action.delete', undefined, i18nLanguage)}</Button>
@@ -3151,7 +3149,7 @@ END;`;
                                         )}
                                     </div>
                                 )}
-                                <div className={isV2Ui ? 'gn-v2-designer-section-note' : undefined} style={{ color: '#888', fontSize: 12 }}>
+                                <div className={'gn-v2-designer-section-note'} style={{ color: '#888', fontSize: 12 }}>
                                     {t('table_designer.summary.indexes', { count: groupedIndexes.length, fields: groupedIndexFieldCount }, i18nLanguage)}
                                 </div>
                                 <Table
@@ -3187,9 +3185,9 @@ END;`;
                         key: 'foreignKeys',
                         label: t('table_designer.tab.foreign_keys', undefined, i18nLanguage),
                         children: (
-                            <div className={isV2Ui ? 'gn-v2-designer-tab-content' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div className={'gn-v2-designer-tab-content'} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {!readOnly && (
-                                    <div className={isV2Ui ? 'gn-v2-designer-actionbar' : undefined} style={{ display: 'flex', gap: 8 }}>
+                                    <div className={'gn-v2-designer-actionbar'} style={{ display: 'flex', gap: 8 }}>
                                         <Button size="small" icon={<PlusOutlined />} disabled={!supportsForeignKeySchemaOps()} onClick={openCreateForeignKeyModal}>{t('table_designer.action.add', undefined, i18nLanguage)}</Button>
                                         <Button size="small" icon={<EditOutlined />} disabled={!supportsForeignKeySchemaOps() || !selectedForeignKey} onClick={openEditForeignKeyModal}>{t('table_designer.action.edit', undefined, i18nLanguage)}</Button>
                                         <Button size="small" icon={<DeleteOutlined />} danger disabled={!supportsForeignKeySchemaOps() || !selectedForeignKey} onClick={handleDeleteForeignKey}>{t('table_designer.action.delete', undefined, i18nLanguage)}</Button>
@@ -3251,8 +3249,8 @@ END;`;
                         key: 'triggers',
                         label: t('table_designer.tab.triggers', undefined, i18nLanguage),
                         children: (
-                            <div className={isV2Ui ? 'gn-v2-designer-tab-content' : undefined}>
-                                <div className={isV2Ui ? 'gn-v2-designer-actionbar' : undefined} style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
+                            <div className={'gn-v2-designer-tab-content'}>
+                                <div className={'gn-v2-designer-actionbar'} style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
                                     <Button
                                         size="small"
                                         icon={<EyeOutlined />}
@@ -3321,7 +3319,7 @@ END;`;
                         label: 'DDL',
                         icon: <FileTextOutlined />,
                         children: (
-                        <div className={isV2Ui ? 'gn-v2-designer-ddl-shell' : undefined} style={{ height: '100%', minHeight: 320, border: `1px solid ${panelFrameColor}`, borderRadius: panelRadius, background: panelBodyBg }}>
+                        <div className={'gn-v2-designer-ddl-shell'} style={{ height: '100%', minHeight: 320, border: `1px solid ${panelFrameColor}`, borderRadius: panelRadius, background: panelBodyBg }}>
                             <Editor
                                 height="100%"
                                 language="sql"

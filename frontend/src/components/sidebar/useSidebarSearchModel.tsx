@@ -74,9 +74,7 @@ type SidebarSearchModelArgs = {
   v2ExplorerFilter: V2ExplorerFilter;
   treeData: TreeNode[];
   treeViewportWidth: number;
-  treeHeight: number;
-  isV2Ui: boolean;
-  isV2CommandSearchOpen: boolean;
+  treeHeight: number;  isV2CommandSearchOpen: boolean;
   connections: SavedConnection[];
   connectionIds: string[];
   selectedKeys: React.Key[];
@@ -112,9 +110,7 @@ export const useSidebarSearchModel = ({
   v2ExplorerFilter,
   treeData,
   treeViewportWidth,
-  treeHeight,
-  isV2Ui,
-  isV2CommandSearchOpen,
+  treeHeight,  isV2CommandSearchOpen,
   connections,
   connectionIds,
   selectedKeys,
@@ -612,7 +608,7 @@ export const useSidebarSearchModel = ({
     () => estimateV2TreeHorizontalScrollWidth(v2VisibleTreeData, treeViewportWidth),
     [treeViewportWidth, v2VisibleTreeData],
   );
-  const effectiveTreeHeight = isV2Ui && v2TreeHorizontalScrollWidth
+  const effectiveTreeHeight = v2TreeHorizontalScrollWidth
     ? Math.max(1, treeHeight - V2_TREE_HORIZONTAL_SCROLL_BOTTOM_RESERVE)
     : treeHeight;
   const v2TreeMetrics = useMemo(() => {

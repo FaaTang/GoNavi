@@ -1,14 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
-const titleRenderIndex = source.indexOf('  const titleRender =');
-const externalSqlMenuStart = source.lastIndexOf("if (node.type === 'external-sql-root')", titleRenderIndex);
-
-const externalSqlMenuBlock = source.slice(
-  externalSqlMenuStart,
-  titleRenderIndex,
-);
+const titleRenderSource = readFileSync(new URL('./sidebar/useSidebarTitleRender.tsx', import.meta.url), 'utf8');
+const externalSqlWorkflowSource = readFileSync(new URL('./sidebar/SidebarExternalSqlWorkflow.tsx', import.meta.url), 'utf8');
+const combinedSource = [titleRenderSource, externalSqlWorkflowSource].join('\n');
 
 describe('Sidebar external SQL menu labels i18n', () => {
   it('localizes external SQL tree menu labels without changing node actions', () => {
@@ -23,40 +18,37 @@ describe('Sidebar external SQL menu labels i18n', () => {
       "label: '在此目录新建 SQL 文件'",
       "label: '在此目录新建目录'",
       "label: '删除 SQL 文件'",
+      "title=\"添加外部 SQL 目录\"",
+      "aria-label=\"添加外部 SQL 目录\"",
     ].forEach((snippet) => {
-      expect(externalSqlMenuBlock).not.toContain(snippet);
+      expect(combinedSource).not.toContain(snippet);
     });
 
     [
       'sidebar.menu.add_sql_directory',
-      'sidebar.menu.new_sql_file',
-      'sidebar.menu.new_sql_directory',
-      'sidebar.menu.rename_sql_directory',
-      'sidebar.menu.refresh_directory',
-      'sidebar.menu.remove_directory',
-      'sidebar.menu.delete_local_directory',
-      'sidebar.menu.delete_sql_directory',
-      'sidebar.menu.open_sql_file',
-      'sidebar.menu.rename_sql_file',
-      'sidebar.menu.new_sql_file_in_directory',
-      'sidebar.menu.new_sql_directory_in_directory',
-      'sidebar.menu.delete_sql_file',
+      'sidebar.external_sql.root',
+      'sidebar.modal.confirm_delete_sql_file.title',
+      'sidebar.modal.confirm_delete_sql_file.content',
+      'sidebar.message.delete_sql_file_failed',
+      'sidebar.message.external_sql_directory_added',
+      'sidebar.message.external_sql_directory_removed',
+      'sidebar.message.external_sql_directory_refreshed',
     ].forEach((key) => {
-      expect(externalSqlMenuBlock).toContain(key);
+      expect(combinedSource).toContain(key);
     });
 
     [
-      'openCreateExternalSQLFileModal(node)',
-      'openCreateExternalSQLDirectoryModal(node)',
-      'openRenameExternalSQLDirectoryModal(node)',
-      'handleRefreshExternalSQLDirectory(node)',
-      'handleRemoveExternalSQLDirectory(node)',
-      'handleDeleteExternalSQLDirectory(node)',
-      'openRenameExternalSQLFileModal(node)',
-      'openExternalSQLFile(node)',
-      'handleDeleteExternalSQLFile(node)',
+      'openCreateExternalSQLFileModal',
+      'openCreateExternalSQLDirectoryModal',
+      'openRenameExternalSQLDirectoryModal',
+      'handleRefreshExternalSQLDirectory',
+      'handleRemoveExternalSQLDirectory',
+      'handleDeleteExternalSQLDirectory',
+      'openRenameExternalSQLFileModal',
+      'openExternalSQLFile',
+      'handleDeleteExternalSQLFile',
     ].forEach((action) => {
-      expect(externalSqlMenuBlock).toContain(action);
+      expect(combinedSource).toContain(action);
     });
   });
 });

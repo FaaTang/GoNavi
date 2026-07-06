@@ -107,9 +107,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
     const activeTabId = useStore(state => state.activeTabId);
     const sqlLogs = useStore(state => state.sqlLogs);
     const setAIActiveSessionId = useStore(state => state.setAIActiveSessionId);
-    const aiPanelVisible = useStore(state => state.aiPanelVisible);
-    const isV2Ui = appearance.uiVersion === 'v2';
-    const activeShortcutPlatform = getShortcutPlatform(isMacLikePlatform());
+    const aiPanelVisible = useStore(state => state.aiPanelVisible);    const activeShortcutPlatform = getShortcutPlatform(isMacLikePlatform());
     const {
         ghostRef,
         handleResizeStart,
@@ -118,9 +116,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
         panelRef,
         panelWidth,
     } = useAIChatPanelResize({
-        width,
-        isV2Ui,
-        onWidthChange,
+        width,        onWidthChange,
     });
     const availableTools = useMemo(
         () => buildAvailableAIChatTools(mcpTools, t),
@@ -572,8 +568,8 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
         [orderedAISessions, t],
     );
     const effectivePanelMode = useMemo(
-        () => resolveAIChatPanelMode(isV2Ui, activePanelMode),
-        [activePanelMode, isV2Ui],
+        () => resolveAIChatPanelMode(activePanelMode),
+        [activePanelMode],
     );
 
     const handleComposerActionWithNoticeReset = useCallback((actionKey: 'open-settings' | 'reload-models') => {
@@ -587,7 +583,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
     }, [handleModelChange]);
 
     return (
-        <div ref={panelRef} className={`ai-chat-panel${isV2Ui ? ' gn-v2-ai-panel' : ''}`} style={{ width: panelWidth, background: bgColor || 'transparent', color: textColor, borderLeft: overlayTheme.shellBorder, position: 'relative' }}>
+        <div ref={panelRef} className={`ai-chat-panel gn-v2-ai-panel`} style={{ width: panelWidth, background: bgColor || 'transparent', color: textColor, borderLeft: overlayTheme.shellBorder, position: 'relative' }}>
             <div className={`ai-resize-handle${isResizing ? ' active' : ''}`} onMouseDown={handleResizeStart} />
 
             {isResizing && panelRect.current && createPortal(
@@ -612,13 +608,8 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
                 mutedColor={mutedColor}
                 textColor={textColor}
                 overlayTheme={overlayTheme}
-                isV2Ui={isV2Ui}
                 onHistoryClick={() => {
-                    if (isV2Ui) {
-                        setActivePanelMode('history');
-                    } else {
-                        setHistoryOpen(true);
-                    }
+                    setActivePanelMode('history');
                 }}
                 onClear={() => {
                     createNewAISession();
@@ -629,7 +620,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
                 sessionTitle={currentSessionTitle}
                 activeMode={effectivePanelMode}
                 onModeChange={(mode) => {
-                    if (!isV2Ui) return;
+                    
                     setActivePanelMode(mode);
                     if (mode === 'history') {
                         setHistoryOpen(false);
@@ -648,7 +639,6 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
                 quickActionBorder={quickActionBorder}
                 showScrollBottom={showScrollBottom}
                 contextTableNames={contextTableNames}
-                isV2Ui={isV2Ui}
                 insights={aiInsights}
                 sessions={panelHistorySessions}
                 activeSessionId={sid}
@@ -703,7 +693,6 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({
                 overlayTheme={overlayTheme}
                 contextUsageChars={contextUsageChars}
                 maxContextChars={getDynamicMaxContextChars(activeProvider?.model)}
-                isV2Ui={isV2Ui}
             />
 
             <AIHistoryDrawer

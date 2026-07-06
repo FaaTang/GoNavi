@@ -6,7 +6,7 @@ import TableOverview from './TableOverview';
 
 const storeState = vi.hoisted(() => ({
   theme: 'light',
-  appearance: { uiVersion: 'legacy' as const },
+  appearance: {},
   connections: [
     {
       id: 'conn-1',
@@ -88,16 +88,27 @@ vi.mock('antd', () => {
   const Empty = ({ description }: any) => <div>{description}</div>;
   const Dropdown = ({ children }: any) => <div>{children}</div>;
   const Tooltip = ({ children }: any) => <div>{children}</div>;
+  const Typography = {
+    Text: ({ children, ...rest }: any) => <span {...rest}>{children}</span>,
+    Paragraph: ({ children, ...rest }: any) => <p {...rest}>{children}</p>,
+  };
   const Modal: any = ({ children }: any) => <div>{children}</div>;
   Modal.confirm = vi.fn();
+  const Progress = ({ percent, status, format }: any) => (
+    <div data-progress-percent={String(percent)} data-progress-status={String(status ?? '')}>
+      {typeof format === 'function' ? format(percent) : null}
+    </div>
+  );
   return {
     Button,
     Dropdown,
     Empty,
     Input,
     Modal,
+    Progress,
     Spin,
     Tooltip,
+    Typography,
     message: messageApi,
   };
 });

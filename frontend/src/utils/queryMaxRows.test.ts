@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MAX_ROWS,
   LEGACY_UNLIMITED_MAX_ROWS,
+  addMaxRowsCustomPreset,
   migrateQueryMaxRows,
   sanitizeMaxRowsCustomPresets,
 } from './queryMaxRows';
@@ -49,5 +50,13 @@ describe('queryMaxRows', () => {
     expect(sanitizeMaxRowsCustomPresets([5000, 1000, 5000, 0, 999999, '2000'])).toEqual([
       1000, 2000, 5000,
     ]);
+  });
+
+  it('does not store the fixed default max rows in custom presets', () => {
+    expect(sanitizeMaxRowsCustomPresets([100, 5000, 100, 5000])).toEqual([5000]);
+    expect(addMaxRowsCustomPreset({ maxRows: 5000, maxRowsCustomPresets: [5000] }, 100)).toEqual({
+      maxRows: 100,
+      maxRowsCustomPresets: [5000],
+    });
   });
 });

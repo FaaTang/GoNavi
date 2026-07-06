@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Dropdown, Tabs, Tooltip, message, type MenuProps } from 'antd';
-import { BugOutlined, CloseOutlined, CopyOutlined, EyeInvisibleOutlined, RobotOutlined } from '@ant-design/icons';
+import { BugOutlined, CloseOutlined, CopyOutlined, EyeInvisibleOutlined, PlayCircleOutlined, RobotOutlined } from '@ant-design/icons';
 
 import type { EditRowLocator } from '../utils/rowLocator';
 import type { QueryResultPaginationState } from '../utils/queryResultPagination';
@@ -37,9 +37,7 @@ interface QueryEditorResultsPanelProps {
     loading: boolean;
     executionError: string;
     sqlLogCount: number;
-    darkMode: boolean;
-    isV2Ui: boolean;
-    currentDb: string;
+    darkMode: boolean;    currentDb: string;
     currentConnectionId: string;
     toggleShortcutLabel: string;
     onActiveResultKeyChange: (key: string) => void;
@@ -52,6 +50,8 @@ interface QueryEditorResultsPanelProps {
     onReloadResult: (key: string, sql: string) => void;
     onResultPageChange: (key: string, page: number, pageSize: number) => void;
     onDiagnoseExecutionError: () => void;
+    resultsClearedByLowMemory?: boolean;
+    onRerunQuery?: () => void;
 }
 
 const isAffectedRowsResult = (result: QueryEditorResultSet): boolean =>
@@ -63,9 +63,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
     loading,
     executionError,
     sqlLogCount,
-    darkMode,
-    isV2Ui,
-    currentDb,
+    darkMode,    currentDb,
     currentConnectionId,
     toggleShortcutLabel,
     onActiveResultKeyChange,
@@ -78,6 +76,8 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
     onReloadResult,
     onResultPageChange,
     onDiagnoseExecutionError,
+    resultsClearedByLowMemory = false,
+    onRerunQuery,
 }) => {
     const i18n = useOptionalI18n();
     const t = i18n?.t ?? defaultTranslate;
@@ -197,12 +197,12 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
     const toolbarHideButton = (
         <Tooltip title={hideTooltipTitle}>
             <Button
-                className={isV2Ui ? 'gn-v2-query-result-toolbar-hide' : undefined}
+                className={'gn-v2-query-result-toolbar-hide'}
                 icon={<EyeInvisibleOutlined />}
                 onClick={onHide}
             >
                 <span>{t('query_editor.results_panel.action.hide')}</span>
-                {isV2Ui && toggleShortcutLabel && (
+                {toggleShortcutLabel && (
                     <span className="gn-v2-toolbar-kbd">{toggleShortcutLabel}</span>
                 )}
             </Button>
@@ -245,7 +245,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
             <Dropdown
                 menu={{ items: buildResultTabMenuItems(rs.key, idx) }}
                 trigger={['contextMenu']}
-                rootClassName={isV2Ui ? 'gn-v2-tab-context-menu-popup' : undefined}
+                rootClassName={'gn-v2-tab-context-menu-popup'}
             >
                 <div
                     className="query-result-tab-label"
@@ -291,7 +291,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
             if (rs.resultType === 'message') {
                 const messageText = (rs.messages || []).join('\n');
                 return (
-                    <div className={isV2Ui ? 'gn-v2-query-success' : undefined} style={{
+                    <div className={'gn-v2-query-success'} style={{
                         flex: 1, minHeight: 0, display: 'flex', justifyContent: 'flex-start',
                         flexDirection: 'column', gap: 12, padding: 24, color: '#666', userSelect: 'text',
                         overflow: 'hidden',
@@ -310,7 +310,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
                 const affected = Number(rs.rows[0]?.affectedRows ?? 0);
                 const messageText = Array.isArray(rs.messages) ? rs.messages.join('\n') : '';
                 return (
-                    <div className={isV2Ui ? 'gn-v2-query-success' : undefined} style={{
+                    <div className={'gn-v2-query-success'} style={{
                         flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexDirection: 'column', gap: 8, color: '#666', userSelect: 'text',
                     }}>
@@ -618,7 +618,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
               }
             `}</style>
             <div
-                className={isV2Ui ? 'gn-v2-query-results' : undefined}
+                className={'gn-v2-query-results'}
                 style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column' }}
             >
                 {tabItems.length > 0 ? (
@@ -633,11 +633,11 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
                     />
                 ) : executionError ? (
                     <>
-                        <div className={isV2Ui ? 'query-result-panel-header gn-v2-query-result-panel-header' : 'query-result-panel-header'}>
+                        <div className={'query-result-panel-header gn-v2-query-result-panel-header'}>
                             <span className="query-result-panel-header-title">{t('query_editor.results_panel.panel.title')}</span>
                             {hideButton}
                         </div>
-                        <div className={isV2Ui ? 'gn-v2-query-error' : undefined} style={{ flex: 1, minHeight: 0, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, background: darkMode ? '#1e1e1e' : '#fafafa', overflow: 'auto' }}>
+                        <div className={'gn-v2-query-error'} style={{ flex: 1, minHeight: 0, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, background: darkMode ? '#1e1e1e' : '#fafafa', overflow: 'auto' }}>
                             <div style={{ color: '#ff4d4f', fontWeight: 'bold', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <CloseOutlined />
                                 <span>{t('query_editor.result.execution_failed')}</span>
@@ -659,12 +659,27 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
                     </>
                 ) : (
                     <>
-                        <div className={isV2Ui ? 'query-result-panel-header gn-v2-query-result-panel-header' : 'query-result-panel-header'}>
+                        <div className={'query-result-panel-header gn-v2-query-result-panel-header'}>
                             <span className="query-result-panel-header-title">{t('query_editor.results_panel.panel.title')}</span>
                             {hideButton}
                         </div>
-                        <div className={isV2Ui ? 'gn-v2-query-empty' : undefined} style={{ flex: 1, minHeight: 0 }}>
-                            {isV2Ui && (
+                        <div className={'gn-v2-query-empty'} style={{ flex: 1, minHeight: 0 }}>
+                            {resultsClearedByLowMemory ? (
+                                <div style={{ display: 'grid', gap: 12, padding: undefined }}>
+                                    <span>{t('query_editor.result.cleared_by_low_memory')}</span>
+                                    {onRerunQuery ? (
+                                        <div>
+                                            <Button
+                                                type="primary"
+                                                icon={<PlayCircleOutlined />}
+                                                onClick={onRerunQuery}
+                                            >
+                                                {t('query_editor.result.rerun')}
+                                            </Button>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : (
                                 <div>
                                     <strong>{t('query_editor.empty_state.title')}</strong>
                                     <span>{t('query_editor.empty_state.description')}</span>

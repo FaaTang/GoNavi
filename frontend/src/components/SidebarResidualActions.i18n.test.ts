@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const objectActionsSource = readFileSync(new URL('./sidebar/useSidebarObjectActions.tsx', import.meta.url), 'utf8');
-const legacyMenuSource = readFileSync(new URL('./sidebar/sidebarLegacyNodeMenu.tsx', import.meta.url), 'utf8');
+const v2MenuSource = readFileSync(new URL('./V2TableContextMenu.tsx', import.meta.url), 'utf8');
 const v2ActionHandlersSource = readFileSync(new URL('./sidebar/useSidebarV2ActionHandlers.tsx', import.meta.url), 'utf8');
 const locales = ['zh-CN', 'en-US'] as const;
 
@@ -64,7 +64,7 @@ describe('Sidebar residual actions i18n', () => {
       "label: '绑定到连接'",
       '删除查询失败: ',
     ].forEach((legacyCopy) => {
-      expect(legacyMenuSource).not.toContain(legacyCopy);
+      expect(`${v2MenuSource}\n${v2ActionHandlersSource}`).not.toContain(legacyCopy);
     });
 
     [
@@ -83,24 +83,9 @@ describe('Sidebar residual actions i18n', () => {
 
     [
       'sidebar.message.connection_release_failed_from_sidebar',
-      'sidebar.menu.new_table',
-      'sidebar.menu.create_event',
-      'sidebar.tab.new_event',
-      'sidebar.modal.confirm_delete_tag.content',
-      'sidebar.menu.bind_to_connection',
-      'sidebar.message.saved_query_delete_failed',
-    ].forEach((key) => {
-      expect(`${legacyMenuSource}\n${v2ActionHandlersSource}`).toContain(`t('${key}'`);
-    });
-
-    [
-      'sidebar.message.connection_release_failed_from_sidebar',
     ].forEach((key) => {
       expect(v2ActionHandlersSource).toContain(`t('${key}'`);
     });
-
-    expect(legacyMenuSource).toContain("label: conn.name || conn.id");
-    expect(legacyMenuSource).toContain('node.title');
   });
 
   it('keeps residual Sidebar keys available in every locale', () => {

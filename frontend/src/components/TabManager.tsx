@@ -1,5 +1,5 @@
 import Modal from './common/ResizableDraggableModal';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, message, Tabs, Tooltip } from 'antd';
 import { AppstoreOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import type { MenuProps, TabsProps } from 'antd';
@@ -40,6 +40,11 @@ import {
   isSQLFileMissingReadResult,
   normalizeSQLFileReadContent,
 } from '../utils/sqlFileTabDirty';
+import {
+  resolveMemoryPolicy,
+  shouldDestroyInactiveTabs,
+  shouldLazyLoadHeavyModules,
+} from '../utils/memoryPolicy';
 import { clearQueryTabDraft, flushQueryTabDrafts, getQueryTabDraft } from '../utils/sqlFileTabDrafts';
 import { isLocalizedUntitledQueryTitle } from '../utils/queryTabTitle';
 import {
@@ -48,6 +53,25 @@ import {
   isClosableQueryTab,
   resolveQueryTabSavedQueryId,
 } from '../utils/queryTabDirty';
+
+const LazyTableDesigner = lazy(() => import('./TableDesigner'));
+const LazySqlAnalysisWorkbench = lazy(() => import('./explain/SqlAnalysisWorkbench'));
+const LazyTableExportWorkbench = lazy(() => import('./TableExportWorkbench'));
+const LazyJVMOverview = lazy(() => import('./JVMOverview'));
+const LazyJVMResourceBrowser = lazy(() => import('./JVMResourceBrowser'));
+const LazyJVMAuditViewer = lazy(() => import('./JVMAuditViewer'));
+const LazyJVMDiagnosticConsole = lazy(() => import('./JVMDiagnosticConsole'));
+const LazyJVMMonitoringDashboard = lazy(() => import('./JVMMonitoringDashboard'));
+
+const TabContentLoadingFallback: React.FC = () => (
+  <div className="gn-tab-content-loading" aria-busy="true" />
+);
+
+const wrapLazyTabContent = (lazyHeavyModules: boolean, node: React.ReactNode) => (
+  lazyHeavyModules
+    ? <Suspense fallback={<TabContentLoadingFallback />}>{node}</Suspense>
+    : node
+);
 
 const getTabKindLabel = (tab: TabData): string => {
   if (tab.type === 'query') return t('tab_manager.kind_badge.query');
@@ -350,9 +374,7 @@ type SortableTabLabelProps = {
   displayTitle: string;
   menuItems: MenuProps['items'];
   connectionLabel?: string;
-  hostSummary?: string;
-  isV2Ui?: boolean;
-  onClose?: () => void;
+  hostSummary?: string;  onClose?: () => void;
 };
 
 const renderV2TabDisplayPart = (part: TabDisplayPart) => {
@@ -376,9 +398,7 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
   displayTitle,
   menuItems,
   connectionLabel,
-  hostSummary,
-  isV2Ui,
-  onClose,
+  hostSummary,  onClose,
 }) => {
   const [isHoverInfoOpen, setIsHoverInfoOpen] = useState(false);
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
@@ -407,8 +427,8 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
   };
 
   const tabDisplayPartCount = displayModel.primaryParts.length + displayModel.secondaryParts.length;
-  const showSecondaryLine = isV2Ui && displayModel.layout === 'double' && Boolean(displayModel.secondaryText);
-  const tabTitleNode = isV2Ui ? (
+  const showSecondaryLine = displayModel.layout === 'double' && Boolean(displayModel.secondaryText);
+  const tabTitleNode = (
     <span className="gn-v2-tab-label-content tab-dnd-handle" {...dragHandleProps}>
       <span className="gn-v2-tab-label-main tab-title-text">
         {displayModel.primaryParts.length > 0
@@ -421,8 +441,6 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
         </span>
       ) : null}
     </span>
-  ) : (
-    <span className="tab-title-text">{displayTitle}</span>
   );
 
   const handleTabClosePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -430,7 +448,7 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
     onClose?.();
   };
 
-  const tabCloseButton = isV2Ui && onClose ? (
+  const tabCloseButton = onClose ? (
     <button
       type="button"
       className="gn-v2-tab-close"
@@ -443,7 +461,7 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
     </button>
   ) : null;
 
-  const wrappedTitle = isV2Ui ? (
+  const wrappedTitle = (
     <Tooltip
       title={(
         <TabHoverInfo
@@ -463,33 +481,22 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
     >
       <span className="gn-v2-tab-tooltip-target">{tabTitleNode}</span>
     </Tooltip>
-  ) : tabTitleNode;
+  );
 
   return (
     <Dropdown
       menu={{ items: menuItems }}
       trigger={['contextMenu']}
       onOpenChange={handleTabMenuOpenChange}
-      rootClassName={isV2Ui ? 'gn-v2-tab-context-menu-popup' : undefined}
+      rootClassName={'gn-v2-tab-context-menu-popup'}
     >
-      {isV2Ui ? (
-        <span
+      <span
           className={`tab-dnd-label gn-v2-tab-label${showSecondaryLine ? ' gn-v2-tab-label-double' : ''}${tabDisplayPartCount >= 4 ? ' gn-v2-tab-label-rich' : ''}`}
           onContextMenu={handleTabLabelContextMenu}
         >
           {wrappedTitle}
           {tabCloseButton}
         </span>
-      ) : (
-        <span
-          className="tab-dnd-label tab-dnd-handle"
-          onContextMenu={handleTabLabelContextMenu}
-          title={displayTitle}
-          {...dragHandleProps}
-        >
-          {wrappedTitle}
-        </span>
-      )}
     </Dropdown>
   );
 };
@@ -533,7 +540,7 @@ const DraggableTabNode: React.FC<DraggableTabNodeProps> = ({ node }) => {
   );
 };
 
-const TabContent: React.FC<{ tab: TabData; isActive: boolean }> = React.memo(({ tab, isActive }) => {
+const TabContent: React.FC<{ tab: TabData; isActive: boolean; lazyHeavyModules: boolean }> = React.memo(({ tab, isActive, lazyHeavyModules }) => {
   if (tab.type === 'query') {
     return <QueryEditor tab={tab} isActive={isActive} />;
   }
@@ -541,7 +548,10 @@ const TabContent: React.FC<{ tab: TabData; isActive: boolean }> = React.memo(({ 
     return <DataViewer tab={tab} isActive={isActive} />;
   }
   if (tab.type === 'design') {
-    return <TableDesigner tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyTableDesigner tab={tab} /> : <TableDesigner tab={tab} />,
+    );
   }
   if (tab.type === 'redis-keys') {
     return <RedisViewer connectionId={tab.connectionId} redisDB={tab.redisDB ?? 0} />;
@@ -562,25 +572,46 @@ const TabContent: React.FC<{ tab: TabData; isActive: boolean }> = React.memo(({ 
     return <TableOverview tab={tab} />;
   }
   if (tab.type === 'table-export') {
-    return <TableExportWorkbench tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyTableExportWorkbench tab={tab} /> : <TableExportWorkbench tab={tab} />,
+    );
   }
   if (tab.type === 'sql-analysis') {
-    return <SqlAnalysisWorkbench tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazySqlAnalysisWorkbench tab={tab} /> : <SqlAnalysisWorkbench tab={tab} />,
+    );
   }
   if (tab.type === 'jvm-overview') {
-    return <JVMOverview tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyJVMOverview tab={tab} /> : <JVMOverview tab={tab} />,
+    );
   }
   if (tab.type === 'jvm-resource') {
-    return <JVMResourceBrowser tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyJVMResourceBrowser tab={tab} /> : <JVMResourceBrowser tab={tab} />,
+    );
   }
   if (tab.type === 'jvm-audit') {
-    return <JVMAuditViewer tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyJVMAuditViewer tab={tab} /> : <JVMAuditViewer tab={tab} />,
+    );
   }
   if (tab.type === 'jvm-diagnostic') {
-    return <JVMDiagnosticConsole tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyJVMDiagnosticConsole tab={tab} /> : <JVMDiagnosticConsole tab={tab} />,
+    );
   }
   if (tab.type === 'jvm-monitoring') {
-    return <JVMMonitoringDashboard tab={tab} />;
+    return wrapLazyTabContent(
+      lazyHeavyModules,
+      lazyHeavyModules ? <LazyJVMMonitoringDashboard tab={tab} /> : <JVMMonitoringDashboard tab={tab} />,
+    );
   }
   return null;
 });
@@ -590,9 +621,11 @@ const TabManager: React.FC = React.memo(() => {
   const connections = useStore(state => state.connections);
   const theme = useStore(state => state.theme);
   const appearance = useStore(state => state.appearance);
+  const memorySettings = useStore(state => state.memorySettings);
   const languagePreference = useStore(state => state.languagePreference);
   const activeTabId = useStore(state => state.activeTabId);
   const setActiveTab = useStore(state => state.setActiveTab);
+  const releaseTabQueryResults = useStore(state => state.releaseTabQueryResults);
   const addTab = useStore(state => state.addTab);
   const closeTab = useStore(state => state.closeTab);
   const closeOtherTabs = useStore(state => state.closeOtherTabs);
@@ -608,12 +641,24 @@ const TabManager: React.FC = React.memo(() => {
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
     })
+  );  const hasTabs = tabs.length > 0;
+  const memoryPolicy = useMemo(
+    () => resolveMemoryPolicy(memorySettings, appearance),
+    [appearance, memorySettings],
   );
-  const isV2Ui = appearance.uiVersion === 'v2';
-  const hasTabs = tabs.length > 0;
+  const destroyInactiveTabs = shouldDestroyInactiveTabs(memoryPolicy);
+  const lazyHeavyModules = shouldLazyLoadHeavyModules(memoryPolicy);
   const pendingCloseTabIdsRef = useRef<Set<string>>(new Set());
 
   const onChange = (newActiveKey: string) => {
+    if (
+      memoryPolicy.effectiveLowMemoryMode
+      && activeTabId
+      && activeTabId !== newActiveKey
+    ) {
+      flushQueryTabDrafts([activeTabId]);
+      releaseTabQueryResults(activeTabId);
+    }
     setActiveTab(newActiveKey);
   };
 
@@ -921,15 +966,14 @@ const TabManager: React.FC = React.memo(() => {
           menuItems={menuItems}
           connectionLabel={connection?.name}
           hostSummary={hostSummary}
-          isV2Ui={isV2Ui}
           onClose={() => closeTabsWithQueryPrompt([tab.id], () => closeTab(tab.id))}
         />
       ),
       key: tab.id,
-      closable: !isV2Ui,
-      children: <TabContent tab={tab} isActive={tabIsActive} />,
+      closable: false,
+      children: <TabContent tab={tab} isActive={tabIsActive} lazyHeavyModules={lazyHeavyModules} />,
     };
-  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithQueryPrompt, isV2Ui, languagePreference]);
+  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithQueryPrompt, languagePreference, lazyHeavyModules]);
 
   const handleOpenConnectionModal = () => {
     const target = document.querySelector<HTMLButtonElement>('[data-gonavi-create-connection-action="true"]');
@@ -992,7 +1036,7 @@ const TabManager: React.FC = React.memo(() => {
   );
 
   return (
-    <div className={`${TAB_WORKBENCH_CLASS_NAME}${isV2Ui ? ' gn-v2-tab-workbench' : ''}`}>
+    <div className={`${TAB_WORKBENCH_CLASS_NAME} gn-v2-tab-workbench`}>
         <style>{`
             .${TAB_WORKBENCH_CLASS_NAME} {
               height: 100%;
@@ -1173,7 +1217,7 @@ body[data-theme='dark'] .main-tabs .ant-tabs-tab.ant-tabs-tab-active {
               font-weight: 600;
             }
         `}</style>
-        {isV2Ui && !hasTabs ? (
+        {!hasTabs ? (
           EmptyWorkbench
         ) : (
         <DndContext
@@ -1186,9 +1230,9 @@ body[data-theme='dark'] .main-tabs .ant-tabs-tab.ant-tabs-tab-active {
         >
           <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
             <Tabs
-                className={`main-tabs${isV2Ui ? ' gn-v2-main-tabs' : ''}${hasDoubleLineTabLabel ? ' gn-v2-main-tabs-double' : ''}`}
+                className={`main-tabs gn-v2-main-tabs${hasDoubleLineTabLabel ? ' gn-v2-main-tabs-double' : ''}`}
                 type="editable-card"
-                destroyOnHidden={false}
+                destroyOnHidden={destroyInactiveTabs}
                 onChange={(newActiveKey) => {
                   if (Date.now() < suppressClickUntilRef.current) return;
                   onChange(newActiveKey);

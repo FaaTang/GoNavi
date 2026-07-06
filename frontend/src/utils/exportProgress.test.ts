@@ -38,12 +38,12 @@ describe('exportProgress', () => {
   it('formats row summary with localized text and number separators', () => {
     setCurrentLanguage('en-US');
     expect(formatExportProgressRows(12345, 0, false)).toBe(
-      t('data_export.progress.rows_written', { current: '12.345' }),
+      t('data_export.progress.rows_written', { current: '12,345' }),
     );
     expect(formatExportProgressRows(12345, 880000, true)).toBe(
       t('data_export.progress.rows_written_with_total', {
-        current: '12.345',
-        total: '880.000',
+        current: '12,345',
+        total: '880,000',
       }),
     );
   });

@@ -18,8 +18,8 @@ describe('AI panel lazy-load guard', () => {
     expect(aiPanelBoundarySource).toContain('class AIPanelErrorBoundary extends React.Component');
     expect(appSource).toContain('<AIPanelErrorBoundary');
     expect(appSource).toContain('key={aiPanelRenderNonce}');
-    expect(appSource).toContain('AI 面板加载失败');
-    expect(appSource).toContain('重新加载');
+    expect(appSource).toContain("t('app.ai_panel.error.title')");
+    expect(appSource).toContain("t('app.ai_panel.action.reload')");
     expect(appSource).toContain('setAiPanelRenderNonce((current) => current + 1)');
     expect(appSource).toContain('<AIChatPanel width={aiPanelRenderWidth}');
     expect(appSource).not.toContain('const loadAIChatPanelModule = async (retryNonce: number) => {');

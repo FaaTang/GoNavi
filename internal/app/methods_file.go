@@ -3803,6 +3803,12 @@ func (a *App) ExportData(data []map[string]interface{}, columns []string, defaul
 }
 
 func (a *App) ExportDataWithOptions(data []map[string]interface{}, columns []string, defaultName string, options ExportFileOptions) connection.QueryResult {
+	if a != nil && a.ShouldUseStreamingExportGuard() {
+		return connection.QueryResult{
+			Success: false,
+			Message: a.appText("file.backend.error.export_streaming_guard_required", nil),
+		}
+	}
 	if defaultName == "" {
 		defaultName = "export"
 	}

@@ -18,17 +18,13 @@ export const SQL_EDITOR_AUTO_COMMIT_DELAY_OPTIONS: SqlEditorAutoCommitDelayOptio
   { value: 30000 },
 ];
 
-type QueryEditorTransactionSettingsProps = {
-  isV2Ui: boolean;
-  commitMode: SqlEditorCommitMode;
+type QueryEditorTransactionSettingsProps = {  commitMode: SqlEditorCommitMode;
   autoCommitDelayMs: number;
   onCommitModeChange: (mode: SqlEditorCommitMode) => void;
   onAutoCommitDelayMsChange: (delayMs: number) => void;
 };
 
-const QueryEditorTransactionSettings: React.FC<QueryEditorTransactionSettingsProps> = ({
-  isV2Ui,
-  commitMode,
+const QueryEditorTransactionSettings: React.FC<QueryEditorTransactionSettingsProps> = ({  commitMode,
   autoCommitDelayMs,
   onCommitModeChange,
   onAutoCommitDelayMsChange,
@@ -61,8 +57,8 @@ const QueryEditorTransactionSettings: React.FC<QueryEditorTransactionSettingsPro
         onOpenChange={handleModeTooltipOpenChange}
       >
       <Select
-        className={isV2Ui ? 'gn-v2-query-toolbar-select gn-v2-query-toolbar-transaction-mode-select' : undefined}
-        style={isV2Ui ? undefined : { width: 78 }}
+        className={'gn-v2-query-toolbar-select gn-v2-query-toolbar-transaction-mode-select'}
+        style={undefined}
         value={commitMode}
         onOpenChange={handleModeSelectOpenChange}
         onChange={(mode) => onCommitModeChange(mode === 'auto' ? 'auto' : 'manual')}
@@ -74,8 +70,8 @@ const QueryEditorTransactionSettings: React.FC<QueryEditorTransactionSettingsPro
       </Tooltip>
       {commitMode === 'auto' && (
         <Select
-          className={isV2Ui ? 'gn-v2-query-toolbar-select gn-v2-query-toolbar-transaction-delay-select' : undefined}
-          style={isV2Ui ? undefined : { width: 68 }}
+          className={'gn-v2-query-toolbar-select gn-v2-query-toolbar-transaction-delay-select'}
+          style={undefined}
           value={autoCommitDelayMs}
           onChange={(delayMs) => onAutoCommitDelayMsChange(Number(delayMs))}
           options={autoCommitDelayOptions}

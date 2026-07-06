@@ -1092,15 +1092,20 @@ jobs:
           fi
 
           # 写入到文件避免多行环境变量问题
-          printf '%b' "$BODY" > /tmp/changelog.md
+          {
+            printf '# %s\n\n' "$TAG"
+            printf '%b' "$BODY"
+          } > /tmp/changelog.md
           echo "changelog_file=/tmp/changelog.md" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          name: GoNavi ${{ github.ref_name }}
           files: release-assets/*
-          draft: true
+          draft: false
+          prerelease: false
           make_latest: true
           body_path: ${{ steps.changelog.outputs.changelog_file }}
         env:

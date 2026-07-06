@@ -36,7 +36,6 @@ const storeState = vi.hoisted(() => ({
     enabled: true,
     opacity: 1,
     blur: 0,
-    uiVersion: 'v2',
     showDataTableVerticalBorders: false,
     dataTableDensity: 'comfortable',
   },
@@ -790,8 +789,7 @@ describe('DataGrid DDL interactions', () => {
     setCurrentLanguage('zh-CN');
     storeState.queryOptions.showColumnComment = false;
     storeState.queryOptions.showColumnType = false;
-    storeState.appearance.uiVersion = 'legacy';
-    storeState.dataEditTransactionOptions = {
+storeState.dataEditTransactionOptions = {
       commitMode: 'manual',
       autoCommitDelayMs: 5000,
     };
@@ -906,8 +904,7 @@ describe('DataGrid DDL interactions', () => {
 
   it.each(['legacy', 'v2'] as const)(
     'opens the referenced table when clicking a foreign-key column header in %s UI',
-    async (uiVersion) => {
-      storeState.appearance.uiVersion = uiVersion;
+    async (_uiVersion) => {
       backendApp.DBGetForeignKeys.mockResolvedValueOnce({
         success: true,
         data: [{
@@ -959,8 +956,7 @@ describe('DataGrid DDL interactions', () => {
 
   it('opens the v2 column header context menu from table headers', async () => {
     setCurrentLanguage('en-US');
-    storeState.appearance.uiVersion = 'v2';
-    storeState.queryOptions.showColumnComment = true;
+storeState.queryOptions.showColumnComment = true;
     storeState.queryOptions.showColumnType = true;
     backendApp.DBGetColumns.mockResolvedValueOnce({
       success: true,
@@ -1325,9 +1321,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('opens the v2 cell context menu for table cells instead of the legacy inline menu', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer: ReactTestRenderer;
+let renderer: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <DataGrid
@@ -1493,9 +1487,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('copies loaded column data from the v2 column header context menu', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer: ReactTestRenderer;
+let renderer: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <DataGrid
@@ -1536,9 +1528,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('copies row and column data from the v2 cell context menu', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer: ReactTestRenderer;
+let renderer: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <DataGrid
@@ -1611,9 +1601,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('copies the current row for paste and pastes it as a new row from the v2 cell context menu', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer: ReactTestRenderer;
+let renderer: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <DataGrid
@@ -1684,8 +1672,7 @@ describe('DataGrid DDL interactions', () => {
 
   it('auto commits pending table edits after the configured delay', async () => {
     vi.useFakeTimers();
-    storeState.appearance.uiVersion = 'v2';
-    storeState.dataEditTransactionOptions = {
+storeState.dataEditTransactionOptions = {
       commitMode: 'auto',
       autoCommitDelayMs: 3000,
     };
@@ -1782,8 +1769,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('switches the v2 footer object tab into the embedded designer view', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBGetColumns.mockResolvedValueOnce({
+backendApp.DBGetColumns.mockResolvedValueOnce({
       success: true,
       data: [
         { name: 'id', type: 'bigint', key: 'PRI', nullable: 'NO', default: '', comment: '' },
@@ -1817,55 +1803,8 @@ describe('DataGrid DDL interactions', () => {
     expect(content).toContain('name');
   });
 
-  it('returns to the legacy table view when v2-only footer views are active during UI switch', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer: ReactTestRenderer;
-    await act(async () => {
-      renderer = create(
-        <DataGrid
-          data={[{ __gonavi_row_key__: 'row-1', id: 1, name: 'alpha' }]}
-          columnNames={['id', 'name']}
-          loading={false}
-          tableName="users"
-          dbName="main"
-          connectionId="conn-1"
-        />,
-      );
-    });
-    await waitForEffects();
-
-    await act(async () => {
-      findButton(renderer!, '对象设计').props.onClick();
-    });
-    expect(textContent(renderer!.root)).toContain('SCHEMA DESIGNER');
-
-    storeState.appearance.uiVersion = 'legacy';
-    await act(async () => {
-      renderer!.update(
-        <DataGrid
-          data={[{ __gonavi_row_key__: 'row-1', id: 1, name: 'alpha' }]}
-          columnNames={['id', 'name']}
-          loading={false}
-          tableName="users"
-          dbName="main"
-          connectionId="conn-1"
-        />,
-      );
-    });
-    await waitForEffects();
-
-    const content = textContent(renderer!.root);
-    expect(content).not.toContain('SCHEMA DESIGNER');
-    expect(content).not.toContain('gn-v2-data-grid-fields-view');
-    expect(content).toContain('数据预览');
-    expect(content).toContain('结果视图');
-    expect(content).toContain('字段信息');
-  });
-
   it('keeps the v2 fields tab as read-only field info for views', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBGetColumns.mockResolvedValueOnce({
+backendApp.DBGetColumns.mockResolvedValueOnce({
       success: true,
       data: [
         { name: 'id', type: 'bigint', key: '', nullable: 'NO', default: '', comment: '' },
@@ -1905,8 +1844,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('renders the v2 footer DDL view with the Monaco SQL editor', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBShowCreateTable.mockResolvedValueOnce({
+backendApp.DBShowCreateTable.mockResolvedValueOnce({
       success: true,
       data: 'CREATE TABLE users (`id` bigint)',
     });
@@ -1941,8 +1879,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('formats DuckDB DDL into readable multiline SQL in the v2 view', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    storeState.connections[0].config.type = 'duckdb';
+storeState.connections[0].config.type = 'duckdb';
     backendApp.DBShowCreateTable.mockResolvedValueOnce({
       success: true,
       data: 'CREATE TABLE customers(customer_id BIGINT, customer_code VARCHAR, city VARCHAR, tier VARCHAR, signup_date DATE, lifetime_value DECIMAL(12,2), PRIMARY KEY(customer_id));',
@@ -1978,8 +1915,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('opens the v2 DDL view as a right sidebar while keeping the table visible', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBShowCreateTable.mockResolvedValueOnce({
+backendApp.DBShowCreateTable.mockResolvedValueOnce({
       success: true,
       data: 'CREATE TABLE users (`id` bigint)',
     });
@@ -2024,8 +1960,7 @@ describe('DataGrid DDL interactions', () => {
   });
 
   it('previews and commits the v2 DDL sidebar width after dragging the separator', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBShowCreateTable.mockResolvedValueOnce({
+backendApp.DBShowCreateTable.mockResolvedValueOnce({
       success: true,
       data: 'CREATE TABLE users (`id` bigint)',
     });

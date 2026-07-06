@@ -448,7 +448,7 @@ describe('main browser mock', () => {
     });
 
     expect(getCurrentLanguage()).toBe('en-US');
-    expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
+    expect(dayjsLocaleMock).toHaveBeenCalledWith('en');
     expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 
@@ -502,7 +502,7 @@ describe('main browser mock', () => {
     expect(renderer).not.toBeNull();
     expect(renderer!.toJSON()).not.toBeNull();
     expect(getCurrentLanguage()).toBe('en-US');
-    expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
+    expect(dayjsLocaleMock).toHaveBeenCalledWith('en');
     expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 
@@ -540,7 +540,7 @@ describe('main browser mock', () => {
     expect(renderer).not.toBeNull();
     expect(renderer!.toJSON()).not.toBeNull();
     expect(getCurrentLanguage()).toBe('en-US');
-    expect(dayjsLocaleMock).toHaveBeenCalledWith('ja');
+    expect(dayjsLocaleMock).toHaveBeenCalledWith('en');
     expect(syncLanguageRuntimeMock.mock.calls.map(([language]) => language)).toEqual(['en-US']);
   });
 });

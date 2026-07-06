@@ -32,6 +32,7 @@ func TestShouldReleaseFileTransferMemory_UsesFileSizeThreshold(t *testing.T) {
 }
 
 func TestMaybeReleaseFileTransferMemory_TriggersTrimForLargeJobs(t *testing.T) {
+	syncRuntimeLowMemoryModeFlag(true)
 	originalAsync := runFileTransferMemoryTrimAsync
 	originalTrim := fileTransferMemoryTrimFn
 	t.Cleanup(func() {
@@ -39,6 +40,7 @@ func TestMaybeReleaseFileTransferMemory_TriggersTrimForLargeJobs(t *testing.T) {
 		fileTransferMemoryTrimFn = originalTrim
 		fileTransferMemoryTrimRunning.Store(false)
 		fileTransferMemoryTrimLastAt.Store(0)
+		syncRuntimeLowMemoryModeFlag(false)
 	})
 
 	fileTransferMemoryTrimRunning.Store(false)
@@ -59,7 +61,8 @@ func TestMaybeReleaseFileTransferMemory_TriggersTrimForLargeJobs(t *testing.T) {
 	}
 }
 
-func TestMaybeReleaseFileTransferMemory_SkipsSmallJobs(t *testing.T) {
+func TestMaybeReleaseFileTransferMemory_SkipsWhenNotLowMemoryMode(t *testing.T) {
+	syncRuntimeLowMemoryModeFlag(false)
 	originalAsync := runFileTransferMemoryTrimAsync
 	originalTrim := fileTransferMemoryTrimFn
 	t.Cleanup(func() {
@@ -67,6 +70,36 @@ func TestMaybeReleaseFileTransferMemory_SkipsSmallJobs(t *testing.T) {
 		fileTransferMemoryTrimFn = originalTrim
 		fileTransferMemoryTrimRunning.Store(false)
 		fileTransferMemoryTrimLastAt.Store(0)
+	})
+
+	fileTransferMemoryTrimRunning.Store(false)
+	fileTransferMemoryTrimLastAt.Store(0)
+
+	triggered := 0
+	runFileTransferMemoryTrimAsync = func(fn func()) {
+		fn()
+	}
+	fileTransferMemoryTrimFn = func() {
+		triggered++
+	}
+
+	maybeReleaseFileTransferMemory("test-large-job-normal-mode", fileTransferMemoryTrimRowsThreshold, "")
+
+	if triggered != 0 {
+		t.Fatalf("正常模式下不应触发内存回收，got=%d", triggered)
+	}
+}
+
+func TestMaybeReleaseFileTransferMemory_SkipsSmallJobs(t *testing.T) {
+	syncRuntimeLowMemoryModeFlag(true)
+	originalAsync := runFileTransferMemoryTrimAsync
+	originalTrim := fileTransferMemoryTrimFn
+	t.Cleanup(func() {
+		runFileTransferMemoryTrimAsync = originalAsync
+		fileTransferMemoryTrimFn = originalTrim
+		fileTransferMemoryTrimRunning.Store(false)
+		fileTransferMemoryTrimLastAt.Store(0)
+		syncRuntimeLowMemoryModeFlag(false)
 	})
 
 	fileTransferMemoryTrimRunning.Store(false)

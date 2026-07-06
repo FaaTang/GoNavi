@@ -13,7 +13,7 @@ const storeState = {
     setCurrentLanguage(languagePreference);
     notifyStoreSubscribers();
   }),
-  appearance: { uiVersion: 'legacy', opacity: 1 },
+  appearance: { opacity: 1 },
 };
 
 const storeSubscribers = new Set<() => void>();
@@ -211,8 +211,7 @@ describe('DriverManagerModal i18n', () => {
     storeState.theme = 'light';
     storeState.languagePreference = 'zh-CN';
     storeState.setLanguagePreference.mockClear();
-    storeState.appearance.uiVersion = 'legacy';
-    storeState.appearance.opacity = 1;
+storeState.appearance.opacity = 1;
     backendApp.GetDriverStatusList.mockResolvedValue({
       success: true,
       data: {
@@ -383,8 +382,7 @@ describe('DriverManagerModal i18n', () => {
     ['v2', 'en-US', 'Driver Manager', 'Install all drivers', 'Search driver name/type (for example DuckDB, clickhouse)', 'Driver Logs - ClickHouse', 'Install directory:', 'Driver executable:', 'This driver has no operation logs yet.'],
   ] as const)(
     'renders localized chrome and preserves raw network summary for %s %s',
-    async (uiVersion, language, titleText, toolbarText, searchText, logTitleText, logInstallDirText, logExecutableText, emptyLogText) => {
-      storeState.appearance.uiVersion = uiVersion;
+    async (_uiVersion, language, titleText, toolbarText, searchText, logTitleText, logInstallDirText, logExecutableText, emptyLogText) => {
       const { setCurrentLanguage } = await import('../i18n');
       setCurrentLanguage(language);
       const { default: DriverManagerModal } = await import('./DriverManagerModal');
@@ -413,8 +411,7 @@ describe('DriverManagerModal i18n', () => {
   it.each([
     ['legacy', 'zh-CN', '暂无驱动数据'],
     ['v2', 'en-US', 'No drivers available'],
-  ] as const)('renders localized empty state for %s %s', async (uiVersion, language, emptyText) => {
-    storeState.appearance.uiVersion = uiVersion;
+  ] as const)('renders localized empty state for %s %s', async (_uiVersion, language, emptyText) => {
     backendApp.GetDriverStatusList.mockResolvedValueOnce({
       success: true,
       data: {
@@ -435,8 +432,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('renders localized card metadata and actions for en-US v2 while preserving raw driver detail', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    const { setCurrentLanguage } = await import('../i18n');
+const { setCurrentLanguage } = await import('../i18n');
     setCurrentLanguage('en-US');
     const { default: DriverManagerModal } = await import('./DriverManagerModal');
 
@@ -456,8 +452,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('renders en-US driver card status shell without exposing backend Chinese wrappers', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.GetDriverStatusList.mockResolvedValue({
+backendApp.GetDriverStatusList.mockResolvedValue({
       success: true,
       data: {
         downloadDir: 'D:/drivers',
@@ -501,8 +496,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('renders en-US network summary from structured fields instead of backend Chinese summary', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
+backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
       success: true,
       data: {
         reachable: true,
@@ -542,8 +536,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('renders checking copy while the network status request is pending', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.CheckDriverNetworkStatus.mockImplementationOnce(() => new Promise(() => {}));
+backendApp.CheckDriverNetworkStatus.mockImplementationOnce(() => new Promise(() => {}));
     const { setCurrentLanguage } = await import('../i18n');
     setCurrentLanguage('en-US');
     const { default: DriverManagerModal } = await import('./DriverManagerModal');
@@ -604,8 +597,7 @@ describe('DriverManagerModal i18n', () => {
   ] as const)(
     'renders en-US network summary branch %s from structured status',
     async (_caseName, networkResult, expectedText, unexpectedText) => {
-      storeState.appearance.uiVersion = 'v2';
-      backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce(networkResult);
+backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce(networkResult);
       const { setCurrentLanguage } = await import('../i18n');
       setCurrentLanguage('en-US');
       const { default: DriverManagerModal } = await import('./DriverManagerModal');
@@ -622,8 +614,7 @@ describe('DriverManagerModal i18n', () => {
   );
 
   it('renders en-US network punctuation while preserving raw GitHub error text', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
+backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
       success: true,
       data: {
         reachable: true,
@@ -697,8 +688,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('uses structured slim-build reason code instead of raw Chinese message when importing a directory', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.GetDriverStatusList.mockResolvedValue({
+backendApp.GetDriverStatusList.mockResolvedValue({
       success: true,
       data: {
         downloadDir: 'D:/drivers',
@@ -739,8 +729,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('uses structured GitHub release probe code instead of raw Chinese probe name', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
+backendApp.CheckDriverNetworkStatus.mockResolvedValueOnce({
       success: true,
       data: {
         reachable: true,
@@ -778,8 +767,7 @@ describe('DriverManagerModal i18n', () => {
   });
 
   it('renders en-US frontend-generated operation log shell while preserving raw local import details', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.GetDriverStatusList.mockResolvedValue({
+backendApp.GetDriverStatusList.mockResolvedValue({
       success: true,
       data: {
         downloadDir: 'D:/drivers',

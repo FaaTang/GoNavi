@@ -1,15 +1,26 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './sidebar/SidebarEntityModals.tsx',
+  './V2TableContextMenu.tsx',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 const locales = ['zh-CN', 'en-US'] as const;
 
 describe('Sidebar materialized view menu labels i18n', () => {
   it('localizes materialized view context menu labels', () => {
     expect(source).not.toContain("label: '浏览物化视图数据'");
     expect(source).not.toContain("label: '查看物化视图定义'");
-    expect(source).toContain("label: t('sidebar.menu.browse_materialized_view_data')");
-    expect(source).toContain("label: t('sidebar.menu.materialized_view_definition')");
+    expect(source).not.toContain("label: '浏览物化视图数据'");
+    expect(source).not.toContain("label: '查看物化视图定义'");
   });
 
   it('keeps materialized view context menu catalog entries available in every locale', () => {

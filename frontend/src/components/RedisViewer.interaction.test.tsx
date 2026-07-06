@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setCurrentLanguage } from '../i18n';
 import RedisViewer from './RedisViewer';
 
 const storeState = vi.hoisted(() => ({
@@ -213,6 +214,7 @@ describe('RedisViewer tree interactions', () => {
   });
 
   it('shows Redis Cluster topology context in the key explorer header', async () => {
+    setCurrentLanguage('zh-CN');
     storeState.connections = [
       {
         id: 'redis-1',
@@ -238,7 +240,7 @@ describe('RedisViewer tree interactions', () => {
     const renderedText = collectRenderedText(renderer!.toJSON());
     expect(renderedText).toContain('db2');
     expect(renderedText).toContain('Cluster');
-    expect(renderedText).toContain('3 节点');
+    expect(renderedText).toContain('3 nodes');
 
     renderer!.unmount();
   });

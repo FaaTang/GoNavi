@@ -256,69 +256,16 @@ describe('DataGrid layout', () => {
     expect(source).not.toMatch(/label:\s*['"]导出选中数据['"]/);
   });
 
-  it('localizes legacy cell context menu labels through translateDataGrid', () => {
-    const dataGridSource = readDataGridSource();
-    const legacyMenuSource = readFileSync(new URL('./DataGridLegacyCellContextMenu.tsx', import.meta.url), 'utf8');
-    const legacyMountStart = dataGridSource.indexOf('<DataGridLegacyCellContextMenu');
-    const legacyMountSource = dataGridSource.slice(
-      legacyMountStart,
-      dataGridSource.indexOf('/>', legacyMountStart),
-    );
+  it('localizes v2 cell context menu labels through translateDataGrid', () => {
+    const v2MenuSource = readFileSync(new URL('./V2TableContextMenu.tsx', import.meta.url), 'utf8');
     const expectedKeys = [
       'data_grid.context_menu.copy_field_name',
-      'data_grid.batch_fill.set_null',
+      'data_grid.context_menu.undo_cell_change',
       'data_grid.context_menu.edit_row',
-      'data_grid.context_menu.copy_row_as_new',
-      'data_grid.context_menu.paste_row_as_new',
-      'data_grid.context_menu.paste_row_as_new_count',
-      'data_grid.context_menu.fill_to_selected_rows',
-      'data_grid.context_menu.paste_copied_columns',
-      'data_grid.context_menu.copy_row_data',
-      'data_grid.context_menu.copy_as_insert',
-      'data_grid.context_menu.copy_as_update',
-      'data_grid.context_menu.copy_as_delete',
-      'data_grid.context_menu.copy_as_json',
-      'data_grid.context_menu.copy_as_csv',
-      'data_grid.context_menu.copy_as_markdown',
-      'data_grid.context_menu.export_as_csv',
-      'data_grid.context_menu.export_as_excel',
-      'data_grid.context_menu.export_as_json',
-      'data_grid.context_menu.export_as_html',
     ];
 
-    expect(legacyMountStart).toBeGreaterThanOrEqual(0);
-    expect(legacyMountSource).toContain('translate={translateDataGrid}');
-    expect(legacyMenuSource).toContain('translate?: (key: string, params?: Record<string, unknown>) => string');
     expectedKeys.forEach((key) => {
-      expect(legacyMenuSource).toContain(`translate('${key}'`);
-    });
-    expect(legacyMenuSource).toMatch(
-      /translate\(\s*'data_grid\.context_menu\.paste_row_as_new_count'\s*,\s*\{\s*count:\s*copiedRowsForPasteLength\s*\}\s*\)/,
-    );
-    expect(legacyMenuSource).toMatch(
-      /translate\(\s*'data_grid\.context_menu\.fill_to_selected_rows'\s*,\s*\{\s*count:\s*selectedRowKeysLength\s*\}\s*\)/,
-    );
-    [
-      '复制字段名称',
-      '设置为 NULL',
-      '编辑本行',
-      '复制本行为新增行',
-      '粘贴为新增行',
-      '填充到选中行',
-      '粘贴已复制列',
-      '复制行数据',
-      '复制为 INSERT',
-      '复制为 UPDATE',
-      '复制为 DELETE',
-      '复制为 JSON',
-      '复制为 CSV',
-      '复制为 Markdown',
-      '导出为 CSV',
-      '导出为 Excel',
-      '导出为 JSON',
-      '导出为 HTML',
-    ].forEach((literal) => {
-      expect(legacyMenuSource).not.toContain(literal);
+      expect(v2MenuSource).toContain(key);
     });
   });
 
@@ -772,7 +719,7 @@ describe('DataGrid layout', () => {
   it('refreshes DataGrid localized chrome when the language preference changes', () => {
     mockStoreState.languagePreference = 'system';
     const previousUiVersion = mockStoreState.uiVersion;
-    mockStoreState.uiVersion = 'legacy';
+    mockStoreState.uiVersion = 'v2';
     const renderLocalizedGrid = (systemLanguages: readonly string[]) => renderDataGridWithI18n(
       <DataGrid
         data={[
@@ -798,11 +745,11 @@ describe('DataGrid layout', () => {
 
     try {
       const zhMarkup = renderLocalizedGrid(['zh-CN']);
-      expect(zhMarkup).toContain('placeholder="跳到字段列..."');
-      expect(zhMarkup).not.toContain('placeholder="Jump to column..."');
+      expect(zhMarkup).toContain('>跳列<');
+      expect(zhMarkup).not.toContain('>Jump column<');
 
       const enMarkup = renderLocalizedGrid(['en-US']);
-      expect(enMarkup).toContain('placeholder="Jump to column..."');
+      expect(enMarkup).toContain('>Jump column<');
     } finally {
       mockStoreState.uiVersion = previousUiVersion;
     }
@@ -854,7 +801,7 @@ describe('DataGrid layout', () => {
   it('falls back to the current i18n language when rendered outside I18nProvider', () => {
     const previousUiVersion = mockStoreState.uiVersion;
     const previousLanguage = getCurrentLanguage();
-    mockStoreState.uiVersion = 'legacy';
+    mockStoreState.uiVersion = 'v2';
     setCurrentLanguage('en-US');
 
     try {
@@ -874,20 +821,21 @@ describe('DataGrid layout', () => {
         />,
       );
 
-      expect(markup).toContain('placeholder="Jump to column..."');
-      expect(markup).not.toContain('placeholder="跳到字段列..."');
+      expect(markup).toContain('>Jump column<');
+      expect(markup).not.toContain('>跳列<');
     } finally {
       setCurrentLanguage(previousLanguage);
       mockStoreState.uiVersion = previousUiVersion;
     }
   });
 
-  it('localizes legacy and v2 pagination summaries through DataGrid i18n', () => {
+  it('localizes v2 pagination summaries through DataGrid i18n', () => {
     mockStoreState.languagePreference = 'system';
     const previousUiVersion = mockStoreState.uiVersion;
-    const renderLocalizedGrid = (uiVersion: 'legacy' | 'v2', pagination: React.ComponentProps<typeof DataGrid>['pagination']) => {
-      mockStoreState.uiVersion = uiVersion;
-      return renderDataGridWithI18n(
+    mockStoreState.uiVersion = 'v2';
+
+    try {
+      const v2Markup = renderDataGridWithI18n(
         <DataGrid
           data={[
             {
@@ -900,29 +848,17 @@ describe('DataGrid layout', () => {
           loading={false}
           tableName="users"
           readOnly
-          pagination={pagination}
+          pagination={{
+            current: 1,
+            pageSize: 100,
+            total: 1,
+            totalKnown: false,
+            totalCountLoading: true,
+          }}
           onPageChange={() => {}}
         />,
         { systemLanguages: ['en-US'] },
       );
-    };
-
-    try {
-      const legacyMarkup = renderLocalizedGrid('legacy', {
-        current: 1,
-        pageSize: 100,
-        total: 1,
-      });
-      expect(legacyMarkup).toContain('Current 1 rows / 1 rows total');
-      expect(legacyMarkup).not.toContain('当前 1 条');
-
-      const v2Markup = renderLocalizedGrid('v2', {
-        current: 1,
-        pageSize: 100,
-        total: 1,
-        totalKnown: false,
-        totalCountLoading: true,
-      });
       expect(v2Markup).toContain('Current 1 rows / counting total...');
       expect(v2Markup).not.toContain('正在统计');
     } finally {
@@ -975,73 +911,37 @@ describe('DataGrid layout', () => {
     expect(source).toContain('pageFindContent={visiblePageFindContent}');
   });
 
-  it('keeps legacy secondary actions aligned on a shared search-row baseline', () => {
+  it('keeps v2 secondary actions on the status bar shell', () => {
     const source = readFileSync(new URL('./DataGridSecondaryActions.tsx', import.meta.url), 'utf8');
     const columnQuickFindSource = readFileSync(new URL('./DataGridColumnQuickFind.tsx', import.meta.url), 'utf8');
     const pageFindSource = readFileSync(new URL('./DataGridPageFind.tsx', import.meta.url), 'utf8');
     const dataGridSource = readDataGridSource();
     const paginationSource = readFileSync(new URL('./DataGridPaginationBar.tsx', import.meta.url), 'utf8');
 
-    expect(source).toContain('data-grid-legacy-secondary-actions="true"');
-    expect(source).toContain('data-grid-legacy-secondary-row="primary"');
-    expect(source).toContain('data-grid-legacy-secondary-row="search"');
-    expect(source).toContain('data-grid-legacy-result-view-switcher="true"');
-    expect(source).toContain('data-grid-legacy-column-quick-find="true"');
-    expect(source).toContain('data-grid-legacy-page-find="true"');
-    expect(source).toContain('data-grid-legacy-pagination="true"');
-    expect(source).toContain("justifyContent: 'flex-start'");
-    expect(source).toContain('minHeight: 32');
-    expect(source).toContain("style={{ display: 'flex', minWidth: 0, marginLeft: 'auto' }}");
-    expect(source).toContain("flex: '0 1 240px'");
-    expect(source).toContain("flex: '0 1 auto'");
-    expect(columnQuickFindSource).not.toContain('定位字段列');
-    expect(columnQuickFindSource).toContain("flexWrap: 'nowrap'");
-    expect(columnQuickFindSource).toContain("width: 168");
-    expect(columnQuickFindSource).toContain('height: 32');
-    expect(columnQuickFindSource).toContain('const legacyDropdownOpen =');
-    expect(columnQuickFindSource).toContain('open={isV2Ui ? undefined : legacyDropdownOpen}');
-    expect(columnQuickFindSource).toContain('onSubmit: (value?: string) => void;');
+    expect(source).toContain('gn-v2-data-grid-statusbar');
+    expect(source).toContain('gn-v2-data-grid-view-tabs');
+    expect(source).not.toContain('data-grid-legacy-secondary-actions="true"');
+    expect(columnQuickFindSource).toContain('gn-v2-data-grid-column-quick-find');
+    expect(columnQuickFindSource).not.toContain('legacyDropdownOpen');
     expect(columnQuickFindSource).toContain('onSubmit(nextValue);');
-    expect(columnQuickFindSource).toContain('onPressEnter={() => onSubmit(value)}');
-    expect(columnQuickFindSource).not.toContain('data-grid-column-quick-find-submit=');
-    expect(columnQuickFindSource).not.toContain(" '跳转'");
-    expect(pageFindSource).toContain("gap: 8");
-    expect(pageFindSource).toContain("flexWrap: 'nowrap'");
-    expect(pageFindSource).toContain('height: 32');
-    expect(pageFindSource).not.toContain("flexDirection: 'column'");
-    expect(pageFindSource).not.toContain(" '上一个'");
-    expect(pageFindSource).not.toContain(" '下一个'");
-    expect(pageFindSource).toContain("paddingInline: 8");
-    expect(pageFindSource).toContain("whiteSpace: 'nowrap'");
-    expect(pageFindSource).toContain("onCancel: () => void;");
-    expect(pageFindSource).toContain("if (event.key === 'Escape')");
     expect(pageFindSource).toContain('onCancel();');
-    expect(pageFindSource).toContain("textAlign: 'left'");
-    expect(dataGridSource).toContain("const normalizedPageFindText = useMemo(() => normalizeDataGridFindQuery(pageFindText), [pageFindText]);");
-    expect(dataGridSource).not.toContain("const normalizedPageFindText = useMemo(() => normalizeDataGridFindQuery(deferredPageFindText), [deferredPageFindText]);");
-    expect(dataGridSource).toContain("if (event.key === 'Escape')");
-    expect(dataGridSource).toContain('if (activeSelection.size === 0) {');
-    expect(dataGridSource).toContain('closeCellEditMode();');
-    expect(dataGridSource).toContain('resetCellSelection();');
-    expect(dataGridSource).toContain("tagName === 'input' || tagName === 'textarea' || activeElement?.isContentEditable");
-    expect(paginationSource).toContain("padding: 0");
-    expect(paginationSource).toContain("justifyContent: 'flex-start'");
+    expect(paginationSource).toContain('data-grid-v2-pagination="true"');
+    expect(dataGridSource).toContain('V2CellContextMenuView');
   });
 
-  it('avoids duplicating legacy pagination page text beside the pager', () => {
+  it('renders v2 pagination without legacy pager chrome', () => {
     const markup = renderToStaticMarkup(
       <DataGridPaginationBar
-        isV2Ui={false}
         pagination={{
           current: 1,
           pageSize: 100,
           total: 24,
         }}
-        paginationV2SummaryText="24 行"
-        paginationSummaryText="当前 24 条 / 共 24 条"
+        paginationV2SummaryText="24 rows"
+        paginationSummaryText="24 rows"
         paginationControlTotal={24}
         paginationTotalPages={1}
-        paginationPageText="第 1 / 1 页"
+        paginationPageText="Page 1 / 1"
         paginationPageSizeOptions={['100', '200']}
         showKnownPageCount
         onPageChange={() => {}}
@@ -1050,8 +950,8 @@ describe('DataGrid layout', () => {
       />,
     );
 
-    expect(markup).toContain('class="ant-pagination');
-    expect(markup).not.toContain('第 1 / 1 页');
+    expect(markup).toContain('data-grid-v2-pagination="true"');
+    expect(markup).not.toContain('class="ant-pagination');
   });
 
   it('keeps detached DataGrid chrome text behind translateDataGrid', () => {
@@ -1092,7 +992,6 @@ describe('DataGrid layout', () => {
     expect(detachedChromeSource).toContain("translate('data_grid.page_find.tooltip')");
     expect(detachedChromeSource).toContain("translate('data_grid.page_find.placeholder')");
     expect(detachedChromeSource).toContain("translate('data_grid.page_find.summary'");
-    expect(detachedChromeSource).toContain("translate('data_grid.pagination.result_set')");
     expect(detachedChromeSource).toContain("translate('data_grid.pagination.page_size_aria')");
     expect(detachedChromeSource).toContain("translate('data_grid.pagination.page_size_option'");
     expect(detachedChromeSource).toContain("translate('data_grid.pagination.jump_label')");
@@ -1202,7 +1101,7 @@ describe('DataGrid layout', () => {
       /translate\('data_grid\.toolbar\.batch_fill', \{ count: selectedCellsSize \}\)/,
       /translate\('data_grid\.toolbar\.paste_to_selected_rows', \{ count: selectedRowKeysLength \}\)/,
       /translate\('data_grid\.toolbar\.copied_columns_count', \{ count: copiedCellPatchColumnCount \}\)/,
-      /translate\('data_grid\.toolbar\.commit', \{ count: pendingChangeCount \}\)/,
+      /translate\('data_grid\.toolbar\.commit_label'\)/,
     ].forEach((pattern) => {
       expect(toolbarFrameSource).toMatch(pattern);
     });
@@ -1292,7 +1191,7 @@ describe('DataGrid layout', () => {
     ].forEach((literal) => {
       expect(handleCopyDdlSource).not.toContain(literal);
     });
-    expect(dataGridSource.match(/message\.info\(translateDataGrid\('data_grid\.message\.no_copyable_rows'\)\)/g) ?? []).toHaveLength(3);
+    expect(dataGridSource.match(/message\.info\(translateDataGrid\('data_grid\.message\.no_copyable_rows'\)\)/g) ?? []).toHaveLength(2);
     expect(dataGridSource).not.toContain("message.info('未识别到可复制的行')");
     expect(dataGridSource).toContain("translateDataGrid('data_grid.message.cell_edit_mode_entered')");
     expect(dataGridSource).toContain("translateDataGrid('data_grid.message.cell_edit_mode_exited')");
@@ -1651,7 +1550,6 @@ describe('DataGrid layout', () => {
         'data_grid.page_find.tooltip': 'Find only this page',
         'data_grid.page_find.placeholder': 'Find current page',
         'data_grid.page_find.summary': `${params?.occurrences} hits / ${params?.cells} cells`,
-        'data_grid.pagination.result_set': 'Result set label',
         'data_grid.pagination.page_size_aria': 'Rows per page label',
         'data_grid.pagination.page_size_option': `${params?.count} rows per page`,
         'data_grid.pagination.jump_label': 'Jump label',
@@ -1686,7 +1584,6 @@ describe('DataGrid layout', () => {
 
     const pageFindMarkup = renderToStaticMarkup(
       <DataGridPageFind
-        isV2Ui={false}
         darkMode={false}
         pageFindText="al"
         normalizedPageFindText="al"
@@ -1709,7 +1606,6 @@ describe('DataGrid layout', () => {
 
     const resultViewMarkup = renderToStaticMarkup(
       <DataGridResultViewSwitcher
-        isV2Ui={false}
         darkMode={false}
         viewMode="table"
         translate={translate}
@@ -1724,7 +1620,6 @@ describe('DataGrid layout', () => {
 
     const paginationMarkup = renderToStaticMarkup(
       <DataGridPaginationBar
-        isV2Ui={false}
         pagination={{
           current: 1,
           pageSize: 100,
@@ -1743,7 +1638,7 @@ describe('DataGrid layout', () => {
         onV2PageStep={() => {}}
       />,
     );
-    expect(paginationMarkup).toContain('Result set label');
+    expect(paginationMarkup).toContain('Rows per page label');
     expect(paginationMarkup).toContain('Jump label');
     expect(paginationMarkup).toContain('Jump page aria');
     expect(paginationMarkup).toContain('Go action');
@@ -1752,7 +1647,6 @@ describe('DataGrid layout', () => {
 
     const secondaryMarkup = renderToStaticMarkup(
       <DataGridSecondaryActions
-        isV2Ui
         canViewDdl
         canOpenObjectDesigner={false}
         viewMode="table"
@@ -1902,11 +1796,7 @@ describe('DataGrid layout', () => {
     expect(markup).not.toContain('data-grid-pagination-jump="true"');
   });
 
-  it('keeps legacy unknown-total pagination in sequential mode instead of numbered pages', () => {
-    const previousUiVersion = mockStoreState.uiVersion;
-    mockStoreState.uiVersion = 'legacy';
-
-    try {
+  it('keeps unknown-total pagination in sequential mode instead of numbered pages', () => {
       const markup = renderDataGridWithI18n(
         <DataGrid
           data={[
@@ -1933,12 +1823,9 @@ describe('DataGrid layout', () => {
       );
 
       expect(markup).toContain('第 3 页');
-      expect(markup).toContain('data-grid-pagination-sequential="true"');
-      expect(markup).not.toContain('class="ant-pagination');
+      expect(markup).toContain('data-grid-v2-pagination="true"');
+      expect(markup).not.toContain('<strong>3</strong><span>/</span><span>4</span>');
       expect(markup).not.toContain('data-grid-pagination-jump="true"');
-    } finally {
-      mockStoreState.uiVersion = previousUiVersion;
-    }
   });
 
   it('renders the v2 DataGrid toolbar using the redesigned topbar hooks', () => {
@@ -2448,9 +2335,9 @@ describe('DataGrid layout', () => {
     expect(source).toContain("content-visibility: ${useVirtualHolderPaintHints ? 'auto' : 'visible'};");
     expect(source).toContain("content-visibility: ${useVirtualEditableVisibilityHints ? 'auto' : 'visible'};");
     expect(source).toContain("contain-intrinsic-size: ${useVirtualEditableVisibilityHints ? '24px 160px' : 'auto'};");
-    expect(source).toContain("const useVirtualHolderPaintHints = !isMacLike && !isV2Ui;");
+    expect(source).toContain("const useVirtualHolderPaintHints = false;");
     expect(source).toContain("const useVirtualCellContentContain = false;");
-    expect(source).toContain("const useVirtualEditableVisibilityHints = !isMacLike && !isV2Ui;");
+    expect(source).toContain("const useVirtualEditableVisibilityHints = false;");
     expect(source).toContain("contain: ${useVirtualRowCellContain ? 'layout paint style' : 'none'};");
     expect(source).toContain('.${gridId} .data-grid-toolbar-scroll::-webkit-scrollbar-thumb:hover');
     expect(source).toContain('.${gridId} .ant-table-body::-webkit-scrollbar-thumb:hover');
@@ -2459,7 +2346,7 @@ describe('DataGrid layout', () => {
     expect(source).toContain('background-clip: border-box;');
     expect(source).toContain('horizontalScrollbarThumbHoverBg');
     expect(source).toContain('const handleSharedCellContextMenu = useCallback');
-    expect(source).toContain('const shouldUsePlainVirtualContent = isV2Ui && !modifiedStyle;');
+    expect(source).toContain('const shouldUsePlainVirtualContent = !modifiedStyle;');
     expect(source).toContain('if (shouldUsePlainVirtualContent) {');
     expect(source).toContain('return originalRenderContent;');
     expect(source).toContain('if (scrollSnapshotRafRef.current !== null) return;');
@@ -2470,7 +2357,7 @@ describe('DataGrid layout', () => {
     expect(source).toContain('const applied = applyVirtualHorizontalOffset(tableContainer, nextLeft);');
     expect(source).toContain('resolvedLeft = readVirtualHorizontalOffset(tableContainer);');
     expect(source).toContain('lastReportedScrollRef.current = { top: nextTop, left: resolvedLeft };');
-    expect(source).toContain("const dataGridBackdropFilter = isV2Ui || isMacLike ? 'none' : (opacity < 0.999 ? 'blur(14px)' : 'none');");
+    expect(source).toContain("const dataGridBackdropFilter = 'none';");
     expect(source).toContain('rowHoverable={!enableVirtual}');
     expect(columnTitleSource).toContain("data-grid-column-highlighted={highlighted ? 'true' : undefined}");
     expect(columnTitleSource).toContain('data-column-name={normalizedName}');
@@ -2502,14 +2389,12 @@ describe('DataGrid layout', () => {
     expect(css).toContain('background: transparent !important;');
   });
 
-  it('keeps the DataGrid performance harness aligned with legacy and v2 comparison controls', () => {
+  it('keeps the DataGrid performance harness aligned with v2-only development controls', () => {
     const harnessSource = readFileSync(new URL('../dev/PerfDataGridHarness.tsx', import.meta.url), 'utf8');
-    expect(harnessSource).toContain("options={[");
-    expect(harnessSource).toContain("t('dev.perf_data_grid.ui_version.legacy')");
-    expect(harnessSource).toContain("t('dev.perf_data_grid.ui_version.v2')");
     expect(harnessSource).toContain("t('dev.perf_data_grid.density.comfortable')");
     expect(harnessSource).toContain("t('dev.perf_data_grid.density.standard')");
     expect(harnessSource).toContain("t('dev.perf_data_grid.density.compact')");
+    expect(harnessSource).toContain("document.body.setAttribute('data-ui-version', 'v2')");
     [
       'DataGrid 性能复现页',
       '旧版 UI',
@@ -2525,7 +2410,6 @@ describe('DataGrid layout', () => {
     ].forEach((rawSnippet) => {
       expect(harnessSource).not.toContain(rawSnippet);
     });
-    expect(harnessSource).toContain("document.body.setAttribute('data-ui-version', uiVersion);");
     expect(harnessSource).toContain("if (value === null || value === undefined || value === '') {");
     expect(harnessSource).toContain("const currentState = useStore.getState();");
   });

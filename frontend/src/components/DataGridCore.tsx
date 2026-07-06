@@ -133,7 +133,6 @@ import DataGridResultViewSwitcher from './DataGridResultViewSwitcher';
 import DataGridSecondaryActions from './DataGridSecondaryActions';
 import DataGridToolbarFrame from './DataGridToolbarFrame';
 import DataGridModals from './DataGridModals';
-import DataGridLegacyCellContextMenu from './DataGridLegacyCellContextMenu';
 import DataGridPreviewPanel from './DataGridPreviewPanel';
 import {
     DEFAULT_DATA_EXPORT_FORMAT,

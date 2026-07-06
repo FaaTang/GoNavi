@@ -3,9 +3,7 @@ export const MIN_WORKBENCH_WIDTH_WHEN_AI_DOCKED = 320;
 export const MIN_AI_PANEL_OVERLAY_WIDTH = 260;
 export const AI_PANEL_OVERLAY_GAP = 12;
 
-interface AIPanelLayoutOptions {
-  isV2Ui: boolean;
-  viewportWidth: number;
+interface AIPanelLayoutOptions {  viewportWidth: number;
   sidebarWidth: number;
   panelWidth?: number;
   minWorkbenchWidth?: number;
@@ -24,9 +22,7 @@ const normalizePositiveNumber = (value: number, fallback: number) => {
   return Number.isFinite(normalized) && normalized > 0 ? normalized : fallback;
 };
 
-export const shouldOverlayAIPanel = ({
-  isV2Ui,
-  viewportWidth,
+export const shouldOverlayAIPanel = ({  viewportWidth,
   sidebarWidth,
   panelWidth = DEFAULT_AI_PANEL_WIDTH,
   minWorkbenchWidth = MIN_WORKBENCH_WIDTH_WHEN_AI_DOCKED,
@@ -37,7 +33,6 @@ export const shouldOverlayAIPanel = ({
   const safeMinWorkbenchWidth = Math.max(0, normalizePositiveNumber(minWorkbenchWidth, MIN_WORKBENCH_WIDTH_WHEN_AI_DOCKED));
   const workspaceWidth = Math.max(0, safeViewportWidth - safeSidebarWidth);
 
-  void isV2Ui;
   return workspaceWidth - safePanelWidth < safeMinWorkbenchWidth;
 };
 

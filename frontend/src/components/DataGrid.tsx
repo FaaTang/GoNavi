@@ -134,7 +134,6 @@ import DataGridSecondaryActions from './DataGridSecondaryActions';
 import DataGridToolbarFrame from './DataGridToolbarFrame';
 import DataGridShell from './DataGridShell';
 import DataGridModals from './DataGridModals';
-import DataGridLegacyCellContextMenu from './DataGridLegacyCellContextMenu';
 import DataGridPreviewPanel from './DataGridPreviewPanel';
 import {
     DEFAULT_DATA_EXPORT_FORMAT,
@@ -331,19 +330,17 @@ const DataGrid: React.FC<DataGridProps> = ({
       emptyLocatorValue: (column: string) => translateDataGrid('data_grid.message.locator_column_value_empty', { column }),
   }), [translateDataGrid]);
   
-  const isMacLike = useMemo(() => isMacLikePlatform(), []);
-  const isV2Ui = appearance?.uiVersion === 'v2';
-  const effectiveUiScale = Math.min(1.25, Math.max(0.8, Number(uiScale) || 1));
+  const isMacLike = useMemo(() => isMacLikePlatform(), []);  const effectiveUiScale = Math.min(1.25, Math.max(0.8, Number(uiScale) || 1));
   const activeShortcutPlatform = useMemo(() => getShortcutPlatform(isMacLike), [isMacLike]);
   const darkMode = theme === 'dark';
   const resolvedAppearance = resolveAppearanceValues(appearance);
   const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
-  const useVirtualHolderPaintHints = !isMacLike && !isV2Ui;
-  const useVirtualRowCellContain = !isMacLike && !isV2Ui;
+  const useVirtualHolderPaintHints = false;
+  const useVirtualRowCellContain = false;
   const useVirtualCellContentContain = false;
-  const useVirtualEditablePaintContain = !isMacLike && !isV2Ui;
-  const useVirtualEditableVisibilityHints = !isMacLike && !isV2Ui;
-  const dataGridBackdropFilter = isV2Ui || isMacLike ? 'none' : (opacity < 0.999 ? 'blur(14px)' : 'none');
+  const useVirtualEditablePaintContain = false;
+  const useVirtualEditableVisibilityHints = false;
+  const dataGridBackdropFilter = 'none';
   const showDataTableVerticalBorders = appearance.showDataTableVerticalBorders === true;
   const dataTableDensity = appearance.dataTableDensity;
   const densityParams = useMemo(() => getDensityParams(dataTableDensity), [dataTableDensity]);
@@ -605,7 +602,7 @@ const DataGrid: React.FC<DataGridProps> = ({
           floatingScrollbarThumbBg: darkMode ? 'rgba(255,255,255,0.68)' : 'rgba(0,0,0,0.44)',
           floatingScrollbarThumbHoverBg: darkMode ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.54)',
           floatingScrollbarThumbBorderColor: darkMode ? 'rgba(255,255,255,0.26)' : 'rgba(255,255,255,0.52)',
-          floatingScrollbarThumbShadow: (isMacLike || isV2Ui) ? 'none' : (darkMode ? '0 4px 14px rgba(0,0,0,0.42)' : '0 4px 10px rgba(0,0,0,0.20)'),
+          floatingScrollbarThumbShadow: 'none',
           verticalScrollbarTrackBg: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
           horizontalScrollbarThumbBg: darkMode ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.14)',
           horizontalScrollbarThumbHoverBg: darkMode ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.24)',
@@ -638,7 +635,7 @@ const DataGrid: React.FC<DataGridProps> = ({
           paginationActiveItemBorderColor: darkMode ? 'rgba(255,214,102,0.46)' : 'rgba(24,144,255,0.28)',
           paginationActiveItemTextColor: darkMode ? '#fff7d6' : '#0958d9',
       };
-  }, [darkMode, opacity, resolvedAppearance.blur, isMacLike, isV2Ui]);
+  }, [darkMode, opacity, resolvedAppearance.blur, isMacLike]);
 
   // 解构常用变量以保持后续代码引用不变
   const {
@@ -1327,9 +1324,7 @@ const DataGrid: React.FC<DataGridProps> = ({
       currentConnConfig,
       dbName,
       dbType,
-      tableName,
-      isV2Ui,
-      cellEditMode,
+      tableName,      cellEditMode,
       selectedRowKeys,
       mergedDisplayDataRef,
       rowKeyStr,
@@ -1360,7 +1355,7 @@ const DataGrid: React.FC<DataGridProps> = ({
   }, [canOpenObjectDesigner, connectionId, dbName, handleViewModeChange, tableName]);
 
   useEffect(() => {
-      if (!isTableSurfaceActive || !isV2Ui || !cellContextMenu.visible) return;
+      if (!isTableSurfaceActive || !cellContextMenu.visible) return;
       const portal = cellContextMenuPortalRef.current;
       if (!portal) return;
       const frame = requestAnimationFrame(() => {
@@ -1377,7 +1372,7 @@ const DataGrid: React.FC<DataGridProps> = ({
           }
       });
       return () => cancelAnimationFrame(frame);
-  }, [cellContextMenu.visible, cellContextMenu.x, cellContextMenu.y, isTableSurfaceActive, isV2Ui, resolveContextMenuPosition]);
+  }, [cellContextMenu.visible, cellContextMenu.x, cellContextMenu.y, isTableSurfaceActive, resolveContextMenuPosition]);
 
   useEffect(() => {
       cellEditModeRef.current = cellEditMode;
@@ -1981,8 +1976,8 @@ const DataGrid: React.FC<DataGridProps> = ({
       : 0;
 
   const displayRenderVersion = useMemo(() => (
-      `${isV2Ui ? 'v2' : 'legacy'}|${theme}|${dataTableDensity}|${effectiveUiScale}`
-  ), [dataTableDensity, effectiveUiScale, isV2Ui, theme]);
+      `${'v2'}|${theme}|${dataTableDensity}|${effectiveUiScale}`
+  ), [dataTableDensity, effectiveUiScale, theme]);
 
   const tableRenderData = useMemo(
       () => attachDataGridVirtualEditRenderVersion(
@@ -2350,7 +2345,7 @@ const DataGrid: React.FC<DataGridProps> = ({
               onResizeStart: handleResizeStart(key), // Only need start
               onResizeAutoFit: handleResizeAutoFit(key),
               onContextMenu: (event: React.MouseEvent<HTMLElement>) => {
-                  if (!isV2Ui) return;
+                  
                   showColumnHeaderContextMenu(event, key);
               },
               onClickCapture: (event: React.MouseEvent<HTMLElement>) => {
@@ -2377,7 +2372,7 @@ const DataGrid: React.FC<DataGridProps> = ({
               },
           }),
       }));
-  }, [canModifyData, columnWidths, currentConnConfig, dataTableDensity, displayColumnNames, displayColumnTypeMap, enableVirtual, handleResizeAutoFit, handleResizeStart, isV2Ui, language, normalizedPageFindText, onSort, renderColumnTitle, showColumnComment, showColumnHeaderContextMenu, showColumnType, sortInfo]);
+  }, [canModifyData, columnWidths, currentConnConfig, dataTableDensity, displayColumnNames, displayColumnTypeMap, enableVirtual, handleResizeAutoFit, handleResizeStart, language, normalizedPageFindText, onSort, renderColumnTitle, showColumnComment, showColumnHeaderContextMenu, showColumnType, sortInfo]);
 
   const mergedColumns = useMemo(() => columns.map((col): ColumnType<any> => {
       const dataIndex = String(col.dataIndex);
@@ -2436,7 +2431,7 @@ const DataGrid: React.FC<DataGridProps> = ({
               const modifiedStyle: React.CSSProperties | undefined = isModifiedCell
                   ? { backgroundColor: darkMode ? 'rgba(255, 214, 102, 0.16)' : '#FFF3B0' }
                   : undefined;
-              const shouldUsePlainVirtualContent = isV2Ui && !modifiedStyle;
+              const shouldUsePlainVirtualContent = !modifiedStyle;
               if (enableVirtual && enableInlineEditableCell) {
                   const pickerType = getTemporalPickerType(columnType, dbType, currentConnConfig);
                   const isDateTimeField = !!pickerType && !(/^0{4}-0{2}-0{2}/.test(String(record?.[dataIndex] || '')));
@@ -3138,14 +3133,7 @@ const DataGrid: React.FC<DataGridProps> = ({
       selectedRowKeys,
       onChange: setSelectedRowKeys,
       columnWidth: selectionColumnWidth,
-      ...(isV2Ui ? {} : {
-          renderCell: (_checked: boolean, _record: any, _index: number, originNode: React.ReactNode) => (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                  {originNode}
-              </div>
-          ),
-      }),
-  }), [isV2Ui, selectedRowKeys, selectionColumnWidth]);
+  }), [selectedRowKeys, selectionColumnWidth]);
 
   const rowPropsFactory = useCallback((record: any) => ({ record } as any), []);
 
@@ -3167,8 +3155,8 @@ const DataGrid: React.FC<DataGridProps> = ({
   }), [tableScrollX, floatingScrollbarInset]);
   const tableScrollConfig = useMemo(() => ({ x: tableScrollX, y: tableHeight }), [tableScrollX, tableHeight]);
   const virtualListItemHeight = useMemo(() => (
-      isV2Ui ? Math.max(24, Math.round(28 * effectiveUiScale)) : undefined
-  ), [effectiveUiScale, isV2Ui]);
+      Math.max(24, Math.round(28 * effectiveUiScale))
+  ), [effectiveUiScale]);
   const tableComponents = useMemo(() => {
       const body: Record<string, any> = {};
       // 虚拟表模式下 render() 已返回 EditableCell；这里再挂 body.cell 会形成双层包装，
@@ -4104,13 +4092,7 @@ const DataGrid: React.FC<DataGridProps> = ({
   }, [onPageChange, pagination, paginationTotalPages]);
 
   const aiShortcutLabel = resolveShortcutDisplay(shortcutOptions ?? DEFAULT_SHORTCUT_OPTIONS, 'toggleAIPanel', activeShortcutPlatform);
-  const legacyAiButtonStyle: React.CSSProperties | undefined = isV2Ui ? undefined : {
-      background: darkMode ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' : 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.02))',
-      borderColor: darkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.4)',
-      color: '#10b981',
-      fontWeight: 500,
-      boxShadow: darkMode ? '0 2px 8px rgba(16,185,129,0.1)' : '0 2px 6px rgba(16,185,129,0.05)',
-  };
+  
     return (
     <DataGridShell
       {...{
@@ -4290,13 +4272,10 @@ const DataGrid: React.FC<DataGridProps> = ({
         isListOp,
         isNoValueOp,
         isQueryResultExport,
-        isTableSurfaceActive,
-        isV2Ui,
-        isWritableResultColumn,
+        isTableSurfaceActive,        isWritableResultColumn,
         jsonEditorOpen,
         jsonEditorValue,
         jsonViewText,
-        legacyAiButtonStyle,
         loading,
         localizedDataEditAutoCommitDelayOptions,
         looksLikeJsonText,

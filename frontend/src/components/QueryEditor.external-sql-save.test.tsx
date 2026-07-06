@@ -49,7 +49,7 @@ const storeState = vi.hoisted(() => ({
   saveQuery: vi.fn(),
   theme: 'light',
   languagePreference: 'zh-CN' as 'zh-CN' | 'en-US',
-  appearance: { uiVersion: 'legacy' as 'legacy' | 'v2' },
+  appearance: {},
   sqlFormatOptions: { keywordCase: 'upper' as const },
   setSqlFormatOptions: vi.fn(),
   queryOptions: {
@@ -88,6 +88,7 @@ const storeState = vi.hoisted(() => ({
   activeTabId: 'tab-1',
   aiPanelVisible: false,
   setAIPanelVisible: vi.fn(),
+  clearTabResultsClearedFlag: vi.fn(),
   sqlSnippets: [] as any[],
 }));
 
@@ -399,6 +400,7 @@ vi.mock('@ant-design/icons', () => {
     DatabaseOutlined: Icon,
     EyeOutlined: Icon,
     EyeInvisibleOutlined: Icon,
+    DeleteOutlined: Icon,
   };
 });
 
@@ -447,6 +449,14 @@ vi.mock('antd', () => {
       </section>
     ) : null),
     Input: ({ value, onChange, placeholder }: any) => <input value={value} onChange={onChange} placeholder={placeholder} />,
+    InputNumber: ({ value, onChange, onPressEnter }: any) => (
+      <input
+        type="number"
+        value={value ?? ''}
+        onChange={(event) => onChange?.(Number(event.target.value))}
+        onKeyDown={(event) => event.key === 'Enter' && onPressEnter?.()}
+      />
+    ),
     Form,
     Dropdown: ({ children, menu }: any) => (
       <>
@@ -691,8 +701,7 @@ describe('QueryEditor external SQL save', () => {
     storeState.clearSqlLogs.mockReset();
     storeState.connections[0].config.type = 'mysql';
     storeState.connections[0].config.database = 'main';
-    storeState.appearance.uiVersion = 'legacy';
-    autoFetchState.visible = false;
+autoFetchState.visible = false;
     dataGridState.latestProps = null;
     tabsState.activeKey = undefined;
     editorState.value = '';
@@ -744,9 +753,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps the query results panel hidden by default on first entry', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer!: ReactTestRenderer;
+let renderer!: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <I18nProvider preference="zh-CN" onPreferenceChange={() => undefined}>
@@ -759,9 +766,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('shows the empty query results panel after toggling the results button', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer!: ReactTestRenderer;
+let renderer!: ReactTestRenderer;
     await act(async () => {
       renderer = create(
         <I18nProvider preference="zh-CN" onPreferenceChange={() => undefined}>
@@ -781,9 +786,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('hides the expanded empty query results panel from the inline hide action', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    let renderer!: ReactTestRenderer;
+let renderer!: ReactTestRenderer;
     await act(async () => {
       renderer = create(<QueryEditor tab={createTab()} />);
     });
@@ -804,8 +807,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('auto expands the query results panel after a successful execution returns rows', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
       data: [{ columns: ['value'], rows: [{ value: 1 }] }],
     });
@@ -832,8 +834,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps the inline hide action available after query results render rows', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
       data: [{ columns: ['value'], rows: [{ value: 1 }] }],
     });
@@ -864,9 +865,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('toggles the query results panel with Ctrl/Cmd+Shift+M', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    const windowListeners: Record<string, ((event?: any) => void)[]> = {};
+const windowListeners: Record<string, ((event?: any) => void)[]> = {};
     vi.stubGlobal('window', {
       addEventListener: vi.fn((type: string, listener: (event?: any) => void) => {
         windowListeners[type] ||= [];
@@ -927,9 +926,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('shows the query results panel with the shortcut after manually hiding it', async () => {
-    storeState.appearance.uiVersion = 'v2';
-
-    const windowListeners: Record<string, ((event?: any) => void)[]> = {};
+const windowListeners: Record<string, ((event?: any) => void)[]> = {};
     vi.stubGlobal('window', {
       addEventListener: vi.fn((type: string, listener: (event?: any) => void) => {
         windowListeners[type] ||= [];
@@ -992,8 +989,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('opens the embedded sql execution log tab from the shared log toggle event in v2', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    storeState.sqlLogs = [{
+storeState.sqlLogs = [{
       id: 'log-1',
       timestamp: Date.now(),
       sql: 'select 1',
@@ -1046,8 +1042,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('shows execution failures inside the embedded sql log tab in v2', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: false,
       message: 'driver exploded',
       data: [],
@@ -1076,8 +1071,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps query result panel visibility isolated per tab', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    storeState.queryOptions.showQueryResultsPanel = false;
+storeState.queryOptions.showQueryResultsPanel = false;
 
     let renderer!: ReactTestRenderer;
     await act(async () => {
@@ -2580,9 +2574,7 @@ describe('QueryEditor external SQL save', () => {
     vi.useFakeTimers();
     try {
       storeState.aiPanelVisible = true;
-      storeState.appearance.uiVersion = 'v2';
-
-      let renderer!: ReactTestRenderer;
+let renderer!: ReactTestRenderer;
       await act(async () => {
         renderer = create(<QueryEditor tab={createTab({ dbName: 'main', query: 'select 1;' })} />);
       });
@@ -4629,12 +4621,12 @@ describe('QueryEditor external SQL save', () => {
     editorState.value = 'select 10;';
 
     await act(async () => {
-      findButton(renderer!, '保存').props.onClick();
+      findButton(renderer!, 'Save').props.onClick();
     });
 
     expect(storeState.saveQuery).toHaveBeenCalledWith(expect.objectContaining({
       id: 'saved-1',
-      name: '無題のクエリ',
+      name: 'Untitled query',
       sql: 'select 10;',
       connectionId: 'conn-1',
       dbName: 'main',
@@ -4652,12 +4644,12 @@ describe('QueryEditor external SQL save', () => {
     editorState.value = 'select 11;';
 
     await act(async () => {
-      findButton(renderer!, '保存').props.onClick();
+      findButton(renderer!, 'Save').props.onClick();
     });
 
     expect(storeState.saveQuery).toHaveBeenCalledWith(expect.objectContaining({
       id: 'saved-1',
-      name: '無題のクエリ',
+      name: 'Untitled query',
       sql: 'select 11;',
       connectionId: 'conn-1',
       dbName: 'main',
@@ -4818,8 +4810,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('shows Chinese semantic meaning for SQL execution errors', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: false,
       message: 'pq: syntax error at or near "from"',
     });
@@ -5030,7 +5021,8 @@ describe('QueryEditor external SQL save', () => {
       'query-1',
     );
     expect(textContent(renderer!.root)).not.toContain('未提交');
-    expect(textContent(renderer!.root)).toContain('提交 (2)');
+    expect(textContent(renderer!.root)).toContain('提交');
+    expect(textContent(renderer!.root)).toContain('2');
     expect(storeState.sqlEditorPendingTransactions['tab-1']).toMatchObject({
       id: 'tx-multi-dml',
       statementCount: 2,
@@ -5267,7 +5259,8 @@ describe('QueryEditor external SQL save', () => {
       expect(backendApp.DBQueryMultiTransactional).toHaveBeenCalled();
       expect(backendApp.DBQueryMulti).not.toHaveBeenCalled();
       expect(textContent(renderer!.root)).toContain('自动提交中');
-      expect(textContent(renderer!.root)).toContain('提交 (1)');
+      expect(textContent(renderer!.root)).toContain('提交');
+      expect(textContent(renderer!.root)).toContain('1');
       expect(backendApp.DBCommitTransaction).not.toHaveBeenCalled();
 
       await act(async () => {
@@ -6331,8 +6324,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('keeps cursor statement execution available in v2 UI', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    backendApp.DBQueryMulti.mockResolvedValueOnce({
+backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
       data: [{ columns: ['two'], rows: [{ two: 2 }] }],
     });
@@ -6363,8 +6355,7 @@ describe('QueryEditor external SQL save', () => {
   });
 
   it('renders V2 empty state copy for the active non-Chinese language', async () => {
-    storeState.appearance.uiVersion = 'v2';
-    storeState.languagePreference = 'en-US';
+storeState.languagePreference = 'en-US';
     setCurrentLanguage('en-US');
 
     let renderer: ReactTestRenderer;
@@ -7421,7 +7412,10 @@ describe('QueryEditor external SQL save', () => {
 
   it('keeps the v2 query editor toolbar grouped and compact', () => {
     const source = readFileSync(new URL('./QueryEditor.tsx', import.meta.url), 'utf8');
-    const toolbarSource = readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8');
+    const toolbarSource = [
+      readFileSync(new URL('./QueryEditorToolbar.tsx', import.meta.url), 'utf8'),
+      readFileSync(new URL('./QueryEditorMaxRowsSelect.tsx', import.meta.url), 'utf8'),
+    ].join('\n');
     const resultsPanelSource = readFileSync(new URL('./QueryEditorResultsPanel.tsx', import.meta.url), 'utf8');
     const transactionSettingsSource = readFileSync(new URL('./QueryEditorTransactionSettings.tsx', import.meta.url), 'utf8');
     const transactionToolbarSource = readFileSync(new URL('./QueryEditorTransactionToolbar.tsx', import.meta.url), 'utf8');
@@ -7445,28 +7439,28 @@ describe('QueryEditor external SQL save', () => {
     expect(transactionSettingsSource).toContain('query_editor.transaction.delay.seconds_commit');
     expect(transactionSettingsSource).not.toContain("label: '3s'");
     expect(source).toContain('QueryEditorTransactionToolbar');
-    expect(transactionToolbarSource).toContain("className={isV2Ui ? 'gn-v2-query-transaction-toolbar' : undefined}");
+    expect(transactionToolbarSource).toContain("className={'gn-v2-query-transaction-toolbar'}");
     expect(transactionToolbarSource).toContain(": null;");
     expect(transactionToolbarSource).toContain('gn-v2-query-transaction-commit-button');
     expect(transactionToolbarSource).toContain('gn-v2-toolbar-kbd');
     expect(transactionToolbarSource).toContain('query_editor.transaction.status.auto_committing');
     expect(transactionToolbarSource).toContain('onFinish');
-    expect(toolbarSource).toContain('{isV2Ui && pendingTransactionToolbar}');
+    expect(toolbarSource).toContain('{pendingTransactionToolbar}');
     expect(toolbarSource).not.toContain('gn-v2-query-toolbar-transaction-row');
     expect(resultsPanelSource).not.toContain('transactionToolbar?: React.ReactNode;');
     expect(toolbarSource).toContain('gn-v2-query-toolbar-action-group');
     expect(toolbarSource).toContain('gn-v2-query-toolbar-action-pair');
     expect(toolbarSource).toContain('const aiMenuItems');
     expect(toolbarSource).toContain('key: "toggle-result-panel"');
-    expect(toolbarSource).toContain('{!isV2Ui && (');
+    expect(toolbarSource).toContain('gn-v2-query-toolbar');
     expect(toolbarSource).toContain('trigger={["click"]}');
     expect(toolbarSource.indexOf('onClick={onQuickSave}')).toBeLessThan(toolbarSource.indexOf('menu={{ items: aiMenuItems }}'));
     expect(toolbarSource.indexOf('menu={{ items: aiMenuItems }}')).toBeLessThan(toolbarSource.indexOf('menu={{ items: moreMenuItems }}'));
     expect(toolbarSource.indexOf('menu={{ items: moreMenuItems }}')).toBeLessThan(toolbarSource.indexOf('icon={<FormatPainterOutlined />}'));
-    expect(transactionSettingsSource).toContain('style={isV2Ui ? undefined : { width: 78 }}');
-    expect(transactionSettingsSource).toContain('style={isV2Ui ? undefined : { width: 68 }}');
-    expect(toolbarSource).toContain('style={isV2Ui ? undefined : { width: 200 }}');
-    expect(toolbarSource).toContain('style={isV2Ui ? undefined : { width: 170 }}');
+    expect(transactionSettingsSource).toContain('style={undefined}');
+    expect(transactionSettingsSource).toContain('style={undefined}');
+    expect(toolbarSource).toContain('style={undefined}');
+    expect(toolbarSource).toContain('style={undefined}');
 
     expect(css).toContain('body[data-ui-version="v2"] .gn-v2-query-toolbar-selects');
     expect(css).toContain('body[data-ui-version="v2"] .gn-v2-query-toolbar-actions');

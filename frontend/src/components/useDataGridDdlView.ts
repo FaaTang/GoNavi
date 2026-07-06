@@ -13,7 +13,6 @@ interface UseDataGridDdlViewParams {
   currentConnConfig: unknown;
   dbName?: string;
   tableName?: string;
-  isV2Ui: boolean;
   cellEditMode: boolean;
   selectedRowKeys: React.Key[];
   mergedDisplayDataRef: React.MutableRefObject<any[]>;
@@ -51,7 +50,6 @@ export const useDataGridDdlView = ({
   currentConnConfig,
   dbName,
   tableName,
-  isV2Ui,
   cellEditMode,
   selectedRowKeys,
   mergedDisplayDataRef,
@@ -78,7 +76,7 @@ export const useDataGridDdlView = ({
   } | null>(null);
   const ddlRequestSeqRef = React.useRef(0);
 
-  const isTableSurfaceActive = viewMode === 'table' || (isV2Ui && viewMode === 'ddl' && ddlViewLayout === 'side');
+  const isTableSurfaceActive = viewMode === 'table' || (viewMode === 'ddl' && ddlViewLayout === 'side');
 
   const translateMessage = React.useCallback((key: string, params?: TranslateParams) => {
     return translate ? translate(key, params) : catalogTranslate('zh-CN', key, params);
@@ -89,7 +87,7 @@ export const useDataGridDdlView = ({
       messageApi.error(translateMessage('data_grid.message.ddl_missing_context'));
       return;
     }
-    const asView = options?.asView === true && isV2Ui;
+    const asView = options?.asView === true;
     const requestSeq = ++ddlRequestSeqRef.current;
     if (asView) {
       setViewMode('ddl');
@@ -115,18 +113,9 @@ export const useDataGridDdlView = ({
         setDdlLoading(false);
       }
     }
-  }, [canViewDdl, currentConnConfig, dbName, dbType, isV2Ui, messageApi, tableName, translateMessage]);
-
-  React.useEffect(() => {
-    if (isV2Ui || (viewMode !== 'fields' && viewMode !== 'ddl' && viewMode !== 'er')) return;
-    setViewMode('table');
-  }, [isV2Ui, viewMode]);
+  }, [canViewDdl, currentConnConfig, dbName, dbType, messageApi, tableName, translateMessage]);
 
   const handleViewModeChange = React.useCallback((nextMode: GridViewMode) => {
-    if ((nextMode === 'fields' || nextMode === 'ddl' || nextMode === 'er') && !isV2Ui) {
-      setViewMode('table');
-      return;
-    }
     if (nextMode === 'ddl') {
       void handleOpenTableDdl({ asView: true });
       setViewMode('ddl');
@@ -147,7 +136,7 @@ export const useDataGridDdlView = ({
     }
 
     setViewMode(nextMode);
-  }, [cellEditMode, closeCellEditModeRef, handleOpenTableDdl, isV2Ui, mergedDisplayDataRef, rowKeyStr, selectedRowKeys, setTextRecordIndex]);
+  }, [cellEditMode, closeCellEditModeRef, handleOpenTableDdl, mergedDisplayDataRef, rowKeyStr, selectedRowKeys, setTextRecordIndex]);
 
   const handleDdlSidebarResizeStart = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();

@@ -16,9 +16,7 @@ interface DataGridPaginationState {
 
 export type DataGridPaginationTranslate = (key: string, params?: I18nParams) => string;
 
-export interface DataGridPaginationBarProps {
-  isV2Ui: boolean;
-  pagination?: DataGridPaginationState;
+export interface DataGridPaginationBarProps {  pagination?: DataGridPaginationState;
   paginationV2SummaryText: string;
   paginationSummaryText: string;
   paginationControlTotal: number;
@@ -32,9 +30,7 @@ export interface DataGridPaginationBarProps {
   translate?: DataGridPaginationTranslate;
 }
 
-const DataGridPaginationBar: React.FC<DataGridPaginationBarProps> = ({
-  isV2Ui,
-  pagination,
+const DataGridPaginationBar: React.FC<DataGridPaginationBarProps> = ({  pagination,
   paginationV2SummaryText,
   paginationSummaryText,
   paginationControlTotal,
@@ -122,11 +118,10 @@ const DataGridPaginationBar: React.FC<DataGridPaginationBarProps> = ({
 
   return (
     <div
-      className={`${isV2Ui ? 'gn-v2-data-grid-pagination-wrap ' : ''}data-grid-pagination-wrap`}
-      style={isV2Ui ? undefined : { padding: 0, borderTop: 'none', display: 'flex', justifyContent: 'flex-start' }}
+      className={`gn-v2-data-grid-pagination-wrap data-grid-pagination-wrap`}
+      style={undefined}
     >
-      {isV2Ui ? (
-        <div className="data-grid-pagination-shell" data-grid-v2-pagination="true">
+      <div className="data-grid-pagination-shell" data-grid-v2-pagination="true">
           <div className="data-grid-pagination-summary" aria-live="polite">
             <span className="data-grid-pagination-summary-value">{paginationV2SummaryText}</span>
           </div>
@@ -166,44 +161,6 @@ const DataGridPaginationBar: React.FC<DataGridPaginationBarProps> = ({
             aria-label={translate('data_grid.pagination.page_size_aria')}
           />
         </div>
-      ) : (
-        <div className="data-grid-pagination-shell">
-          <div className="data-grid-pagination-summary" aria-live="polite">
-            <span className="data-grid-pagination-kicker">{translate('data_grid.pagination.result_set')}</span>
-            <span className="data-grid-pagination-summary-value">{paginationSummaryText}</span>
-          </div>
-          {showSequentialPagination ? sequentialPaginationControl : (
-            <Pagination
-              current={pagination.current}
-              pageSize={pagination.pageSize}
-              total={paginationControlTotal}
-              showSizeChanger={false}
-              onChange={onPageChange}
-              showTitle={false}
-              size="small"
-              itemRender={(_page, type, originalElement) => {
-                if (type === 'prev') {
-                  return <span className="data-grid-pagination-nav-icon" aria-hidden="true"><LeftOutlined /></span>;
-                }
-                if (type === 'next') {
-                  return <span className="data-grid-pagination-nav-icon" aria-hidden="true"><RightOutlined /></span>;
-                }
-                return originalElement;
-              }}
-            />
-          )}
-          {jumpPageControl}
-          <Select
-            size="small"
-            popupMatchSelectWidth={false}
-            value={String(pagination.pageSize)}
-            onChange={onPageSizeChange}
-            options={paginationPageSizeOptions.map((value) => ({ value, label: translate('data_grid.pagination.page_size_option', { count: value }) }))}
-            className="data-grid-pagination-size-select"
-            aria-label={translate('data_grid.pagination.page_size_aria')}
-          />
-        </div>
-      )}
     </div>
   );
 };

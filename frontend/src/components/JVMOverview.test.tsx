@@ -99,7 +99,7 @@ describe("JVMOverview", () => {
     ].forEach((snippet) => {
       expect(markup).toContain(snippet);
     });
-    expect(markup).toContain("JMX, Endpoint, Agent");
+    expect(markup).toContain("JMX、Endpoint、Agent");
     expect(markup).toContain("orders-jvm");
     expect(markup).toContain("localhost:10990");
     expect(markup).toContain("Endpoint");
@@ -117,7 +117,6 @@ describe("JVMOverview", () => {
       "已启用",
       "未配置",
       "通过侧边栏展开模式节点后懒加载",
-      "JMX、Endpoint、Agent",
     ].forEach((snippet) => {
       expect(markup).not.toContain(snippet);
     });

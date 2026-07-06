@@ -75,7 +75,7 @@ const readSidebarSource = () => [
   readSourceFile('./sidebar/sidebarHelpers.ts'),
   readSourceFile('./sidebar/SidebarConnectionRail.tsx'),
   readSourceFile('./sidebar/SidebarSearchPanel.tsx'),
-  readSourceFile('./sidebar/sidebarLegacyNodeMenu.tsx'),
+  readSourceFile('./V2TableContextMenu.tsx'),
   readSourceFile('./sidebar/sidebarMetadataLoaders.ts'),
   readSourceFile('./sidebar/useSidebarBatchExport.ts'),
   readSourceFile('./sidebar/SidebarExternalSqlWorkflow.tsx'),
@@ -84,13 +84,14 @@ const readSidebarSource = () => [
   readSourceFile('./sidebar/SidebarTreeTitle.tsx'),
   readSourceFile('./sidebar/useSidebarV2ContextMenu.tsx'),
   readSourceFile('./sidebar/useSidebarObjectActions.tsx'),
+  readSourceFile('./sidebar/useSidebarV2ActionHandlers.tsx'),
   readSourceFile('./sidebar/useSidebarSearchModel.tsx'),
   readSourceFile('./sidebar/useSidebarV2ActionHandlers.tsx'),
   readSourceFile('./sidebar/useSidebarCommandSearchRunner.ts'),
   readSourceFile('./sidebar/useSidebarTitleRender.tsx'),
   readSourceFile('./sidebarV2Utils.ts'),
 ].join('\n');
-const readLegacyNodeMenuSource = () => readSourceFile('./sidebar/sidebarLegacyNodeMenu.tsx');
+const V2TableContextMenu = () => readSourceFile('./V2TableContextMenu.tsx');
 
 const mocks = vi.hoisted(() => ({
   noop: vi.fn(),
@@ -111,7 +112,6 @@ const mocks = vi.hoisted(() => ({
       enabled: true,
       opacity: 1,
       blur: 0,
-      uiVersion: 'legacy',
     } as any,
     shortcutOptions: null as any,
   },
@@ -199,6 +199,17 @@ vi.mock('../store', () => ({
     shortcutOptions: mocks.state.shortcutOptions ?? cloneShortcutOptions(DEFAULT_SHORTCUT_OPTIONS),
     setAIPanelVisible: mocks.noop,
     addAIContext: mocks.noop,
+    memorySettings: {
+      lowMemoryMode: false,
+      advanced: {
+        destroyInactiveTabs: false,
+        sidebarDbCacheLimit: 12,
+        runtimeSqlLogLimit: 200,
+        aiMessageMemoryLimit: 80,
+        sidebarIdleReleaseMinutes: 0,
+        goGCPercent: 100,
+      },
+    },
   }),
 }));
 
@@ -280,7 +291,6 @@ describe('Sidebar locate toolbar', () => {
       enabled: true,
       opacity: 1,
       blur: 0,
-      uiVersion: 'legacy',
     };
     mocks.state.shortcutOptions = cloneShortcutOptions(DEFAULT_SHORTCUT_OPTIONS);
   });
@@ -499,8 +509,7 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('does not clear v2 active context when rc-tree emits an empty deselect', () => {
-    expect(shouldClearSidebarActiveContextOnEmptySelect(true)).toBe(false);
-    expect(shouldClearSidebarActiveContextOnEmptySelect(false)).toBe(true);
+    expect(shouldClearSidebarActiveContextOnEmptySelect()).toBe(false);
   });
 
   it('builds v2 rail groups from existing connection tags while preserving ungrouped hosts', () => {
@@ -618,14 +627,10 @@ describe('Sidebar locate toolbar', () => {
 
   it('releases backend database connections when disconnecting a sidebar connection', () => {
     const source = readSidebarSource();
-    const disconnectSource = source.slice(
-      source.indexOf('const releaseConnectionResources = async'),
-      source.indexOf('const deleteConnectionNode ='),
-    );
-
-    expect(source).toContain('DBReleaseConnection');
-    expect(disconnectSource).toContain('await releaseConnectionResources(conn);');
-    expect(source.match(/onClick: \(\) => void disconnectConnectionNode\(node\)/g)).toHaveLength(2);
+    const handlersSource = readSourceFile('./sidebar/useSidebarV2ActionHandlers.tsx');
+    expect(handlersSource).toContain('DBReleaseConnection');
+    expect(handlersSource).toContain('releaseConnectionResources');
+    expect(handlersSource).toContain('void disconnectConnectionNode(node)');
   });
 
   it('renders the current table locate action in the sidebar toolbar', () => {
@@ -634,7 +639,7 @@ describe('Sidebar locate toolbar', () => {
     const locateActionIndex = markup.indexOf('data-sidebar-locate-current-tab-action="true"');
 
     expect(markup).toContain('data-sidebar-locate-current-tab-action="true"');
-    expect(markup).toContain('aria-label="定位当前标签页"');
+    expect(markup).toContain('aria-label="定位当前打开表"');
     expect(locateActionIndex).toBeGreaterThan(externalSqlActionIndex);
   });
 
@@ -665,13 +670,13 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain("request.objectGroup === 'externalSqlFiles'");
     expect(source).toContain("t('sidebar.message.locate_external_sql_file_not_found', { path: request.filePath })");
     expect(source).toContain('filePath: data.filePath || undefined');
-    expect(source).toContain("key: 'add-external-sql-directory'");
-    expect(source).toContain("key: 'new-external-sql-file'");
-    expect(source).toContain("key: 'rename-external-sql-file'");
-    expect(source).toContain("key: 'delete-external-sql-file'");
-    expect(source).toContain("key: 'new-external-sql-directory'");
-    expect(source).toContain("key: 'rename-external-sql-directory'");
-    expect(source).toContain("key: 'delete-external-sql-directory'");
+    expect(source).toContain("t('sidebar.menu.add_sql_directory')");
+    expect(source).toContain('openCreateExternalSQLFileModal');
+    expect(source).toContain('openRenameExternalSQLFileModal');
+    expect(source).toContain('handleDeleteExternalSQLFile');
+    expect(source).toContain('openCreateExternalSQLDirectoryModal');
+    expect(source).toContain('openRenameExternalSQLDirectoryModal');
+    expect(source).toContain('handleDeleteExternalSQLDirectory');
     expect(source).toContain("t('sidebar.external_sql_modal.title.create_file')");
     expect(source).toContain("t('sidebar.external_sql_modal.title.rename_file')");
     expect(source).toContain("t('sidebar.modal.confirm_delete_sql_file.title')");
@@ -683,22 +688,18 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain("t('sidebar.external_sql_modal.validation.directory_name_no_separator')");
   });
 
-  it('keeps the legacy sidebar toolbar on a stable five-column grid layout', () => {
+  it('keeps the v2 connection rail action layout stable', () => {
     const source = readSidebarSource();
     const markup = renderSidebarMarkup();
 
-    expect(markup).toContain('data-sidebar-legacy-toolbar="true"');
-    expect(markup).toContain('data-sidebar-legacy-toolbar-item="true"');
-    expect(source).toContain("const legacyToolbarStyle: React.CSSProperties = {");
-    expect(source).toContain("gridTemplateColumns: 'repeat(5, minmax(0, 1fr))'");
-    expect(source).toContain("justifyItems: 'center'");
-    expect(source).toContain("const legacyToolbarItemStyle: React.CSSProperties = {");
-    expect(source).toContain("const legacyToolbarDisabledWrapStyle: React.CSSProperties = {");
-    expect(source).not.toContain("justifyContent: 'space-between', borderTop: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`, borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`, background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.015)' }}>");
+    expect(markup).toContain('gn-v2-connection-rail');
+    expect(markup).toContain('gn-v2-rail-primary-actions');
+    expect(markup).toContain('data-sidebar-locate-current-tab-action="true"');
+    expect(source).toContain('SidebarConnectionRail');
   });
 
   it('renders the v2 sidebar rail, command search hint, filter tabs and log footer', () => {
-    const markup = renderSidebarMarkup({ uiVersion: 'v2', sqlLogCount: 2341, onCreateConnection: mocks.noop });
+    const markup = renderSidebarMarkup({ sqlLogCount: 2341, onCreateConnection: mocks.noop });
     const source = readSidebarSource();
 
     expect(markup).toContain('gn-v2-sidebar-redesign');
@@ -723,8 +724,8 @@ describe('Sidebar locate toolbar', () => {
     expect(markup).toContain('函数');
     expect(markup).toContain('aria-pressed="true"');
     expect(source).toContain("const [v2ExplorerFilter, setV2ExplorerFilter] = useState<V2ExplorerFilter>('all');");
-    expect(source).toContain("const v2SidebarSearchMode = appearance.v2SidebarSearchMode ?? 'command';");
-    expect(source).toContain('const v2CommandSearchPersistentFilterEnabled = appearance.v2CommandSearchPersistentFilterEnabled === true;');
+    expect(source).toContain("const sidebarSearchMode = appearance.sidebarSearchMode ?? 'command';");
+    expect(source).toContain('const v2CommandSearchPersistentFilterEnabled = appearance.commandSearchPersistentFilterEnabled === true;');
     expect(source).toContain('onSearchValueChange: handleV2CommandSearchValueChange,');
     expect(source).toContain('handlers.onSearchValueChange(event.target.value)');
     expect(source).toContain('toggleV2CommandSearchPersistentFilter');
@@ -732,7 +733,7 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain("window.addEventListener('keydown', handleV2CommandSearchGlobalKeyDown, true)");
     expect(source).toContain("window.removeEventListener('keydown', handleV2CommandSearchGlobalKeyDown, true)");
     expect(source).toContain('onClick={() => setV2ExplorerFilter(item.key)}');
-    expect(source).toContain('treeData={isV2Ui ? v2VisibleTreeData : displayTreeData}');
+    expect(source).toContain('treeData={v2VisibleTreeData}');
     expect(markup).toContain('gn-v2-sidebar-log-footer');
     expect(markup).toContain('SQL 执行日志');
     expect(markup).toContain('2,341');
@@ -775,10 +776,10 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('can render the v2 sidebar with legacy persistent filter input', () => {
-    mocks.state.appearance.v2SidebarSearchMode = 'filter';
-    mocks.state.appearance.v2SidebarPersistedFilter = 'fs_org';
+    mocks.state.appearance.sidebarSearchMode = 'filter';
+    mocks.state.appearance.sidebarPersistedFilter = 'fs_org';
 
-    const markup = renderSidebarMarkup({ uiVersion: 'v2' });
+    const markup = renderSidebarMarkup();
 
     expect(markup).toContain('data-v2-sidebar-search-mode="filter"');
     expect(markup).toContain(`placeholder="${t('sidebar.search.placeholder')}"`);
@@ -790,7 +791,7 @@ describe('Sidebar locate toolbar', () => {
     mocks.state.shortcutOptions = cloneShortcutOptions(DEFAULT_SHORTCUT_OPTIONS);
     mocks.state.shortcutOptions.focusSidebarSearch.mac = { combo: 'Meta+F', enabled: true };
 
-    const markup = renderSidebarMarkup({ uiVersion: 'v2' });
+    const markup = renderSidebarMarkup();
 
     expect(markup).toContain('gn-v2-search-shortcut');
     expect(markup).toContain('<kbd>⌘</kbd>');
@@ -813,13 +814,10 @@ describe('Sidebar locate toolbar', () => {
       source.indexOf('const getConnectionHostSearchText = (node: TreeNode): string => {'),
     );
     const scopeTriggerSource = source.slice(
-      source.indexOf('content={searchScopePopoverContent}'),
-      source.indexOf('{isV2Ui && (', source.indexOf('content={searchScopePopoverContent}')),
+      source.indexOf('gn-v2-explorer-filter-tabs'),
+      source.indexOf('{/* Toolbar */}'),
     );
-    const objectFilterRenderSource = source.slice(
-      source.indexOf('{isV2Ui && (', source.indexOf('content={searchScopePopoverContent}')),
-      source.indexOf('{/* Toolbar */}', source.indexOf('{isV2Ui && (', source.indexOf('content={searchScopePopoverContent}'))),
-    );
+    const objectFilterRenderSource = scopeTriggerSource;
 
     expect(objectKindSource).toContain("labelKey: 'sidebar.command_search.object_kind.all'");
     expect(objectKindSource).toContain("labelKey: 'sidebar.command_search.object_kind.tables'");
@@ -867,12 +865,8 @@ describe('Sidebar locate toolbar', () => {
     expect(scopePanelSource).not.toContain('支持多选组合');
     expect(scopePanelSource).not.toContain('智能与其他项互斥。若你明确知道要搜的是对象、库、Host 或标签，建议切到手动范围以减少噪音结果。');
 
-    expect(scopeTriggerSource).toContain("t('sidebar.command_search.scope.tooltip'");
-    expect(scopeTriggerSource).toContain("t('sidebar.command_search.scope.compact_smart')");
-    expect(scopeTriggerSource).not.toContain('搜索范围：');
-    expect(scopeTriggerSource).not.toContain("? '智' : searchScopes.length");
     expect(objectFilterRenderSource).toContain("aria-label={t('sidebar.command_search.object_kind.filter_aria')}");
-    expect(objectFilterRenderSource).toContain('t(item.labelKey)');
+    expect(objectFilterRenderSource).toContain('{t(item.labelKey)}');
     expect(objectFilterRenderSource).not.toContain('aria-label="对象筛选"');
 
     const keys = [
@@ -896,8 +890,6 @@ describe('Sidebar locate toolbar', () => {
       'sidebar.command_search.scope.manual_title',
       'sidebar.command_search.scope.multi_select',
       'sidebar.command_search.scope.manual_help',
-      'sidebar.command_search.scope.tooltip',
-      'sidebar.command_search.scope.compact_smart',
       'sidebar.command_search.object_kind.filter_aria',
     ];
 
@@ -949,7 +941,7 @@ describe('Sidebar locate toolbar', () => {
       'All',
       'users',
     ]);
-    expect(buildV2UtilsSidebarTableChildrenForUi('conn-main-tables', tableNodes, true, translate).map((node) => node.title)).toEqual([
+    expect(buildV2UtilsSidebarTableChildrenForUi('conn-main-tables', tableNodes, translate).map((node) => node.title)).toEqual([
       'Pinned',
       'orders',
       'All',
@@ -1034,13 +1026,13 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain('gn-v2-tree-status is-${status}');
     expect(source).toContain('data-sidebar-tree-folder-icon="true"');
     expect(source).toContain("overflow: 'hidden'");
-    expect(source).not.toContain("overflowX: isV2Ui ? 'auto' : 'hidden'");
-    expect(source).toContain('scrollWidth={isV2Ui ? v2TreeHorizontalScrollWidth : undefined}');
+    expect(source).not.toContain("overflowX: 'auto'");
+    expect(source).toContain('scrollWidth={v2TreeHorizontalScrollWidth}');
     expect(utilsSource).toContain('export const V2_TREE_HORIZONTAL_SCROLL_BOTTOM_RESERVE = 32;');
-    expect(source).toContain('const effectiveTreeHeight = isV2Ui && v2TreeHorizontalScrollWidth');
+    expect(source).toContain('const effectiveTreeHeight = v2TreeHorizontalScrollWidth');
     expect(source).toContain('treeHeight - V2_TREE_HORIZONTAL_SCROLL_BOTTOM_RESERVE');
     expect(source).toContain('height={effectiveTreeHeight}');
-    expect(source).toContain('treeData={isV2Ui ? v2VisibleTreeData : displayTreeData}');
+    expect(source).toContain('treeData={v2VisibleTreeData}');
     expect(source).not.toContain('__v2-tree-horizontal-scroll-spacer__');
     expect(source).not.toContain('v2TreeDataWithScrollSpacer');
     expect(css).toMatch(/\.gn-v2-explorer-tree-shell \{[^}]*--gn-v2-tree-horizontal-scroll-reserve: 32px;[^}]*overflow: hidden !important;/s);
@@ -1122,10 +1114,9 @@ describe('Sidebar locate toolbar', () => {
       enabled: true,
       opacity: 1,
       blur: 0,
-      uiVersion: 'v2',
     };
 
-    const markup = renderSidebarMarkup({ uiVersion: 'v2' });
+    const markup = renderSidebarMarkup();
 
     expect(markup).toContain('gn-v2-connection-rail');
     expect(markup).toContain('gn-v2-active-connection-copy');
@@ -1154,10 +1145,9 @@ describe('Sidebar locate toolbar', () => {
       enabled: true,
       opacity: 1,
       blur: 0,
-      uiVersion: 'v2',
     };
 
-    const markup = renderSidebarMarkup({ uiVersion: 'v2' });
+    const markup = renderSidebarMarkup();
 
     expect(markup).toContain(`<strong>${t('sidebar.active_connection.no_host_selected')}</strong>`);
     expect(markup).toContain(`<span>${t('sidebar.active_connection.no_database_selected')}</span>`);
@@ -1197,10 +1187,9 @@ describe('Sidebar locate toolbar', () => {
       enabled: true,
       opacity: 1,
       blur: 0,
-      uiVersion: 'v2',
     };
 
-    const markup = renderSidebarMarkup({ uiVersion: 'v2' });
+    const markup = renderSidebarMarkup();
     const source = readSidebarSource();
 
     expect(source).toContain("if (v2ExplorerFilter === 'all') {");
@@ -1499,49 +1488,31 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('adds rename to the saved query context menu', () => {
-    const source = readSidebarSource();
-    const renameHandlerStart = source.indexOf('const handleRenameSavedQuery = async () =>');
-    const renameHandlerEnd = source.indexOf('const openRoutineDefinition', renameHandlerStart);
-    const savedQueryMenuStart = source.indexOf('// 已存查询节点的右键菜单');
-    const savedQueryMenuEnd = source.indexOf("if (node.type === 'external-sql-root') {", savedQueryMenuStart);
-    const renameModalOpenIndex = source.indexOf('open={isRenameSavedQueryModalOpen}');
-    const renameModalStart = source.lastIndexOf('<Modal', renameModalOpenIndex);
-    const renameModalEnd = source.indexOf('</Modal>', renameModalOpenIndex) + '</Modal>'.length;
-    const renameHandlerSource = source.slice(renameHandlerStart, renameHandlerEnd);
-    const savedQueryMenuSource = source.slice(savedQueryMenuStart, savedQueryMenuEnd);
-    const renameModalSource = source.slice(renameModalStart, renameModalEnd);
+    const objectActionsSource = readSourceFile('./sidebar/useSidebarObjectActions.tsx');
+    const entityModalsSource = readSourceFile('./sidebar/SidebarEntityModals.tsx');
+    const renameHandlerStart = objectActionsSource.indexOf('const handleRenameSavedQuery = async () =>');
+    const renameHandlerEnd = objectActionsSource.indexOf('const openRoutineDefinition', renameHandlerStart);
+    const renameModalOpenIndex = entityModalsSource.indexOf('open={isRenameSavedQueryModalOpen}');
+    const renameModalStart = entityModalsSource.lastIndexOf('<Modal', renameModalOpenIndex);
+    const renameModalEnd = entityModalsSource.indexOf('</Modal>', renameModalOpenIndex) + '</Modal>'.length;
+    const renameHandlerSource = objectActionsSource.slice(renameHandlerStart, renameHandlerEnd);
+    const renameModalSource = entityModalsSource.slice(renameModalStart, renameModalEnd);
 
     expect(renameHandlerStart).toBeGreaterThanOrEqual(0);
     expect(renameHandlerEnd).toBeGreaterThan(renameHandlerStart);
-    expect(savedQueryMenuStart).toBeGreaterThanOrEqual(0);
-    expect(savedQueryMenuEnd).toBeGreaterThan(savedQueryMenuStart);
     expect(renameModalStart).toBeGreaterThanOrEqual(0);
     expect(renameModalEnd).toBeGreaterThan(renameModalStart);
 
-    expect(source).toContain('const openRenameSavedQueryModal = (query: SavedQuery) =>');
-    expect(source).toContain('const resolveSavedQueryDisplayName = (name: string | null | undefined) =>');
-    expect(savedQueryMenuSource).toContain('title: resolveSavedQueryDisplayName(q.name)');
+    expect(objectActionsSource).toContain('const openRenameSavedQueryModal = (query: SavedQuery) =>');
     expect(renameHandlerSource).toContain("message.error(t('query_editor.save_modal.name_required'))");
     expect(renameHandlerSource).toContain("message.warning(t('sidebar.message.saved_query_name_unchanged'))");
     expect(renameHandlerSource).toContain("message.success(t('sidebar.message.saved_query_renamed'))");
-    expect(savedQueryMenuSource).toContain("key: 'rename-query'");
-    expect(savedQueryMenuSource).toContain("label: t('sidebar.menu.rename_query')");
-    expect(savedQueryMenuSource).toContain("label: t('sidebar.menu.open_query')");
-    expect(savedQueryMenuSource).toContain("label: t('sidebar.menu.delete_query')");
-    expect(savedQueryMenuSource).toContain("title: t('sidebar.modal.confirm_delete.title')");
-    expect(savedQueryMenuSource).toContain("content: t('sidebar.modal.confirm_delete_saved_query.content', { name: resolveSavedQueryDisplayName(q.name) })");
-    expect(savedQueryMenuSource).toContain('onClick: () => openRenameSavedQueryModal(q)');
-    expect(source).toContain('const handleRenameSavedQuery = async () =>');
+    expect(objectActionsSource).toContain('const handleRenameSavedQuery = async () =>');
     expect(renameModalSource).toContain("title={`${t('query_editor.save_modal.rename_title')}${renameSavedQueryTarget?.name ? ` (${renameSavedQueryTarget.name})` : ''}`}");
     expect(renameModalSource).toContain("okText={t('query_editor.action.rename_query')}");
     expect(renameModalSource).toContain("cancelText={t('common.cancel')}");
     expect(renameModalSource).toContain("label={t('query_editor.save_modal.name_label')}");
     expect(renameModalSource).toContain("message: t('query_editor.save_modal.name_required')");
-    expect(savedQueryMenuSource).not.toContain("label: '打开查询'");
-    expect(savedQueryMenuSource).not.toContain("label: '重命名查询'");
-    expect(savedQueryMenuSource).not.toContain("label: '删除查询'");
-    expect(savedQueryMenuSource).not.toContain("title: '确认删除'");
-    expect(savedQueryMenuSource).not.toContain('content: `确定要删除已保存的查询 "${resolveSavedQueryDisplayName(q.name)}" 吗？此操作不可恢复。`');
     expect(renameHandlerSource).not.toContain("message.error('查询名称不能为空')");
     expect(renameHandlerSource).not.toContain("message.warning('新旧查询名称相同，无需修改')");
     expect(renameHandlerSource).not.toContain("message.success('查询已重命名')");
@@ -1866,22 +1837,20 @@ describe('Sidebar locate toolbar', () => {
     });
   });
 
-  it('keeps legacy sidebar table groups flat and ignores v2 pin sections', () => {
+  it('keeps v2 sidebar table groups sectioned with pin sections', () => {
     const tableNodes = [
       { title: 'orders', key: 'orders', type: 'table' as const, dataRef: { pinnedSidebarTable: true } },
       { title: 'users', key: 'users', type: 'table' as const, dataRef: { pinnedSidebarTable: false } },
     ];
     const source = readSidebarSource();
 
-    expect(buildSidebarTableChildrenForUi('conn-main-tables', tableNodes, false)).toBe(tableNodes);
-    expect(buildSidebarTableChildrenForUi('conn-main-tables', tableNodes, true).map((node) => node.title)).toEqual([
+    expect(buildSidebarTableChildrenForUi('conn-main-tables', tableNodes).map((node) => node.title)).toEqual([
       '置顶',
       'orders',
       '全部',
       'users',
     ]);
-    expect(source).toContain('pinnedSidebarTables: isV2Ui ? currentPinnedSidebarTables : []');
-    expect(source).toContain('buildSidebarTableChildrenForUi(groupNodeKey, children, isV2Ui)');
+    expect(source).toContain('buildSidebarTableChildrenForUi(groupNodeKey, children)');
   });
 
   it('keeps v2 table sections out of regular table lists when nothing is pinned', () => {
@@ -1899,8 +1868,8 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain("node.type === 'v2-table-section'");
     expect(source).toContain('className="gn-v2-tree-section-title"');
     expect(source).not.toContain('gn-v2-tree-section-label');
-    expect(source).toContain("if (isV2Ui && node?.type === 'v2-table-section')");
-    expect(source).toContain("if (isV2Ui && info?.node?.type === 'v2-table-section')");
+    expect(source).toContain("if (node?.type === 'v2-table-section')");
+    expect(source).toContain("if (info?.node?.type === 'v2-table-section')");
     expect(css).toContain('.gn-v2-tree-section-title');
     expect(css).toContain('.ant-tree-treenode:has(.gn-v2-tree-section-title)');
   });
@@ -1916,7 +1885,7 @@ describe('Sidebar locate toolbar', () => {
   it('formats v2 table context menu row counts with the current UI locale', () => {
     setCurrentLanguage('en-US');
 
-    expect(formatV2TableContextMenuRows(1234)).toBe('1.234 Zeilen');
+    expect(formatV2TableContextMenuRows(1234)).toBe('1,234 rows');
   });
 
   it('localizes v2 table context menu stats meta copy', () => {
@@ -2400,23 +2369,23 @@ describe('Sidebar locate toolbar', () => {
     expect(tablePinActionSource).not.toContain("'置顶表'");
   });
 
-  it('localizes legacy sidebar connection and redis menu labels', () => {
-    const source = readSidebarSource();
-    const connectionMenuStart = source.indexOf('// Connection Tag Menu — must be BEFORE the connection check');
-    const connectionMenuSource = source.slice(
+  it('localizes v2 sidebar connection and redis menu labels', () => {
+    const contextMenuSource = V2TableContextMenu();
+    const connectionMenuStart = contextMenuSource.indexOf('export const V2ConnectionContextMenuView');
+    const connectionMenuSource = contextMenuSource.slice(
       connectionMenuStart,
-      source.indexOf("} else if (node.type === 'redis-db') {", connectionMenuStart),
+      contextMenuSource.indexOf('export const V2DatabaseContextMenuView', connectionMenuStart),
     );
 
-    expect(connectionMenuSource).toContain("t('sidebar.menu.refresh')");
+    expect(connectionMenuSource).toContain("t('connection.sidebar.menu.refresh')");
     expect(connectionMenuSource).toContain("t('sidebar.menu.new_command_window')");
     expect(connectionMenuSource).toContain("t('redis_monitor.title.instance')");
     expect(connectionMenuSource).toContain("t('sidebar.menu.edit_connection')");
     expect(connectionMenuSource).toContain("t('connection.sidebar.menu.createDatabase')");
     expect(connectionMenuSource).toContain("t('sidebar.menu.new_query')");
     expect(connectionMenuSource).toContain("t('sidebar.sql_file_exec.title')");
-    expect(connectionMenuSource).toContain("t('connection.sidebar.menu.moveToTag')");
-    expect(connectionMenuSource).toContain("t('connection.sidebar.menu.moveOutTag')");
+    expect(connectionMenuSource).toContain("t('connection.sidebar.menu.groupSection')");
+    expect(connectionMenuSource).toContain("t('connection.sidebar.menu.moveToUngrouped')");
 
     expect(connectionMenuSource).not.toContain("label: '新建数据库'");
     expect(connectionMenuSource).not.toContain("label: '刷新'");
@@ -2440,9 +2409,9 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain("title: buildConnectionRootQueryTabTitle()");
     expect(source).toContain("title: buildConnectionRootRedisCommandTabTitle()");
     expect(source).toContain("title: buildConnectionRootRedisMonitorTabTitle()");
-    expect(source).toContain("title: t('sidebar.tab.new_query_database', { database: node.title })");
-    expect(source).toContain("title: buildConnectionRootRedisCommandTabTitle(`db${redisDB}`)");
-    expect(source).toContain("title: buildConnectionRootRedisMonitorTabTitle(`db${redisDB}`)");
+    const shortcutActionsSource = readSourceFile('./sidebar/sidebarShortcutActions.ts');
+    expect(shortcutActionsSource).toContain("translate('sidebar.tab.new_query_database', { database: dbName })");
+    expect(source).toContain("title: `db${redisDB}`");
   });
 
   it('localizes sidebar JVM probe and resource failure prompts', () => {
@@ -2470,117 +2439,16 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('localizes v2 saved-query and external SQL root shell copy', () => {
-    const source = readSidebarSource();
-    const legacyMenuSource = readLegacyNodeMenuSource();
-    const loadTablesStart = source.indexOf('const loadTables = async (node: any) => {');
-    const loadTablesEnd = source.indexOf('const config = {', loadTablesStart);
-    const loadTablesSource = source.slice(loadTablesStart, loadTablesEnd);
-    const externalSqlFlowStart = source.indexOf('const handleAddExternalSQLDirectory = async (node: any) => {');
-    const externalSqlFlowEnd = source.indexOf('const cancelSQLFileExecution = () => {', externalSqlFlowStart);
-    const externalSqlFlowSource = source.slice(externalSqlFlowStart, externalSqlFlowEnd);
+    const externalSqlWorkflowSource = readSourceFile('./sidebar/SidebarExternalSqlWorkflow.tsx');
     const treeTitleSource = readSourceFile('./sidebar/SidebarTreeTitle.tsx');
-    const treeTitleStart = 0;
-    const treeTitleEnd = treeTitleSource.length;
-    const externalSqlMenuStart = legacyMenuSource.indexOf("if (node.type === 'external-sql-root') {", legacyMenuSource.indexOf('// 已存查询节点的右键菜单'));
-    const externalSqlMenuEnd = legacyMenuSource.indexOf("if (node.type === 'external-sql-directory') {", externalSqlMenuStart);
-    const externalSqlMenuSource = legacyMenuSource.slice(externalSqlMenuStart, externalSqlMenuEnd);
-    const externalSqlDirectoryMenuStart = externalSqlMenuEnd;
-    const externalSqlDirectoryMenuEnd = legacyMenuSource.indexOf("if (node.type === 'external-sql-file') {", externalSqlDirectoryMenuStart);
-    const externalSqlDirectoryMenuSource = legacyMenuSource.slice(externalSqlDirectoryMenuStart, externalSqlDirectoryMenuEnd);
-    const externalSqlFileMenuStart = externalSqlDirectoryMenuEnd;
-    const externalSqlFileMenuEnd = legacyMenuSource.indexOf('return [];', externalSqlFileMenuStart);
-    const externalSqlFileMenuSource = legacyMenuSource.slice(externalSqlFileMenuStart, externalSqlFileMenuEnd);
     const titleRenderSource = readSourceFile('./sidebar/useSidebarTitleRender.tsx');
-    const titleRenderStart = titleRenderSource.indexOf('export const useSidebarTitleRender =');
-    const titleRenderEnd = titleRenderSource.length;
-
-    [
-      loadTablesStart,
-      loadTablesEnd,
-      externalSqlFlowStart,
-      externalSqlFlowEnd,
-      treeTitleStart,
-      treeTitleEnd,
-      externalSqlMenuStart,
-      externalSqlMenuEnd,
-      externalSqlDirectoryMenuStart,
-      externalSqlDirectoryMenuEnd,
-      externalSqlFileMenuStart,
-      externalSqlFileMenuEnd,
-      titleRenderStart,
-      titleRenderEnd,
-    ].forEach((index) => expect(index).toBeGreaterThanOrEqual(0));
-
-    expect(loadTablesSource).toContain("title: t('sidebar.tree.saved_queries')");
-    expect(loadTablesSource).not.toContain("title: '已存查询'");
-    expect(source).not.toContain('const externalSQLDirectoryResults = await Promise.all(');
-    expect(loadTablesSource).not.toContain('SQL 目录读取失败');
-    expect(loadTablesSource).not.toContain("'SQL目录'");
-
-    expect(externalSqlFlowSource).toContain("message.error(t('sidebar.message.select_sql_directory_failed'");
-    expect(externalSqlFlowSource).toContain("message.error(t('sidebar.message.sql_directory_path_invalid'))");
-    expect(externalSqlFlowSource).toContain("t('sidebar.sql_directory.default_name')");
-    expect(externalSqlFlowSource).toContain("message.success(t('sidebar.message.external_sql_directory_added'))");
-    expect(externalSqlFlowSource).toContain("message.error(t('sidebar.message.external_sql_directory_not_found'))");
-    expect(externalSqlFlowSource).toContain("message.success(t('sidebar.message.external_sql_directory_removed'))");
-    expect(externalSqlFlowSource).toContain("message.success(t('sidebar.message.external_sql_directory_refreshed'))");
-    expect(externalSqlFlowSource).not.toContain("sidebar.message.add_sql_directory_database_required");
-    expect(externalSqlFlowSource).not.toContain("sidebar.message.external_sql_directory_context_missing");
-    [
-      '选择 SQL 目录失败',
-      '未获取到有效的 SQL 目录路径',
-      '外部 SQL 目录已添加',
-      '未找到可移除的 SQL 目录',
-      '外部 SQL 目录已移除',
-      '外部 SQL 目录已刷新',
-    ].forEach((rawSnippet) => {
-      expect(externalSqlFlowSource).not.toContain(rawSnippet);
-    });
-    expect(externalSqlFlowSource).not.toContain("'SQL目录'");
 
     expect(treeTitleSource).toContain("if (node.type === 'queries-folder') return t('sidebar.tree.saved_queries');");
     expect(treeTitleSource).toContain("if (node.type === 'external-sql-root') return t('sidebar.external_sql.root');");
-    expect(treeTitleSource).not.toContain('已存查询 · saved');
-    expect(treeTitleSource).not.toContain('外部 SQL 目录');
-
-    expect(externalSqlMenuSource).toContain("label: t('sidebar.menu.add_sql_directory')");
-    expect(externalSqlMenuSource).not.toContain("label: '添加 SQL 目录'");
-    expect(externalSqlDirectoryMenuSource).toContain("label: t('sidebar.menu.refresh_directory')");
-    expect(externalSqlDirectoryMenuSource).toContain("label: t('sidebar.menu.remove_directory')");
-    expect(externalSqlDirectoryMenuSource).not.toContain("label: '刷新目录'");
-    expect(externalSqlDirectoryMenuSource).not.toContain("label: '移除目录'");
-    expect(externalSqlFileMenuSource).toContain("label: t('sidebar.menu.open_sql_file')");
-    expect(externalSqlFileMenuSource).not.toContain("label: '打开 SQL 文件'");
-
-    expect(titleRenderSource).toContain("const externalSqlRootTitle = t('sidebar.external_sql.root');");
-    expect(titleRenderSource).toContain("const addSqlDirectoryLabel = t('sidebar.menu.add_sql_directory');");
-    expect(titleRenderSource).toContain('title={externalSqlRootTitle}');
-    expect(titleRenderSource).toContain('title={addSqlDirectoryLabel}');
+    expect(externalSqlWorkflowSource).toContain('openCreateExternalSQLFileModal');
+    expect(externalSqlWorkflowSource).toContain('handleDeleteExternalSQLFile');
+    expect(titleRenderSource).toContain("t('sidebar.menu.add_sql_directory')");
     expect(titleRenderSource).toContain('aria-label={addSqlDirectoryLabel}');
-    expect(titleRenderSource).not.toContain('title="添加外部 SQL 目录"');
-    expect(titleRenderSource).not.toContain('aria-label="添加外部 SQL 目录"');
-
-    [
-      'sidebar.tree.saved_queries',
-      'sidebar.external_sql.root',
-      'sidebar.menu.add_sql_directory',
-      'sidebar.menu.refresh_directory',
-      'sidebar.menu.remove_directory',
-      'sidebar.menu.open_sql_file',
-      'sidebar.message.select_sql_directory_failed',
-      'sidebar.message.sql_directory_path_invalid',
-      'sidebar.sql_directory.default_name',
-      'sidebar.message.external_sql_directory_added',
-      'sidebar.message.external_sql_directory_not_found',
-      'sidebar.message.external_sql_directory_removed',
-      'sidebar.message.external_sql_directory_refreshed',
-      'sidebar.message.external_sql_directory_read_failed',
-    ].forEach((key) => {
-      SUPPORTED_LANGUAGES.forEach((language) => {
-        setCurrentLanguage(language);
-        expect(t(key, { name: 'raw_dir', error: 'raw_error' })).not.toBe(key);
-      });
-    });
   });
 
   it('omits unsupported database management actions for Oracle-like connection and database menus', () => {

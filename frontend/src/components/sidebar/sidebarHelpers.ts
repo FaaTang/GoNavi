@@ -47,7 +47,7 @@ export const hasSidebarLazyChildren = (children: unknown): boolean => {
  * shouldClearSidebarActiveContextOnEmptySelect 判断在空选择时是否清空激活上下文。
  * 仅 legacy UI 需要清空；V2 UI 保留上下文。
  */
-export const shouldClearSidebarActiveContextOnEmptySelect = (isV2Ui: boolean): boolean => !isV2Ui;
+export const shouldClearSidebarActiveContextOnEmptySelect = (): boolean => false;
 
 /**
  * getV2RailConnectionGroupBadgeText 从组名生成 1-2 字符的徽章文本。

@@ -23,6 +23,7 @@ import (
 	proxytunnel "GoNavi-Wails/internal/proxy"
 	redisbackend "GoNavi-Wails/internal/redis"
 	"GoNavi-Wails/internal/secretstore"
+	"GoNavi-Wails/internal/ssh"
 	syncbackend "GoNavi-Wails/internal/sync"
 	"GoNavi-Wails/shared/i18n"
 	"github.com/google/uuid"
@@ -99,6 +100,7 @@ type App struct {
 	jvmPreviewTokenTTL time.Duration
 	keepAliveCancel    context.CancelFunc
 	keepAliveDone      chan struct{}
+	memoryPolicy       *runtimeMemoryPolicy
 }
 
 // NewApp creates a new App application struct
@@ -120,6 +122,7 @@ func NewAppWithSecretStore(store secretstore.SecretStore) *App {
 		localizer:          newAppLocalizer(),
 		jvmPreviewTokens:   make(map[string]jvmPreviewConfirmationToken),
 		jvmPreviewTokenTTL: defaultJVMPreviewConfirmationTokenTTL,
+		memoryPolicy:       newRuntimeMemoryPolicy(),
 	}
 }
 
@@ -241,6 +244,9 @@ func (a *App) startup(ctx context.Context) {
 		installMacNativeWindowDiagnostics(logger.Path())
 	}
 	applyMacWindowTranslucencyFix()
+	if a.memoryPolicy != nil && a.memoryPolicy.EffectiveLowMemoryMode() {
+		ssh.SetLowMemoryIdleSweepEnabled(true)
+	}
 	a.startConnectionKeepAliveLoop()
 	logger.Infof("应用启动完成（首次连接保护窗口=%s，最多重试=%d 次）", startupConnectRetryWindow, startupConnectRetryAttempts)
 }

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const objectActionsSource = readFileSync(new URL('./sidebar/useSidebarObjectActions.tsx', import.meta.url), 'utf8');
-const legacyMenuSource = readFileSync(new URL('./sidebar/sidebarLegacyNodeMenu.tsx', import.meta.url), 'utf8');
+const v2MenuSource = readFileSync(new URL('./V2TableContextMenu.tsx', import.meta.url), 'utf8');
 const tableDataDangerActionsSource = readFileSync(new URL('./tableDataDangerActions.ts', import.meta.url), 'utf8');
 const locales = ['zh-CN', 'en-US'] as const;
 
@@ -111,7 +111,7 @@ describe('Sidebar object actions i18n', () => {
       "label: '删除表'",
       "label: '导出表数据'",
     ].forEach((rawSnippet) => {
-      expect(legacyMenuSource).not.toContain(rawSnippet);
+      expect(v2MenuSource).not.toContain(rawSnippet);
     });
 
     [
@@ -149,24 +149,12 @@ describe('Sidebar object actions i18n', () => {
     });
 
     [
-      "t('sidebar.menu.edit_schema')",
-      "t('sidebar.menu.export_current_schema_sql')",
-      "t('sidebar.menu.backup_current_schema_sql')",
-      "t('sidebar.menu.delete_schema')",
-      "t('sidebar.menu.copy_object_name')",
-      "t('message_publish_modal.title')",
-      "t('sidebar.menu.table_structure')",
       "t('sidebar.menu.design_table')",
-      "t('sidebar.menu.copy_table_name')",
       "t('sidebar.menu.copy_table_structure')",
-      "t('sidebar.menu.backup_table_sql')",
-      "t('sidebar.menu.rename_table')",
-      "t('sidebar.menu.truncate_table')",
-      "t('sidebar.menu.clear_table')",
       "t('sidebar.menu.delete_table')",
       "t('sidebar.menu.export_table_data')",
     ].forEach((lookup) => {
-      expect(legacyMenuSource).toContain(lookup);
+      expect(v2MenuSource).toContain(lookup);
     });
   });
 

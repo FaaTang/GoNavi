@@ -1,0 +1,213 @@
+export interface MemoryPolicyAppearance {
+  enabled: boolean;
+  opacity: number;
+  blur: number;
+}
+
+export interface MemoryAdvancedSettings {
+  destroyInactiveTabs: boolean;
+  sidebarDbCacheLimit: number;
+  runtimeSqlLogLimit: number;
+  aiMessageMemoryLimit: number;
+  sidebarIdleReleaseMinutes: number;
+  goGCPercent: number;
+}
+
+export interface MemorySettings {
+  lowMemoryMode: boolean;
+  advanced: MemoryAdvancedSettings;
+}
+
+export type MemoryAdvancedOptionKey = keyof MemoryAdvancedSettings;
+
+export interface MemoryPolicy {
+  effectiveLowMemoryMode: boolean;
+  envForced: boolean;
+  memorySettings: MemorySettings;
+  appearance: MemoryPolicyAppearance;
+}
+
+export const NORMAL_SIDEBAR_DB_CACHE_LIMIT = 12;
+export const NORMAL_RUNTIME_SQL_LOG_LIMIT = 120;
+export const NORMAL_GO_GC_PERCENT = 50;
+
+export const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
+  lowMemoryMode: false,
+  advanced: {
+    destroyInactiveTabs: true,
+    sidebarDbCacheLimit: 6,
+    runtimeSqlLogLimit: 60,
+    aiMessageMemoryLimit: 50,
+    sidebarIdleReleaseMinutes: 30,
+    goGCPercent: 40,
+  },
+};
+
+const LOW_MEMORY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+const clampInt = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, Math.trunc(value)));
+
+const sanitizeBoundedInt = (
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+): number => {
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) {
+    return fallback;
+  }
+  return clampInt(raw, min, max);
+};
+
+const sanitizeSidebarDbCacheLimit = (value: unknown): number => {
+  const fallback = DEFAULT_MEMORY_SETTINGS.advanced.sidebarDbCacheLimit;
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) {
+    return fallback;
+  }
+  const clamped = clampInt(raw, 6, 24);
+  return clamped % 2 === 0 ? clamped : clamped - 1;
+};
+
+const sanitizeRuntimeSqlLogLimit = (value: unknown): number =>
+  sanitizeBoundedInt(
+    value,
+    30,
+    120,
+    DEFAULT_MEMORY_SETTINGS.advanced.runtimeSqlLogLimit,
+  );
+
+const sanitizeAiMessageMemoryLimit = (value: unknown): number =>
+  sanitizeBoundedInt(
+    value,
+    20,
+    200,
+    DEFAULT_MEMORY_SETTINGS.advanced.aiMessageMemoryLimit,
+  );
+
+const sanitizeSidebarIdleReleaseMinutes = (value: unknown): number => {
+  const fallback = DEFAULT_MEMORY_SETTINGS.advanced.sidebarIdleReleaseMinutes;
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) {
+    return fallback;
+  }
+  if (raw <= 0) {
+    return 0;
+  }
+  const allowed = [15, 30, 60];
+  if (allowed.includes(raw)) {
+    return raw;
+  }
+  return fallback;
+};
+
+const sanitizeGoGCPercent = (value: unknown): number =>
+  sanitizeBoundedInt(
+    value,
+    40,
+    100,
+    DEFAULT_MEMORY_SETTINGS.advanced.goGCPercent,
+  );
+
+const readLowMemoryEnvValue = (): string => {
+  const importMetaEnv = import.meta.env as Record<string, string | undefined>;
+  if (importMetaEnv.GONAVI_LOW_MEMORY_MODE) {
+    return String(importMetaEnv.GONAVI_LOW_MEMORY_MODE);
+  }
+  const runtimeProcess = (globalThis as {
+    process?: { env?: Record<string, string | undefined> };
+  }).process;
+  return String(runtimeProcess?.env?.GONAVI_LOW_MEMORY_MODE ?? "");
+};
+
+export const effectiveLowMemoryModeFromEnv = (): boolean => {
+  const raw = readLowMemoryEnvValue().trim().toLowerCase();
+  return raw ? LOW_MEMORY_ENV_VALUES.has(raw) : false;
+};
+
+export const sanitizeMemorySettings = (value: unknown): MemorySettings => {
+  const raw = value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+  const advancedRaw = raw.advanced && typeof raw.advanced === "object"
+    ? (raw.advanced as Record<string, unknown>)
+    : {};
+
+  return {
+    lowMemoryMode: raw.lowMemoryMode === true,
+    advanced: {
+      destroyInactiveTabs: advancedRaw.destroyInactiveTabs !== false,
+      sidebarDbCacheLimit: sanitizeSidebarDbCacheLimit(advancedRaw.sidebarDbCacheLimit),
+      runtimeSqlLogLimit: sanitizeRuntimeSqlLogLimit(advancedRaw.runtimeSqlLogLimit),
+      aiMessageMemoryLimit: sanitizeAiMessageMemoryLimit(advancedRaw.aiMessageMemoryLimit),
+      sidebarIdleReleaseMinutes: sanitizeSidebarIdleReleaseMinutes(
+        advancedRaw.sidebarIdleReleaseMinutes,
+      ),
+      goGCPercent: sanitizeGoGCPercent(advancedRaw.goGCPercent),
+    },
+  };
+};
+
+export const resolveMemoryPolicy = (
+  memory: MemorySettings,
+  appearance: Partial<MemoryPolicyAppearance>,
+): MemoryPolicy => {
+  const sanitized = sanitizeMemorySettings(memory);
+  const envForced = effectiveLowMemoryModeFromEnv();
+  return {
+    effectiveLowMemoryMode: envForced || sanitized.lowMemoryMode,
+    envForced,
+    memorySettings: sanitized,
+    appearance: {
+      enabled: appearance.enabled !== false,
+      opacity: typeof appearance.opacity === "number" ? appearance.opacity : 1,
+      blur: typeof appearance.blur === "number" ? appearance.blur : 0,
+    },
+  };
+};
+
+export const shouldDestroyInactiveTabs = (policy: MemoryPolicy): boolean => {
+  if (!policy.effectiveLowMemoryMode) {
+    return false;
+  }
+  return policy.memorySettings.advanced.destroyInactiveTabs;
+};
+
+export const resolveSidebarDbCacheLimit = (policy: MemoryPolicy): number => {
+  if (!policy.effectiveLowMemoryMode) {
+    return NORMAL_SIDEBAR_DB_CACHE_LIMIT;
+  }
+  return policy.memorySettings.advanced.sidebarDbCacheLimit;
+};
+
+export const resolveRuntimeSqlLogLimit = (policy: MemoryPolicy): number => {
+  if (!policy.effectiveLowMemoryMode) {
+    return NORMAL_RUNTIME_SQL_LOG_LIMIT;
+  }
+  return policy.memorySettings.advanced.runtimeSqlLogLimit;
+};
+
+export const resolveAiMessageMemoryLimit = (policy: MemoryPolicy): number | null => {
+  if (!policy.effectiveLowMemoryMode) {
+    return null;
+  }
+  return policy.memorySettings.advanced.aiMessageMemoryLimit;
+};
+
+export const shouldLazyLoadHeavyModules = (policy: MemoryPolicy): boolean => {
+  return policy.effectiveLowMemoryMode;
+};
+
+export const resolveGoGCPercent = (policy: MemoryPolicy): number => {
+  if (!policy.effectiveLowMemoryMode) {
+    return NORMAL_GO_GC_PERCENT;
+  }
+  return policy.memorySettings.advanced.goGCPercent;
+};
+
+export const buildMemoryPolicyPayload = (policy: MemoryPolicy) => ({
+  lowMemoryMode: policy.effectiveLowMemoryMode,
+  goGCPercent: resolveGoGCPercent(policy),
+});

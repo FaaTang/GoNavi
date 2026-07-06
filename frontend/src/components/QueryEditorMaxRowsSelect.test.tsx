@@ -33,7 +33,6 @@ describe('QueryEditorMaxRowsSelect', () => {
     const markup = renderToStaticMarkup(
       <I18nProvider preference="zh-CN" systemLanguages={['zh-CN']} onPreferenceChange={() => undefined}>
         <QueryEditorMaxRowsSelect
-          isV2Ui
           maxRows={5000}
           maxRowsCustomPresets={[5000, 20000]}
           onChange={() => undefined}

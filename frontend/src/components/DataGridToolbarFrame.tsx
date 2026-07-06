@@ -37,9 +37,7 @@ type GridSortInfo = {
   enabled?: boolean;
 };
 
-export interface DataGridToolbarFrameProps {
-  isV2Ui: boolean;
-  tableName?: string;
+export interface DataGridToolbarFrameProps {  tableName?: string;
   dbName?: string;
   translate?: (key: string, params?: Record<string, string | number>) => string;
   loading: boolean;
@@ -138,9 +136,7 @@ export interface DataGridToolbarFrameProps {
   onClearFiltersAndSorts: () => void;
 }
 
-const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
-  isV2Ui,
-  tableName,
+const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({  tableName,
   dbName,
   translate: translateProp,
   loading,
@@ -244,8 +240,8 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
   );
   const renderToolbarDivider = () => (
     <div
-      className={isV2Ui ? 'gn-v2-toolbar-divider' : undefined}
-      style={isV2Ui ? undefined : { width: 1, height: 18, background: toolbarDividerColor, margin: '0 2px', flexShrink: 0 }}
+      className={'gn-v2-toolbar-divider'}
+      style={undefined}
       aria-hidden="true"
     />
   );
@@ -257,7 +253,7 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
 
   return (
     <div
-      className={isV2Ui ? 'gn-v2-data-grid-toolbar-frame' : undefined}
+      className={'gn-v2-data-grid-toolbar-frame'}
       style={{
         margin: `${panelOuterGap}px 0 ${panelOuterGap}px 0`,
         border: `1px solid ${panelFrameColor}`,
@@ -287,7 +283,7 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
           boxSizing: 'border-box',
         }}
       >
-        {isV2Ui && (
+        {(
           <>
             <div className="gn-v2-data-grid-toolbar-title">
               <TableOutlined className="gn-v2-data-grid-icon" />
@@ -360,18 +356,18 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
             )}
             {renderToolbarDivider()}
             <Button
-              className={isV2Ui ? 'gn-v2-commit-button' : undefined}
+              className={'gn-v2-commit-button'}
               icon={<SaveOutlined />}
               type="primary"
               disabled={!hasChanges}
               onClick={onCommit}
             >
-              {isV2Ui ? (
+              {(
                 <>
                   <span>{translate('data_grid.toolbar.commit_label')}</span>
                   <span className="gn-v2-toolbar-kbd">{pendingChangeCount}</span>
                 </>
-              ) : translate('data_grid.toolbar.commit', { count: pendingChangeCount })}
+              )}
             </Button>
             {hasChanges && (
               <Dropdown menu={{ items: [{ key: 'preview-sql', label: translate('data_grid.toolbar.preview_sql_generate'), icon: <ConsoleSqlOutlined />, onClick: onPreviewChanges }] }}>
@@ -436,23 +432,12 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
           {renderToolbarDivider()}
           <Tooltip title={translate('data_grid.toolbar.ai_insight_tooltip')}>
             <Button
-              className={isV2Ui ? 'gn-v2-ai-insight-button' : undefined}
+              className={'gn-v2-ai-insight-button'}
               icon={<RobotOutlined />}
-              style={legacyAiButtonStyle}
-              onMouseEnter={(event) => {
-                if (isV2Ui) return;
-                event.currentTarget.style.background = darkMode ? 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(16,185,129,0.1))' : 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))';
-                event.currentTarget.style.borderColor = '#10b981';
-              }}
-              onMouseLeave={(event) => {
-                if (isV2Ui) return;
-                event.currentTarget.style.background = darkMode ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' : 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.02))';
-                event.currentTarget.style.borderColor = darkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.4)';
-              }}
               onClick={onRequestAiInsight}
             >
-              <span>{isV2Ui ? translate('data_grid.toolbar.ai_insight_short') : translate('data_grid.toolbar.ai_insight')}</span>
-              {isV2Ui && aiShortcutLabel !== '-' && <span className="gn-v2-toolbar-kbd">{aiShortcutLabel}</span>}
+              <span>{translate('data_grid.toolbar.ai_insight_short')}</span>
+              {aiShortcutLabel !== '-' && <span className="gn-v2-toolbar-kbd">{aiShortcutLabel}</span>}
             </Button>
           </Tooltip>
         </>
@@ -484,7 +469,7 @@ const DataGridToolbarFrame: React.FC<DataGridToolbarFrameProps> = ({
       {showFilter && (
         <div
           ref={filterPanelRef}
-          className={isV2Ui ? 'gn-v2-smart-filter-panel' : undefined}
+          className={'gn-v2-smart-filter-panel'}
           style={{
             padding: `${filterTopPadding}px ${panelPaddingX}px ${panelPaddingY}px ${panelPaddingX}px`,
             background: 'transparent',

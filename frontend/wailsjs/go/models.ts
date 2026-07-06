@@ -452,6 +452,20 @@ export namespace app {
 	        this.totalRowsKnown = source["totalRowsKnown"];
 	    }
 	}
+	export class MemoryPolicyPayload {
+	    lowMemoryMode: boolean;
+	    goGCPercent: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MemoryPolicyPayload(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.lowMemoryMode = source["lowMemoryMode"];
+	        this.goGCPercent = source["goGCPercent"];
+	    }
+	}
 	export class SecurityUpdateOptions {
 	    allowPartial?: boolean;
 	    writeBackup?: boolean;

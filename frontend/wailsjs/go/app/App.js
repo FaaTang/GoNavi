@@ -202,6 +202,10 @@ export function DuplicateConnection(arg1) {
   return window['go']['app']['App']['DuplicateConnection'](arg1);
 }
 
+export function EffectiveLowMemoryMode() {
+  return window['go']['app']['App']['EffectiveLowMemoryMode']();
+}
+
 export function ExecuteSQLFile(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['ExecuteSQLFile'](arg1, arg2, arg3, arg4);
 }
@@ -312,6 +316,10 @@ export function GetSlowQueries(arg1, arg2, arg3, arg4) {
 
 export function GetUnboundSavedQueries() {
   return window['go']['app']['App']['GetUnboundSavedQueries']();
+}
+
+export function GoGCPercent() {
+  return window['go']['app']['App']['GoGCPercent']();
 }
 
 export function ImportConfigFile() {
@@ -682,12 +690,20 @@ export function SetWindowTranslucency(arg1, arg2) {
   return window['go']['app']['App']['SetWindowTranslucency'](arg1, arg2);
 }
 
+export function ShouldUseStreamingExportGuard() {
+  return window['go']['app']['App']['ShouldUseStreamingExportGuard']();
+}
+
 export function Shutdown() {
   return window['go']['app']['App']['Shutdown']();
 }
 
 export function StartSecurityUpdate(arg1) {
   return window['go']['app']['App']['StartSecurityUpdate'](arg1);
+}
+
+export function SyncMemoryPolicy(arg1) {
+  return window['go']['app']['App']['SyncMemoryPolicy'](arg1);
 }
 
 export function TestConnection(arg1) {

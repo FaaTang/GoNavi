@@ -60,6 +60,7 @@ describe('useExportProgressRunner', () => {
     renderer = null;
     now = 1_000;
     setCurrentLanguage('zh-CN');
+    vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
     runtimeApi.reset();
     runtimeApi.EventsOn.mockClear();
     messageApi.warning.mockReset();

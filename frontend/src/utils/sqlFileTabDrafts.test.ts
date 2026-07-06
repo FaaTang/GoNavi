@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearQueryTabDraft,
@@ -14,6 +14,27 @@ import {
 } from './sqlFileTabDrafts';
 
 describe('sqlFileTabDrafts', () => {
+  beforeEach(() => {
+    const listeners = new Map<string, Array<(event: Event) => void>>();
+    vi.stubGlobal('window', {
+      addEventListener: (type: string, handler: (event: Event) => void) => {
+        const bucket = listeners.get(type) || [];
+        bucket.push(handler);
+        listeners.set(type, bucket);
+      },
+      removeEventListener: (type: string, handler: (event: Event) => void) => {
+        const bucket = listeners.get(type) || [];
+        listeners.set(type, bucket.filter((item) => item !== handler));
+      },
+      dispatchEvent: (event: Event) => {
+        for (const handler of listeners.get(event.type) || []) {
+          handler(event);
+        }
+        return true;
+      },
+    });
+  });
+
   it('stores query editor drafts outside the persisted tab state', () => {
     clearQueryTabDraft('query-tab-1');
 

@@ -1,7 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const sidebarSource = readFileSync(new URL('./Sidebar.tsx', import.meta.url), 'utf8');
+const combinedSource = [
+  './Sidebar.tsx',
+  './sidebar/useSidebarTitleRender.tsx',
+  './sidebar/useSidebarObjectActions.tsx',
+  './sidebar/useSidebarV2ActionHandlers.tsx',
+  './sidebar/SidebarExternalSqlWorkflow.tsx',
+  './sidebar/useSidebarTreeLoaders.tsx',
+  './sidebar/useSidebarBatchExport.ts',
+  './V2TableContextMenu.tsx',
+  './sidebarV2Utils.ts',
+].map((rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')).join('\n');
+const source = combinedSource;
 const sidebarV2UtilsSource = readFileSync(new URL('./sidebarV2Utils.ts', import.meta.url), 'utf8');
 
 const locales = ['zh-CN', 'en-US'] as const;
@@ -16,12 +27,12 @@ describe('Sidebar v2 connection group fallback i18n', () => {
       "name: tag.name || '未命名分组'",
       "fallback = '组'",
     ].forEach((snippet) => {
-      expect(sidebarSource).not.toContain(snippet);
+      expect(source).not.toContain(snippet);
       expect(sidebarV2UtilsSource).not.toContain(snippet);
     });
 
-    expect(sidebarSource).toContain("tag.name || t('connection.sidebar.group.untitled')");
-    expect(sidebarSource).toContain("fallback = t('connection.sidebar.group.badge')");
+    expect(source).toContain("tag.name || t('connection.sidebar.group.untitled')");
+    expect(source).toContain("fallback = t('connection.sidebar.group.badge')");
     expect(sidebarV2UtilsSource).toContain("fallback = t('connection.sidebar.group.badge')");
   });
 

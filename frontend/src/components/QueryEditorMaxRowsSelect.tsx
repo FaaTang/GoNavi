@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button, InputNumber, Modal, Popover, Select, Tooltip, message } from 'antd';
+import { Button, InputNumber, Modal, Select, Tooltip, message } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
 import { t as defaultTranslate } from '../i18n';
@@ -14,22 +14,18 @@ import {
 
 const CUSTOM_OPTION_VALUE = '__custom__';
 
-export type QueryEditorMaxRowsSelectProps = {
-  isV2Ui: boolean;
-  maxRows: number;
+export type QueryEditorMaxRowsSelectProps = {  maxRows: number;
   maxRowsCustomPresets: number[];
   onChange: (next: QueryMaxRowsState) => void;
 };
 
-const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
-  isV2Ui,
-  maxRows,
+const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({  maxRows,
   maxRowsCustomPresets,
   onChange,
 }) => {
   const i18n = useOptionalI18n();
   const t = i18n?.t ?? defaultTranslate;
-  const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
+  const [customModalOpen, setCustomModalOpen] = useState(false);
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState<number | null>(maxRows);
 
@@ -38,16 +34,31 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
     [maxRows, maxRowsCustomPresets],
   );
 
-  const presetOptions = maxRowsCustomPresets.map((value) => ({
-    label: t('query_editor.max_rows.option_custom_value', { count: value }),
-    value,
-  }));
+  const selectOptions = useMemo(() => {
+    const options: Array<{ label: string; value: number | typeof CUSTOM_OPTION_VALUE }> = [
+      { label: t('query_editor.max_rows.option_100'), value: DEFAULT_MAX_ROWS },
+    ];
 
-  const selectOptions: Array<{ label: string; value: number | typeof CUSTOM_OPTION_VALUE }> = [
-    { label: t('query_editor.max_rows.option_100'), value: DEFAULT_MAX_ROWS },
-    ...presetOptions,
-    { label: t('query_editor.max_rows.option_custom'), value: CUSTOM_OPTION_VALUE },
-  ];
+    maxRowsCustomPresets.forEach((value) => {
+      options.push({
+        label: t('query_editor.max_rows.option_custom_value', { count: value }),
+        value,
+      });
+    });
+
+    if (
+      maxRows !== DEFAULT_MAX_ROWS
+      && !maxRowsCustomPresets.includes(maxRows)
+    ) {
+      options.push({
+        label: t('query_editor.max_rows.option_custom_value', { count: maxRows }),
+        value: maxRows,
+      });
+    }
+
+    options.push({ label: t('query_editor.max_rows.option_custom'), value: CUSTOM_OPTION_VALUE });
+    return options;
+  }, [maxRows, maxRowsCustomPresets, t]);
 
   const applyCustomValue = () => {
     const nextValue = Number(customDraft);
@@ -55,89 +66,92 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
       return;
     }
     const truncated = Math.trunc(nextValue);
-    if (maxRowsCustomPresets.includes(truncated)) {
-      onChange({ maxRows: truncated, maxRowsCustomPresets });
-      setCustomPopoverOpen(false);
+
+    if (truncated === DEFAULT_MAX_ROWS) {
+      onChange({ maxRows: DEFAULT_MAX_ROWS, maxRowsCustomPresets });
+      setCustomModalOpen(false);
       return;
     }
+
+    if (maxRowsCustomPresets.includes(truncated)) {
+      onChange({ maxRows: truncated, maxRowsCustomPresets });
+      setCustomModalOpen(false);
+      return;
+    }
+
     const next = addMaxRowsCustomPreset(currentState, truncated);
     if (
       next.maxRowsCustomPresets.length === maxRowsCustomPresets.length
       && truncated !== maxRows
-      && !maxRowsCustomPresets.includes(truncated)
     ) {
       message.warning(t('query_editor.max_rows.custom.limit_reached'));
+      setCustomModalOpen(false);
       setManageModalOpen(true);
       return;
     }
+
     onChange(next);
-    setCustomPopoverOpen(false);
+    setCustomModalOpen(false);
   };
 
-  const customPopover = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 220 }}>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>
-        {t('query_editor.max_rows.custom.title')}
-      </div>
-      <InputNumber
-        min={1}
-        max={MAX_MAX_ROWS}
-        precision={0}
-        style={{ width: '100%' }}
-        placeholder={t('query_editor.max_rows.custom.placeholder')}
-        value={customDraft}
-        onChange={(value) => setCustomDraft(typeof value === 'number' ? value : null)}
-        onPressEnter={applyCustomValue}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-        <Button
-          type="link"
-          size="small"
-          onClick={() => setManageModalOpen(true)}
-          disabled={maxRowsCustomPresets.length === 0}
-        >
-          {t('query_editor.max_rows.custom.manage')}
-        </Button>
-        <Button type="primary" size="small" onClick={applyCustomValue}>
-          {t('query_editor.max_rows.custom.confirm')}
-        </Button>
-      </div>
-    </div>
-  );
+  const openCustomModal = () => {
+    setCustomDraft(maxRows);
+    setCustomModalOpen(true);
+  };
 
   return (
     <>
-      <Popover
-        open={customPopoverOpen}
-        onOpenChange={setCustomPopoverOpen}
-        trigger="click"
-        placement="bottomLeft"
-        content={customPopover}
-      >
-        <Tooltip title={t('query_editor.max_rows.tooltip')}>
-          <Select
-            className={
-              isV2Ui
-                ? 'gn-v2-query-toolbar-select gn-v2-query-toolbar-max-rows-select'
-                : undefined
+      <Tooltip title={t('query_editor.max_rows.tooltip')}>
+        <Select
+          className="gn-v2-query-toolbar-select gn-v2-query-toolbar-max-rows-select"
+          style={undefined}
+          value={maxRows}
+          onChange={(val) => {
+            if (String(val) === CUSTOM_OPTION_VALUE) {
+              openCustomModal();
+              return;
             }
-            style={isV2Ui ? undefined : { width: 170 }}
-            value={maxRows}
-            onChange={(val) => {
-              if (String(val) === CUSTOM_OPTION_VALUE) {
-                setCustomDraft(maxRows);
-                setCustomPopoverOpen(true);
-                return;
-              }
-              onChange({
-                maxRows: Number(val),
-                maxRowsCustomPresets,
-              });
-            }}
-            options={selectOptions}
+            onChange({
+              maxRows: Number(val),
+              maxRowsCustomPresets,
+            });
+          }}
+          options={selectOptions}
+        />
+      </Tooltip>
+      <Modal
+        open={customModalOpen}
+        title={t('query_editor.max_rows.custom.title')}
+        okText={t('query_editor.max_rows.custom.confirm')}
+        cancelText={t('common.cancel')}
+        onOk={applyCustomValue}
+        onCancel={() => setCustomModalOpen(false)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <InputNumber
+            min={1}
+            max={MAX_MAX_ROWS}
+            precision={0}
+            style={{ width: '100%' }}
+            placeholder={t('query_editor.max_rows.custom.placeholder')}
+            value={customDraft}
+            onChange={(value) => setCustomDraft(typeof value === 'number' ? value : null)}
+            onPressEnter={applyCustomValue}
           />
-        </Tooltip>
-      </Popover>
+          <Button
+            type="link"
+            size="small"
+            style={{ alignSelf: 'flex-start', paddingInline: 0 }}
+            onClick={() => {
+              setCustomModalOpen(false);
+              setManageModalOpen(true);
+            }}
+            disabled={maxRowsCustomPresets.length === 0}
+          >
+            {t('query_editor.max_rows.custom.manage')}
+          </Button>
+        </div>
+      </Modal>
       <Modal
         open={manageModalOpen}
         title={t('query_editor.max_rows.custom.manage')}

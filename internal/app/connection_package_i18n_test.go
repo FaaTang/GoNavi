@@ -43,10 +43,10 @@ func TestConnectionPackageInternalSentinelsDoNotUseLegacyChineseText(t *testing.
 	}
 }
 
-func TestImportConnectionsPayloadLocalizesPasswordRequiredErrorInGerman(t *testing.T) {
+func TestImportConnectionsPayloadLocalizesPasswordRequiredErrorInEnglish(t *testing.T) {
 	app := NewAppWithSecretStore(newFakeAppSecretStore())
 	app.configDir = t.TempDir()
-	app.SetLanguage(string(i18n.LanguageDeDE))
+	app.SetLanguage(string(i18n.LanguageEnUS))
 
 	raw := `{
   "schemaVersion": 1,
@@ -70,17 +70,17 @@ func TestImportConnectionsPayloadLocalizesPasswordRequiredErrorInGerman(t *testi
 
 	want := app.appText("file.backend.error.connection_package_password_required", nil)
 	if err == nil || err.Error() != want {
-		t.Fatalf("expected German password-required message %q, got %q", want, errorMessage(err))
+		t.Fatalf("expected English password-required message %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "恢复包密码不能为空") {
 		t.Fatalf("expected no legacy Chinese password-required text in en-US mode, got %q", err.Error())
 	}
 }
 
-func TestImportConnectionsPayloadLocalizesOversizedImportErrorInGerman(t *testing.T) {
+func TestImportConnectionsPayloadLocalizesOversizedImportErrorInEnglish(t *testing.T) {
 	app := NewAppWithSecretStore(newFakeAppSecretStore())
 	app.configDir = t.TempDir()
-	app.SetLanguage(string(i18n.LanguageDeDE))
+	app.SetLanguage(string(i18n.LanguageEnUS))
 
 	_, err := app.ImportConnectionsPayload(strings.Repeat("A", connectionImportMaxFileBytes+1), "")
 	if !errors.Is(err, errConnectionImportFileTooLarge) {
@@ -89,17 +89,17 @@ func TestImportConnectionsPayloadLocalizesOversizedImportErrorInGerman(t *testin
 
 	want := app.appText("file.backend.error.connection_import_file_too_large", nil)
 	if err == nil || err.Error() != want {
-		t.Fatalf("expected German oversized-import message %q, got %q", want, errorMessage(err))
+		t.Fatalf("expected English oversized-import message %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "连接导入文件过大") {
 		t.Fatalf("expected no legacy Chinese oversized-import text in en-US mode, got %q", err.Error())
 	}
 }
 
-func TestImportConnectionsPayloadLocalizesMySQLWorkbenchParseFailureInGerman(t *testing.T) {
+func TestImportConnectionsPayloadLocalizesMySQLWorkbenchParseFailureInEnglish(t *testing.T) {
 	app := NewAppWithSecretStore(newFakeAppSecretStore())
 	app.configDir = t.TempDir()
-	app.SetLanguage(string(i18n.LanguageDeDE))
+	app.SetLanguage(string(i18n.LanguageEnUS))
 
 	raw := `<data grt_format="4.0"><value struct-name="db.mgmt.Connection"></data>`
 	_, parseErr := parseMySQLWorkbenchXML(raw)
@@ -110,24 +110,24 @@ func TestImportConnectionsPayloadLocalizesMySQLWorkbenchParseFailureInGerman(t *
 	_, err := app.ImportConnectionsPayload(raw, "")
 	want := app.appText("file.backend.error.mysql_workbench_parse_failed", map[string]any{"detail": parseErr.Error()})
 	if err == nil || err.Error() != want {
-		t.Fatalf("expected German MySQL Workbench parse error %q, got %q", want, errorMessage(err))
+		t.Fatalf("expected English MySQL Workbench parse error %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "解析 MySQL Workbench XML 失败") {
 		t.Fatalf("expected no legacy Chinese MySQL Workbench parse text in en-US mode, got %q", err.Error())
 	}
 }
 
-func TestImportConnectionsPayloadLocalizesMySQLWorkbenchNoConnectionsErrorInGerman(t *testing.T) {
+func TestImportConnectionsPayloadLocalizesMySQLWorkbenchNoConnectionsErrorInEnglish(t *testing.T) {
 	app := NewAppWithSecretStore(newFakeAppSecretStore())
 	app.configDir = t.TempDir()
-	app.SetLanguage(string(i18n.LanguageDeDE))
+	app.SetLanguage(string(i18n.LanguageEnUS))
 
 	raw := `<data grt_format="4.0"><value struct-name="db.mgmt.Connection"></value></data>`
 
 	_, err := app.ImportConnectionsPayload(raw, "")
 	want := app.appText("file.backend.error.mysql_workbench_no_connections", nil)
 	if err == nil || err.Error() != want {
-		t.Fatalf("expected German MySQL Workbench no-connections error %q, got %q", want, errorMessage(err))
+		t.Fatalf("expected English MySQL Workbench no-connections error %q, got %q", want, errorMessage(err))
 	}
 	if strings.Contains(err.Error(), "未在 XML 中找到有效的连接配置") {
 		t.Fatalf("expected no legacy Chinese MySQL Workbench no-connections text in en-US mode, got %q", err.Error())
