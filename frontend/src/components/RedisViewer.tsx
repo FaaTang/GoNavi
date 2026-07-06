@@ -13,9 +13,9 @@ import {
     isMacLikePlatform,
     normalizeBlurForPlatform,
     normalizeOpacityForPlatform,
-    resolveAppearanceValues,
     resolveTextInputSafeBackdropFilter,
 } from '../utils/appearance';
+import { resolveEffectiveAppearanceValues } from '../utils/memoryPolicy';
 import { buildRpcConnectionConfig } from '../utils/connectionRpcConfig';
 import {
     applyRenamedRedisKeyState,
@@ -181,11 +181,12 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
     const connections = useStore(state => state.connections);
     const theme = useStore(state => state.theme);
     const appearance = useStore(state => state.appearance);
+    const memorySettings = useStore(state => state.memorySettings);
     const i18n = useOptionalI18n();
     const i18nLanguage = i18n?.language;
     const tr = useCallback((key: string, params?: I18nParams) => t(key, params, i18nLanguage), [i18nLanguage]);
     const darkMode = theme === 'dark';
-    const resolvedAppearance = resolveAppearanceValues(appearance);
+    const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
     const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
     const blur = normalizeBlurForPlatform(resolvedAppearance.blur);
     const disableLocalBackdropFilter = isMacLikePlatform();
@@ -197,7 +198,8 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
     const workbenchBackdropFilter = useMemo(
         () => resolveTextInputSafeBackdropFilter(blurToFilter(blur), disableLocalBackdropFilter),
         [blur, disableLocalBackdropFilter],
-    );    const keyAccentColor = workbenchTheme.accent;
+    );
+    const keyAccentColor = workbenchTheme.accent;
     const jsonAccentColor = darkMode ? '#f6c453' : '#1890ff';
     const valueToolbarBg = workbenchTheme.panelBgStrong;
     const valueToolbarBorder = workbenchTheme.panelBorder;

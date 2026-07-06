@@ -141,7 +141,7 @@ import { getDbIcon } from './DatabaseIcons';
 		import { ListSQLDirectory } from '../../wailsjs/go/app/App';
 import { supportsTableTruncateAction } from './tableDataDangerActions';
   import { EventsOn } from '../../wailsjs/runtime/runtime';
-  import { isMacLikePlatform, normalizeOpacityForPlatform, resolveAppearanceValues } from '../utils/appearance';
+  import { isMacLikePlatform, normalizeOpacityForPlatform } from '../utils/appearance';
 import { useAutoFetchVisibility } from '../utils/autoFetchVisibility';
 import FindInDatabaseModal from './FindInDatabaseModal';
 import { buildRpcConnectionConfig } from '../utils/connectionRpcConfig';
@@ -172,6 +172,7 @@ import { buildExternalSQLRootNode, type ExternalSQLTreeNode } from '../utils/ext
 import { t } from '../i18n';
 import {
   DEFAULT_MEMORY_SETTINGS,
+  resolveEffectiveAppearanceValues,
   resolveMemoryPolicy,
   resolveSidebarDbCacheLimit,
 } from '../utils/memoryPolicy';
@@ -457,7 +458,7 @@ const Sidebar: React.FC<{
   const addAIContext = useStore(state => state.addAIContext);
   void languagePreference;
   const darkMode = theme === 'dark';
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
   const { exportProgressModal, runExportWithProgress } = useExportProgressDialog();
   const disableLocalBackdropFilter = isMacLikePlatform();
@@ -1149,6 +1150,13 @@ const Sidebar: React.FC<{
       memoryPolicy.effectiveLowMemoryMode,
       memorySettings.advanced.sidebarIdleReleaseMinutes,
   ]);
+
+  useEffect(() => {
+      if (!memoryPolicy.effectiveLowMemoryMode) {
+          return;
+      }
+      pruneLoadedDatabaseTreesRef.current();
+  }, [memoryPolicy.effectiveLowMemoryMode, sidebarDbCacheLimit]);
 
   const mergeExpandedTreeKeys = (requiredKeys: React.Key[]) => {
       setExpandedKeys(prev => {

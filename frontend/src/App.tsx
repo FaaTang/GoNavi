@@ -23,7 +23,7 @@ import LanguageSettingsPanel from './components/LanguageSettingsPanel';
 import MemorySettingsPanel from './components/MemorySettingsPanel';
 import { DEFAULT_APPEARANCE, useStore } from './store';
 import { SavedConnection, SecurityUpdateIssue, SecurityUpdateStatus } from './types';
-import { blurToFilter, normalizeBlurForPlatform, normalizeOpacityForPlatform, isWindowsPlatform, resolveAppearanceValues } from './utils/appearance';
+import { blurToFilter, normalizeBlurForPlatform, normalizeOpacityForPlatform, isWindowsPlatform } from './utils/appearance';
 import { buildFontFamilyOptions, DEFAULT_MONO_FONT_FAMILY, DEFAULT_UI_FONT_FAMILY, getLinuxCJKFontInstallHint, matchFontFamilyOption, resolveMonoFontFamily, resolveUIFontFamily, sanitizeFontFamilyInput, type FontFamilyOption, type InstalledFontFamily } from './utils/fontFamilies';
 import {
   DENSITY_OPTIONS,
@@ -108,7 +108,11 @@ import { useAppUtilityStyles } from './hooks/useAppUtilityStyles';
 import { ApplyDataRootDirectory, GetDataRootDirectoryInfo, GetSavedConnections, ListInstalledFontFamilies, OpenDataRootDirectory, SelectDataRootDirectory, SetMacNativeWindowControls, SetWindowTranslucency, SyncMemoryPolicy } from '../wailsjs/go/app/App';
 import { getAntdLocale } from './i18n/frameworkLocale';
 import { useI18n } from './i18n/provider';
-import { buildMemoryPolicyPayload, resolveMemoryPolicy } from './utils/memoryPolicy';
+import {
+  buildMemoryPolicyPayload,
+  resolveEffectiveAppearanceValues,
+  resolveMemoryPolicy,
+} from './utils/memoryPolicy';
 import './App.css';
 import './v2-theme.css';
 import './styles/v2-theme-workbench.css';
@@ -342,7 +346,7 @@ function App() {
   const titleBarHeight = Math.max(28, Math.round(32 * effectiveUiScale));
   const titleBarButtonWidth = Math.max(40, Math.round(46 * effectiveUiScale));
   const floatingLogButtonHeight = Math.max(30, Math.round(34 * effectiveUiScale));
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const effectiveOpacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
   const effectiveBlur = normalizeBlurForPlatform(resolvedAppearance.blur);
   const blurFilter = blurToFilter(effectiveBlur);
@@ -430,7 +434,7 @@ function App() {
   }, [windowState]);
 
   // 同步 macOS 窗口透明度：opacity=1.0 且 blur=0 时关闭 NSVisualEffectView，
-  // 避免 GPU 持续计算窗口背后的模糊合成
+  // 避免 GPU 持续计算窗口背后的模糊合成（低内存模式会强制不透明）
   useEffect(() => {
     try {
         void SetWindowTranslucency(resolvedAppearance.opacity, resolvedAppearance.blur).catch(() => undefined);
@@ -4674,7 +4678,7 @@ function App() {
                                       mutedTextStyle={utilityMutedTextStyle}
                                       onLowMemoryModeChange={(enabled) => {
                                           if (enabled) {
-                                              message.info(t('app.memory.low_memory.restart_required'));
+                                              message.info(t('app.memory.low_memory.transparency_applied'));
                                           }
                                       }}
                                   />

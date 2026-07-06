@@ -1,3 +1,12 @@
+import {
+  resolveAppearanceValues,
+  type AppearanceSettingsLike,
+} from "./appearance";
+import {
+  migrateQueryMaxRows,
+  type QueryMaxRowsState,
+} from "./queryMaxRows";
+
 export interface MemoryPolicyAppearance {
   enabled: boolean;
   opacity: number;
@@ -16,6 +25,8 @@ export interface MemoryAdvancedSettings {
 export interface MemorySettings {
   lowMemoryMode: boolean;
   advanced: MemoryAdvancedSettings;
+  /** Stashed query max-rows state restored when low-memory mode is turned off. */
+  queryMaxRowsStash: QueryMaxRowsState | null;
 }
 
 export type MemoryAdvancedOptionKey = keyof MemoryAdvancedSettings;
@@ -41,6 +52,7 @@ export const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
     sidebarIdleReleaseMinutes: 30,
     goGCPercent: 40,
   },
+  queryMaxRowsStash: null,
 };
 
 const LOW_MEMORY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -111,6 +123,17 @@ const sanitizeGoGCPercent = (value: unknown): number =>
     DEFAULT_MEMORY_SETTINGS.advanced.goGCPercent,
   );
 
+const sanitizeQueryMaxRowsStash = (value: unknown): QueryMaxRowsState | null => {
+  if (value == null || typeof value !== "object") {
+    return null;
+  }
+  const raw = value as Record<string, unknown>;
+  if (!("maxRows" in raw)) {
+    return null;
+  }
+  return migrateQueryMaxRows(raw);
+};
+
 const readLowMemoryEnvValue = (): string => {
   const importMetaEnv = import.meta.env as Record<string, string | undefined>;
   if (importMetaEnv.GONAVI_LOW_MEMORY_MODE) {
@@ -147,6 +170,7 @@ export const sanitizeMemorySettings = (value: unknown): MemorySettings => {
       ),
       goGCPercent: sanitizeGoGCPercent(advancedRaw.goGCPercent),
     },
+    queryMaxRowsStash: sanitizeQueryMaxRowsStash(raw.queryMaxRowsStash),
   };
 };
 
@@ -211,3 +235,19 @@ export const buildMemoryPolicyPayload = (policy: MemoryPolicy) => ({
   lowMemoryMode: policy.effectiveLowMemoryMode,
   goGCPercent: resolveGoGCPercent(policy),
 });
+
+/** Appearance used for rendering / OS translucency while low-memory mode is active. */
+export const resolveEffectiveAppearanceValues = (
+  memorySettings: MemorySettings,
+  appearance: AppearanceSettingsLike | undefined,
+): { opacity: number; blur: number } => {
+  const policy = resolveMemoryPolicy(memorySettings, {
+    enabled: appearance?.enabled,
+    opacity: appearance?.opacity,
+    blur: appearance?.blur,
+  });
+  if (policy.effectiveLowMemoryMode) {
+    return { opacity: 1, blur: 0 };
+  }
+  return resolveAppearanceValues(appearance);
+};

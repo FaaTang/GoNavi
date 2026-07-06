@@ -25,12 +25,14 @@ import QueryEditorTransactionSettings, {
 import QueryEditorMaxRowsSelect from "./QueryEditorMaxRowsSelect";
 import type { QueryMaxRowsState } from "../utils/queryMaxRows";
 
-type QueryEditorToolbarProps = {  currentConnectionId: string;
+type QueryEditorToolbarProps = {
+  currentConnectionId: string;
   currentDb: string;
   queryCapableConnections: SavedConnection[];
   dbList: string[];
   maxRows: number;
   maxRowsCustomPresets: number[];
+  maxRowsCap?: number;
   sqlEditorCommitMode: SqlEditorCommitMode;
   sqlEditorAutoCommitDelayMs: number;
   pendingTransactionToolbar: React.ReactNode;
@@ -58,12 +60,14 @@ type QueryEditorToolbarProps = {  currentConnectionId: string;
   onAIAction: (action: "generate" | "explain" | "optimize" | "schema") => void;
 };
 
-const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({  currentConnectionId,
+const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
+  currentConnectionId,
   currentDb,
   queryCapableConnections,
   dbList,
   maxRows,
   maxRowsCustomPresets,
+  maxRowsCap,
   sqlEditorCommitMode,
   sqlEditorAutoCommitDelayMs,
   pendingTransactionToolbar,
@@ -186,6 +190,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({  currentConnec
       <QueryEditorMaxRowsSelect
         maxRows={maxRows}
         maxRowsCustomPresets={maxRowsCustomPresets}
+        maxRowsCap={maxRowsCap}
         onChange={onMaxRowsChange}
       />
       <QueryEditorTransactionSettings

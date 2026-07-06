@@ -1693,6 +1693,7 @@ describe('store memory settings persistence', () => {
         sidebarIdleReleaseMinutes: 30,
         goGCPercent: 40,
       },
+      queryMaxRowsStash: null,
     });
   });
 
@@ -1709,6 +1710,52 @@ describe('store memory settings persistence', () => {
     const reloaded = await importStore();
     expect(reloaded.useStore.getState().memorySettings.lowMemoryMode).toBe(true);
     expect(reloaded.useStore.getState().memorySettings.advanced.runtimeSqlLogLimit).toBe(90);
+  });
+
+  it('caps and restores max rows when toggling low memory mode', async () => {
+    const { useStore } = await importStore();
+    useStore.getState().setQueryOptions({
+      maxRows: 5000,
+      maxRowsCustomPresets: [5000],
+    });
+
+    useStore.getState().setMemorySettings({ lowMemoryMode: true });
+    expect(useStore.getState().queryOptions.maxRows).toBe(100);
+    expect(useStore.getState().queryOptions.maxRowsCustomPresets).toEqual([]);
+    expect(useStore.getState().memorySettings.queryMaxRowsStash).toEqual({
+      maxRows: 5000,
+      maxRowsCustomPresets: [5000],
+    });
+
+    useStore.getState().setMemorySettings({ lowMemoryMode: false });
+    expect(useStore.getState().queryOptions.maxRows).toBe(5000);
+    expect(useStore.getState().queryOptions.maxRowsCustomPresets).toEqual([5000]);
+    expect(useStore.getState().memorySettings.queryMaxRowsStash).toBeNull();
+  });
+
+  it('trims sql logs and ai history when enabling low memory mode', async () => {
+    const { useStore } = await importStore();
+    useStore.setState({
+      sqlLogs: Array.from({ length: 80 }, (_, index) => ({
+        id: `log-${index}`,
+        timestamp: index,
+        sql: `select ${index}`,
+        status: 'success' as const,
+        duration: 1,
+      })),
+      aiChatHistory: {
+        session: Array.from({ length: 70 }, (_, index) => ({
+          id: `msg-${index}`,
+          role: 'user' as const,
+          content: `m-${index}`,
+          timestamp: index,
+        })),
+      },
+    });
+
+    useStore.getState().setMemorySettings({ lowMemoryMode: true });
+    expect(useStore.getState().sqlLogs).toHaveLength(60);
+    expect(useStore.getState().aiChatHistory.session).toHaveLength(50);
   });
 });
 

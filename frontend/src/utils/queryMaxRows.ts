@@ -1,4 +1,5 @@
 export const DEFAULT_MAX_ROWS = 100;
+export const LOW_MEMORY_MAX_ROWS_CAP = DEFAULT_MAX_ROWS;
 export const MAX_MAX_ROWS = 50000;
 export const LEGACY_UNLIMITED_MAX_ROWS = 50000;
 export const MAX_CUSTOM_PRESETS = 5;
@@ -87,4 +88,15 @@ export const removeMaxRowsCustomPreset = (
 ): QueryMaxRowsState => ({
   maxRows: state.maxRows === value ? DEFAULT_MAX_ROWS : state.maxRows,
   maxRowsCustomPresets: state.maxRowsCustomPresets.filter((item) => item !== value),
+});
+
+export const queryMaxRowsNeedsLowMemoryCap = (state: QueryMaxRowsState): boolean =>
+  state.maxRows > LOW_MEMORY_MAX_ROWS_CAP
+  || state.maxRowsCustomPresets.some((value) => value > LOW_MEMORY_MAX_ROWS_CAP);
+
+export const capQueryMaxRowsForLowMemory = (state: QueryMaxRowsState): QueryMaxRowsState => ({
+  maxRows: Math.min(clampMaxRows(state.maxRows), LOW_MEMORY_MAX_ROWS_CAP),
+  maxRowsCustomPresets: sanitizeMaxRowsCustomPresets(
+    state.maxRowsCustomPresets.filter((value) => value <= LOW_MEMORY_MAX_ROWS_CAP),
+  ),
 });

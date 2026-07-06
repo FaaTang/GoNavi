@@ -7,7 +7,8 @@ import { messages } from '../../../shared/i18n/messages';
 import { catalogs } from '../i18n/catalog';
 import { useStore } from '../store';
 import { t } from '../i18n';
-import { normalizeOpacityForPlatform, resolveAppearanceValues } from '../utils/appearance';
+import { normalizeOpacityForPlatform } from '../utils/appearance';
+import { resolveEffectiveAppearanceValues } from '../utils/memoryPolicy';
 import { isBackendCancelledResult } from '../utils/connectionExport';
 import { normalizeDriverProgressUpdate, type DriverProgressState } from '../utils/driverProgress';
 import { buildDriverManagerWorkbenchTheme } from '../utils/driverManagerWorkbenchTheme';
@@ -463,10 +464,11 @@ const DriverManagerModal: React.FC<{ open: boolean; onClose: () => void; onBack?
 }) => {
   const theme = useStore((state) => state.theme);
   const appearance = useStore((state) => state.appearance);
+  const memorySettings = useStore((state) => state.memorySettings);
   const languagePreference = useStore((state) => state.languagePreference);
   void languagePreference;
   const darkMode = theme === 'dark';
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
   const driverManagerTheme = useMemo(
     () => buildDriverManagerWorkbenchTheme(darkMode, opacity),

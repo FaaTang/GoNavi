@@ -31,7 +31,8 @@ import type { ColumnDefinition, ForeignKeyDefinition, IndexDefinition } from '..
 import { v4 as generateUuid } from 'uuid';
 import 'react-resizable/css/styles.css';
 import { buildOrderBySQL, buildPaginatedSelectSQL, buildWhereSQL, escapeLiteral, hasExplicitSort, quoteIdentPart, withSortBufferTuningSQL, type FilterCondition } from '../utils/sql';
-import { isMacLikePlatform, normalizeOpacityForPlatform, resolveAppearanceValues } from '../utils/appearance';
+import { isMacLikePlatform, normalizeOpacityForPlatform } from '../utils/appearance';
+import { resolveEffectiveAppearanceValues } from '../utils/memoryPolicy';
 import { isConnectionDataImportRestricted } from '../utils/connectionReadOnly';
 import { getDataSourceCapabilities, resolveDataSourceType } from '../utils/dataSourceCapabilities';
 import { buildRpcConnectionConfig } from '../utils/connectionRpcConfig';
@@ -293,6 +294,7 @@ const DataGrid: React.FC<DataGridProps> = ({
   const addSqlLog = useStore(state => state.addSqlLog);
   const theme = useStore(state => state.theme);
   const appearance = useStore(state => state.appearance);
+  const memorySettings = useStore(state => state.memorySettings);
   const uiScale = useStore(state => state.uiScale);
   const queryOptions = useStore(state => state.queryOptions);
   const setQueryOptions = useStore(state => state.setQueryOptions);
@@ -330,10 +332,11 @@ const DataGrid: React.FC<DataGridProps> = ({
       emptyLocatorValue: (column: string) => translateDataGrid('data_grid.message.locator_column_value_empty', { column }),
   }), [translateDataGrid]);
   
-  const isMacLike = useMemo(() => isMacLikePlatform(), []);  const effectiveUiScale = Math.min(1.25, Math.max(0.8, Number(uiScale) || 1));
+  const isMacLike = useMemo(() => isMacLikePlatform(), []);
+  const effectiveUiScale = Math.min(1.25, Math.max(0.8, Number(uiScale) || 1));
   const activeShortcutPlatform = useMemo(() => getShortcutPlatform(isMacLike), [isMacLike]);
   const darkMode = theme === 'dark';
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
   const useVirtualHolderPaintHints = false;
   const useVirtualRowCellContain = false;
@@ -1324,7 +1327,8 @@ const DataGrid: React.FC<DataGridProps> = ({
       currentConnConfig,
       dbName,
       dbType,
-      tableName,      cellEditMode,
+      tableName,
+      cellEditMode,
       selectedRowKeys,
       mergedDisplayDataRef,
       rowKeyStr,
@@ -4272,7 +4276,8 @@ const DataGrid: React.FC<DataGridProps> = ({
         isListOp,
         isNoValueOp,
         isQueryResultExport,
-        isTableSurfaceActive,        isWritableResultColumn,
+        isTableSurfaceActive,
+        isWritableResultColumn,
         jsonEditorOpen,
         jsonEditorValue,
         jsonViewText,

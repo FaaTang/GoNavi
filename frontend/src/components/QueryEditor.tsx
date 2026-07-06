@@ -28,6 +28,8 @@ import { formatSqlExecutionError, hasLocalizedSqlTimeoutKeyword } from '../utils
 import { canReusePendingSqlEditorTransactionForType, shouldUseSqlEditorManagedTransactionForType } from '../utils/sqlEditorTransaction';
 import { findSqlStatementRanges, resolveCurrentSqlStatementRange, resolveExecutableSql } from '../utils/sqlStatementSelection';
 import { isMacLikePlatform } from '../utils/appearance';
+import { resolveMemoryPolicy } from '../utils/memoryPolicy';
+import { LOW_MEMORY_MAX_ROWS_CAP } from '../utils/queryMaxRows';
 import { splitSidebarQualifiedName } from '../utils/sidebarLocate';
 import { buildMySQLCompatibleViewMetadataSqls, isSidebarViewTableType, normalizeSidebarViewName } from '../utils/sidebarMetadata';
 import { SIDEBAR_SQL_EDITOR_DRAG_MIME, decodeSidebarSqlEditorDragPayload, hasSidebarSqlEditorDragPayload } from '../utils/sidebarSqlDrag';
@@ -303,11 +305,16 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const languagePreference = useStore((state) => state.languagePreference);
   void languagePreference;
   const appearance = useStore(state => state.appearance);
+  const memorySettings = useStore(state => state.memorySettings);
   const darkMode = theme === 'dark';
   const sqlFormatOptions = useStore(state => state.sqlFormatOptions);
   const setSqlFormatOptions = useStore(state => state.setSqlFormatOptions);
   const queryOptions = useStore(state => state.queryOptions);
   const setQueryOptions = useStore(state => state.setQueryOptions);
+  const maxRowsCap = useMemo(() => {
+      const policy = resolveMemoryPolicy(memorySettings, appearance);
+      return policy.effectiveLowMemoryMode ? LOW_MEMORY_MAX_ROWS_CAP : undefined;
+  }, [appearance, memorySettings]);
   const sqlEditorTransactionOptions = useStore(state => state.sqlEditorTransactionOptions);
   const setSqlEditorTransactionOptions = useStore(state => state.setSqlEditorTransactionOptions);
   const [isResultPanelVisible, setIsResultPanelVisible] = useState(
@@ -4992,6 +4999,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         dbList={dbList}
         maxRows={queryOptions?.maxRows ?? 100}
         maxRowsCustomPresets={queryOptions?.maxRowsCustomPresets ?? []}
+        maxRowsCap={maxRowsCap}
         sqlEditorCommitMode={sqlEditorCommitMode}
         sqlEditorAutoCommitDelayMs={sqlEditorAutoCommitDelayMs}
         pendingTransactionToolbar={pendingSqlTransaction ? sqlEditorTransactionToolbar : null}

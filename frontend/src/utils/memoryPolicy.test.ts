@@ -4,6 +4,7 @@ import {
   buildMemoryPolicyPayload,
   effectiveLowMemoryModeFromEnv,
   resolveAiMessageMemoryLimit,
+  resolveEffectiveAppearanceValues,
   resolveMemoryPolicy,
   resolveRuntimeSqlLogLimit,
   resolveSidebarDbCacheLimit,
@@ -84,6 +85,32 @@ describe("memoryPolicy", () => {
         sidebarIdleReleaseMinutes: 30,
         goGCPercent: 100,
       },
+      queryMaxRowsStash: null,
     });
+  });
+
+  it("sanitizes queryMaxRowsStash and ignores incomplete stash objects", () => {
+    expect(sanitizeMemorySettings({
+      lowMemoryMode: true,
+      queryMaxRowsStash: { maxRows: 5000, maxRowsCustomPresets: [5000] },
+    }).queryMaxRowsStash).toEqual({
+      maxRows: 5000,
+      maxRowsCustomPresets: [5000],
+    });
+    expect(sanitizeMemorySettings({
+      lowMemoryMode: true,
+      queryMaxRowsStash: { maxRowsCustomPresets: [5000] },
+    }).queryMaxRowsStash).toBeNull();
+  });
+
+  it("forces opaque appearance values while low memory is effective", () => {
+    expect(resolveEffectiveAppearanceValues(
+      { ...DEFAULT_MEMORY_SETTINGS, lowMemoryMode: true },
+      { enabled: true, opacity: 0.72, blur: 12 },
+    )).toEqual({ opacity: 1, blur: 0 });
+    expect(resolveEffectiveAppearanceValues(
+      DEFAULT_MEMORY_SETTINGS,
+      { enabled: true, opacity: 0.72, blur: 12 },
+    )).toEqual({ opacity: 0.72, blur: 12 });
   });
 });

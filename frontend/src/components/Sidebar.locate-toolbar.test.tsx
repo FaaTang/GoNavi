@@ -209,6 +209,7 @@ vi.mock('../store', () => ({
         sidebarIdleReleaseMinutes: 0,
         goGCPercent: 100,
       },
+      queryMaxRowsStash: null,
     },
   }),
 }));

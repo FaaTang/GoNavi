@@ -81,7 +81,11 @@ import {
   normalizeConnectionProtectionConfig,
   resolveConnectionProtectionConfig,
 } from "./utils/connectionReadOnly";
-import { migrateQueryMaxRows } from "./utils/queryMaxRows";
+import {
+  capQueryMaxRowsForLowMemory,
+  migrateQueryMaxRows,
+  queryMaxRowsNeedsLowMemoryCap,
+} from "./utils/queryMaxRows";
 import {
   DEFAULT_UPDATE_PREFERENCES,
   normalizeVersion,
@@ -1984,6 +1988,33 @@ const sanitizeQueryOptions = (value: unknown): QueryOptions => {
   };
 };
 
+const applyHydrationLowMemoryCaps = (
+  memorySettings: MemorySettings,
+  queryOptions: QueryOptions,
+  sqlLogs: AppState["sqlLogs"],
+  appearance: AppearanceSettings,
+): { queryOptions: QueryOptions; sqlLogs: AppState["sqlLogs"] } => {
+  const policy = resolveMemoryPolicy(memorySettings, appearance);
+  if (!policy.effectiveLowMemoryMode) {
+    return { queryOptions, sqlLogs };
+  }
+  const maxRowsState = {
+    maxRows: queryOptions.maxRows,
+    maxRowsCustomPresets: queryOptions.maxRowsCustomPresets,
+  };
+  const nextQueryOptions = queryMaxRowsNeedsLowMemoryCap(maxRowsState)
+    ? {
+        ...queryOptions,
+        ...capQueryMaxRowsForLowMemory(maxRowsState),
+      }
+    : queryOptions;
+  const logLimit = resolveRuntimeSqlLogLimit(policy);
+  return {
+    queryOptions: nextQueryOptions,
+    sqlLogs: sanitizeRuntimeSqlLogs(sqlLogs.slice(0, logLimit)),
+  };
+};
+
 const DATA_EDIT_AUTO_COMMIT_DELAY_OPTIONS = new Set([3000, 5000, 10000, 30000]);
 const SQL_EDITOR_AUTO_COMMIT_DELAY_OPTIONS = new Set([0, 3000, 5000, 10000, 30000]);
 
@@ -3266,9 +3297,24 @@ export const useStore = create<AppState>()(
         })),
       setSqlFormatOptions: (options) => set({ sqlFormatOptions: options }),
       setQueryOptions: (options) =>
-        set((state) => ({
-          queryOptions: { ...state.queryOptions, ...options },
-        })),
+        set((state) => {
+          const merged = { ...state.queryOptions, ...options };
+          const policy = resolveMemoryPolicy(state.memorySettings, state.appearance);
+          if (!policy.effectiveLowMemoryMode) {
+            return { queryOptions: merged };
+          }
+          const capped = capQueryMaxRowsForLowMemory({
+            maxRows: merged.maxRows,
+            maxRowsCustomPresets: merged.maxRowsCustomPresets,
+          });
+          return {
+            queryOptions: {
+              ...merged,
+              maxRows: capped.maxRows,
+              maxRowsCustomPresets: capped.maxRowsCustomPresets,
+            },
+          };
+        }),
       setUpdateAutoPromptEnabled: (enabled) =>
         set((state) => ({
           updatePreferences: sanitizeUpdatePreferences({
@@ -3290,15 +3336,83 @@ export const useStore = create<AppState>()(
           };
         }),
       setMemorySettings: (settings) =>
-        set((state) => ({
-          memorySettings: sanitizeMemorySettings({
+        set((state) => {
+          const prevEffective = resolveMemoryPolicy(
+            state.memorySettings,
+            state.appearance,
+          ).effectiveLowMemoryMode;
+          let nextMemorySettings = sanitizeMemorySettings({
             ...state.memorySettings,
             ...settings,
             advanced: settings.advanced
               ? { ...state.memorySettings.advanced, ...settings.advanced }
               : state.memorySettings.advanced,
-          }),
-        })),
+            queryMaxRowsStash:
+              settings.queryMaxRowsStash !== undefined
+                ? settings.queryMaxRowsStash
+                : state.memorySettings.queryMaxRowsStash,
+          });
+          const nextPolicy = resolveMemoryPolicy(nextMemorySettings, state.appearance);
+          const nextEffective = nextPolicy.effectiveLowMemoryMode;
+
+          if (!prevEffective && nextEffective) {
+            const currentMaxRows = {
+              maxRows: state.queryOptions.maxRows,
+              maxRowsCustomPresets: state.queryOptions.maxRowsCustomPresets,
+            };
+            let queryOptions = state.queryOptions;
+            if (queryMaxRowsNeedsLowMemoryCap(currentMaxRows)) {
+              if (!nextMemorySettings.queryMaxRowsStash) {
+                nextMemorySettings = sanitizeMemorySettings({
+                  ...nextMemorySettings,
+                  queryMaxRowsStash: currentMaxRows,
+                });
+              }
+              const capped = capQueryMaxRowsForLowMemory(currentMaxRows);
+              queryOptions = {
+                ...state.queryOptions,
+                maxRows: capped.maxRows,
+                maxRowsCustomPresets: capped.maxRowsCustomPresets,
+              };
+            }
+            const logLimit = resolveRuntimeSqlLogLimit(nextPolicy);
+            const sqlLogs = sanitizeRuntimeSqlLogs(state.sqlLogs.slice(0, logLimit));
+            const aiChatHistory = Object.fromEntries(
+              Object.entries(state.aiChatHistory).map(([sessionId, messages]) => [
+                sessionId,
+                trimAiChatMessagesForRuntime(messages, {
+                  memorySettings: nextMemorySettings,
+                  appearance: state.appearance,
+                }),
+              ]),
+            );
+            return {
+              memorySettings: nextMemorySettings,
+              queryOptions,
+              sqlLogs,
+              aiChatHistory,
+            };
+          }
+
+          if (prevEffective && !nextEffective) {
+            const stash = nextMemorySettings.queryMaxRowsStash;
+            const queryOptions = stash
+              ? {
+                  ...state.queryOptions,
+                  ...migrateQueryMaxRows(stash),
+                }
+              : state.queryOptions;
+            return {
+              memorySettings: sanitizeMemorySettings({
+                ...nextMemorySettings,
+                queryMaxRowsStash: null,
+              }),
+              queryOptions,
+            };
+          }
+
+          return { memorySettings: nextMemorySettings };
+        }),
       setMemoryAdvancedOption: (key, value) =>
         set((state) => ({
           memorySettings: sanitizeMemorySettings({
@@ -3797,9 +3911,10 @@ export const useStore = create<AppState>()(
         nextState.languagePreference = sanitizeLanguagePreference(
           state.languagePreference,
         );
-        nextState.appearance = version < 17
+        const migratedAppearance = version < 17
           ? { ...DEFAULT_APPEARANCE }
           : sanitizeAppearance(state.appearance, version);
+        nextState.appearance = migratedAppearance;
         nextState.uiScale = sanitizeUiScale(state.uiScale);
         nextState.fontSize = sanitizeFontSize(state.fontSize);
         nextState.startupFullscreen = sanitizeStartupFullscreen(
@@ -3809,9 +3924,9 @@ export const useStore = create<AppState>()(
         nextState.sqlFormatOptions = sanitizeSqlFormatOptions(
           state.sqlFormatOptions,
         );
-        nextState.queryOptions = sanitizeQueryOptions(state.queryOptions);
         nextState.updatePreferences = sanitizeUpdatePreferences(state.updatePreferences);
-        nextState.memorySettings = sanitizeMemorySettings(state.memorySettings);
+        const migratedMemorySettings = sanitizeMemorySettings(state.memorySettings);
+        nextState.memorySettings = migratedMemorySettings;
         nextState.dataEditTransactionOptions =
           sanitizeDataEditTransactionOptions(state.dataEditTransactionOptions);
         nextState.sqlEditorTransactionOptions =
@@ -3819,10 +3934,17 @@ export const useStore = create<AppState>()(
         nextState.shortcutOptions = sanitizeShortcutOptions(
           state.shortcutOptions,
         );
-        nextState.sqlLogs = sanitizeRuntimeSqlLogs(state.sqlLogs);
         nextState.tableExportHistories = sanitizeTableExportHistories(
           state.tableExportHistories,
         );
+        const hydratedLimits = applyHydrationLowMemoryCaps(
+          migratedMemorySettings,
+          sanitizeQueryOptions(state.queryOptions),
+          sanitizeRuntimeSqlLogs(state.sqlLogs),
+          migratedAppearance,
+        );
+        nextState.queryOptions = hydratedLimits.queryOptions;
+        nextState.sqlLogs = hydratedLimits.sqlLogs;
         const existingSnippets = sanitizeSqlSnippets(state.sqlSnippets);
         const existingSnippetIds = new Set(existingSnippets.map((s) => s.id));
         const missingSnippets = DEFAULT_SQL_SNIPPETS.filter(
@@ -3855,10 +3977,19 @@ export const useStore = create<AppState>()(
         nextState.sidebarWidth = sanitizeSidebarWidth(state.sidebarWidth);
 
         // 保留原有的 AI 持久化记录，或者为空（版本兼容）
-        nextState.aiChatHistory =
+        const aiChatHistory =
           state.aiChatHistory && typeof state.aiChatHistory === "object"
-            ? state.aiChatHistory
+            ? (state.aiChatHistory as AppState["aiChatHistory"])
             : {};
+        nextState.aiChatHistory = Object.fromEntries(
+          Object.entries(aiChatHistory).map(([sessionId, messages]) => [
+            sessionId,
+            trimAiChatMessagesForRuntime(messages, {
+              memorySettings: migratedMemorySettings,
+              appearance: migratedAppearance,
+            }),
+          ]),
+        );
         nextState.aiChatSessions = Array.isArray(state.aiChatSessions)
           ? state.aiChatSessions
           : [];
@@ -3886,6 +4017,14 @@ export const useStore = create<AppState>()(
                 persistedConnectionTags,
                 persistedConnections,
               );
+        const appearance = sanitizeAppearance(state.appearance, PERSIST_VERSION);
+        const memorySettings = sanitizeMemorySettings(state.memorySettings);
+        const hydratedLimits = applyHydrationLowMemoryCaps(
+          memorySettings,
+          sanitizeQueryOptions(state.queryOptions),
+          sanitizeRuntimeSqlLogs(state.sqlLogs),
+          appearance,
+        );
         return {
           ...currentState,
           ...state,
@@ -3902,7 +4041,7 @@ export const useStore = create<AppState>()(
           languagePreference: sanitizeLanguagePreference(
             state.languagePreference,
           ),
-          appearance: sanitizeAppearance(state.appearance, PERSIST_VERSION),
+          appearance,
           uiScale: sanitizeUiScale(state.uiScale),
           fontSize: sanitizeFontSize(state.fontSize),
           startupFullscreen: sanitizeStartupFullscreen(state.startupFullscreen),
@@ -3924,9 +4063,10 @@ export const useStore = create<AppState>()(
           sidebarWidth: sanitizeSidebarWidth(state.sidebarWidth),
 
           sqlFormatOptions: sanitizeSqlFormatOptions(state.sqlFormatOptions),
-          queryOptions: sanitizeQueryOptions(state.queryOptions),
           updatePreferences: sanitizeUpdatePreferences(state.updatePreferences),
-          memorySettings: sanitizeMemorySettings(state.memorySettings),
+          memorySettings,
+          queryOptions: hydratedLimits.queryOptions,
+          sqlLogs: hydratedLimits.sqlLogs,
           dataEditTransactionOptions: sanitizeDataEditTransactionOptions(
             state.dataEditTransactionOptions,
           ),
@@ -3934,7 +4074,6 @@ export const useStore = create<AppState>()(
             state.sqlEditorTransactionOptions,
           ),
           shortcutOptions: sanitizeShortcutOptions(state.shortcutOptions),
-          sqlLogs: sanitizeRuntimeSqlLogs(state.sqlLogs),
           sqlSnippets: sanitizeSqlSnippets(state.sqlSnippets),
           tableAccessCount: sanitizeTableAccessCount(state.tableAccessCount),
 

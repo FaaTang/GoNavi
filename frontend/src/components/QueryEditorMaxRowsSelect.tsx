@@ -14,13 +14,17 @@ import {
 
 const CUSTOM_OPTION_VALUE = '__custom__';
 
-export type QueryEditorMaxRowsSelectProps = {  maxRows: number;
+export type QueryEditorMaxRowsSelectProps = {
+  maxRows: number;
   maxRowsCustomPresets: number[];
+  maxRowsCap?: number;
   onChange: (next: QueryMaxRowsState) => void;
 };
 
-const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({  maxRows,
+const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
+  maxRows,
   maxRowsCustomPresets,
+  maxRowsCap,
   onChange,
 }) => {
   const i18n = useOptionalI18n();
@@ -28,6 +32,9 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({  m
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState<number | null>(maxRows);
+  const effectiveMaxRowsCap = Number.isFinite(maxRowsCap) && (maxRowsCap as number) > 0
+    ? Math.trunc(maxRowsCap as number)
+    : MAX_MAX_ROWS;
 
   const currentState = useMemo(
     (): QueryMaxRowsState => ({ maxRows, maxRowsCustomPresets }),
@@ -62,7 +69,7 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({  m
 
   const applyCustomValue = () => {
     const nextValue = Number(customDraft);
-    if (!Number.isFinite(nextValue) || nextValue < 1 || nextValue > MAX_MAX_ROWS) {
+    if (!Number.isFinite(nextValue) || nextValue < 1 || nextValue > effectiveMaxRowsCap) {
       return;
     }
     const truncated = Math.trunc(nextValue);
@@ -130,7 +137,7 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({  m
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <InputNumber
             min={1}
-            max={MAX_MAX_ROWS}
+            max={effectiveMaxRowsCap}
             precision={0}
             style={{ width: '100%' }}
             placeholder={t('query_editor.max_rows.custom.placeholder')}

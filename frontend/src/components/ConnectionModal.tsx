@@ -47,8 +47,8 @@ import { buildOverlayWorkbenchTheme } from "../utils/overlayWorkbenchTheme";
 import {
   isMacLikePlatform,
   normalizeOpacityForPlatform,
-  resolveAppearanceValues,
 } from "../utils/appearance";
+import { resolveEffectiveAppearanceValues } from "../utils/memoryPolicy";
 import { t } from "../i18n";
 import {
   getConnectionConfigLayoutKindLabel,
@@ -375,10 +375,11 @@ const ConnectionModal: React.FC<{
   const updateConnection = useStore((state) => state.updateConnection);
   const theme = useStore((state) => state.theme);
   const appearance = useStore((state) => state.appearance);
+  const memorySettings = useStore((state) => state.memorySettings);
   const languagePreference = useStore((state) => state.languagePreference);
   void languagePreference;
   const darkMode = theme === "dark";
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const effectiveOpacity = normalizeOpacityForPlatform(
     resolvedAppearance.opacity,
   );

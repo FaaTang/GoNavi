@@ -38,9 +38,9 @@ import { EventsOn } from "../../wailsjs/runtime/runtime";
 import {
   isMacLikePlatform,
   normalizeOpacityForPlatform,
-  resolveAppearanceValues,
   resolveTextInputSafeBackdropFilter,
 } from "../utils/appearance";
+import { resolveEffectiveAppearanceValues } from "../utils/memoryPolicy";
 import { buildRpcConnectionConfig } from "../utils/connectionRpcConfig";
 import {
   isPostgresSchemaDialect,
@@ -369,11 +369,12 @@ const DataSyncModal: React.FC<{
   const connections = useStore((state) => state.connections);
   const themeMode = useStore((state) => state.theme);
   const appearance = useStore((state) => state.appearance);
+  const memorySettings = useStore((state) => state.memorySettings);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const { token } = antdTheme.useToken();
   const darkMode = themeMode === "dark";
-  const resolvedAppearance = resolveAppearanceValues(appearance);
+  const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
   const effectiveOpacity = normalizeOpacityForPlatform(
     resolvedAppearance.opacity,
   );

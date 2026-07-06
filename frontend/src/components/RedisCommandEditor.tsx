@@ -10,8 +10,8 @@ import {
     isMacLikePlatform,
     normalizeBlurForPlatform,
     normalizeOpacityForPlatform,
-    resolveAppearanceValues,
 } from '../utils/appearance';
+import { resolveEffectiveAppearanceValues } from '../utils/memoryPolicy';
 import { buildRedisWorkbenchTheme } from './redisViewerWorkbenchTheme';
 
 interface RedisCommandEditorProps {
@@ -111,11 +111,13 @@ const RedisCommandEditor: React.FC<RedisCommandEditorProps> = ({ connectionId, r
     const connections = useStore(state => state.connections);
     const theme = useStore(state => state.theme);
     const appearance = useStore(state => state.appearance);
+    const memorySettings = useStore(state => state.memorySettings);
     const i18n = useOptionalI18n();
     const i18nLanguage = i18n?.language;
     const tr = (key: string, params?: I18nParams) => t(key, params, i18nLanguage);
     const connection = connections.find(c => c.id === connectionId);
-    const darkMode = theme === 'dark';    const resolvedAppearance = resolveAppearanceValues(appearance);
+    const darkMode = theme === 'dark';
+    const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
     const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
     const blur = normalizeBlurForPlatform(resolvedAppearance.blur);
     const disableLocalBackdropFilter = isMacLikePlatform();

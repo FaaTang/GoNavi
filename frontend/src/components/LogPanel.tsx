@@ -3,7 +3,8 @@ import { Table, Tag, Button, Tooltip, Empty } from 'antd';
 import { ClearOutlined, CloseOutlined, BugOutlined, RobotOutlined } from '@ant-design/icons';
 import { useStore } from '../store';
 import { useI18n } from '../i18n/provider';
-import { normalizeOpacityForPlatform, resolveAppearanceValues } from '../utils/appearance';
+import { normalizeOpacityForPlatform } from '../utils/appearance';
+import { resolveEffectiveAppearanceValues } from '../utils/memoryPolicy';
 interface LogPanelProps {
     height?: number;
     onClose?: () => void;
@@ -26,8 +27,9 @@ const LogPanel: React.FC<LogPanelProps> = ({
     const clearSqlLogs = useStore(state => state.clearSqlLogs);
     const theme = useStore(state => state.theme);
     const appearance = useStore(state => state.appearance);
+    const memorySettings = useStore(state => state.memorySettings);
     const darkMode = theme === 'dark';
-    const resolvedAppearance = resolveAppearanceValues(appearance);
+    const resolvedAppearance = resolveEffectiveAppearanceValues(memorySettings, appearance);
     const opacity = normalizeOpacityForPlatform(resolvedAppearance.opacity);
 
     // Background Helper

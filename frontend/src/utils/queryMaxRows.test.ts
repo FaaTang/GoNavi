@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MAX_ROWS,
   LEGACY_UNLIMITED_MAX_ROWS,
+  LOW_MEMORY_MAX_ROWS_CAP,
   addMaxRowsCustomPreset,
+  capQueryMaxRowsForLowMemory,
   migrateQueryMaxRows,
+  queryMaxRowsNeedsLowMemoryCap,
   sanitizeMaxRowsCustomPresets,
 } from './queryMaxRows';
 
@@ -57,6 +60,21 @@ describe('queryMaxRows', () => {
     expect(addMaxRowsCustomPreset({ maxRows: 5000, maxRowsCustomPresets: [5000] }, 100)).toEqual({
       maxRows: 100,
       maxRowsCustomPresets: [5000],
+    });
+  });
+
+  it('caps max rows and presets for low-memory mode', () => {
+    expect(queryMaxRowsNeedsLowMemoryCap({ maxRows: 50, maxRowsCustomPresets: [] })).toBe(false);
+    expect(queryMaxRowsNeedsLowMemoryCap({
+      maxRows: 100,
+      maxRowsCustomPresets: [5000],
+    })).toBe(true);
+    expect(capQueryMaxRowsForLowMemory({
+      maxRows: 5000,
+      maxRowsCustomPresets: [5000, 200],
+    })).toEqual({
+      maxRows: LOW_MEMORY_MAX_ROWS_CAP,
+      maxRowsCustomPresets: [],
     });
   });
 });
