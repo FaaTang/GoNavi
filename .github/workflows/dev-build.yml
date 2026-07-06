@@ -1,9 +1,10 @@
 name: Dev Build
 
+# Fork 维护说明：
+# - 不在 push 到 dev 时自动构建，避免同步上游代码后误触发 CI
+# - 如需手动试构建，可在 Actions 页使用 workflow_dispatch
 on:
-  push:
-    branches:
-      - dev
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

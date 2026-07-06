@@ -1,5 +1,7 @@
 name: Release
 
+# 仅在向配置分支上的提交推送 v* tag 时发布（避免同步上游 tag 时误触发）
+# 可在仓库 Settings → Secrets and variables → Actions → Variables 设置 RELEASE_BRANCH（默认 own）
 on:
   push:
     tags:
@@ -8,9 +10,46 @@ on:
 permissions:
   contents: write
 
+env:
+  RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'own' }}
+
 jobs:
+  gate:
+    name: Verify release trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      release_branch: ${{ steps.check.outputs.release_branch }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check tag commit is on release branch
+        id: check
+        env:
+          RELEASE_BRANCH: ${{ env.RELEASE_BRANCH }}
+        run: |
+          echo "release_branch=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
+          git fetch origin "${RELEASE_BRANCH}"
+          if ! git rev-parse --verify "origin/${RELEASE_BRANCH}" >/dev/null 2>&1; then
+            echo "Branch ${RELEASE_BRANCH} does not exist on origin; skip release"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${RELEASE_BRANCH}"; then
+            echo "Tag commit is on branch ${RELEASE_BRANCH}; proceed with release"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag commit is not on branch ${RELEASE_BRANCH}; skip release (likely synced upstream tag)"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
   frontend:
     name: Build frontend
+    needs: gate
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -61,6 +100,8 @@ jobs:
 
   driver_agents:
     name: Detect changed driver agents
+    needs: gate
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     outputs:
       drivers: ${{ steps.detect.outputs.drivers }}
@@ -211,8 +252,10 @@ jobs:
   build:
     name: Build ${{ matrix.platform }}
     needs:
+      - gate
       - frontend
       - driver_agents
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -916,8 +959,10 @@ jobs:
   release:
     name: Publish Release
     needs:
+      - gate
       - build
       - driver_agents
+    if: needs.gate.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

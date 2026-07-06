@@ -175,7 +175,17 @@ wails build -clean
 ### 跨平台发布（GitHub Actions）
 
 本 fork 使用独立的发布流水线。
-向 [FaaTang/GoNavi](https://github.com/FaaTang/GoNavi) 推送 `v*` Tag 可自动构建并发布 Release。
+仅在 **配置分支**（默认 `own`，可通过仓库变量 `RELEASE_BRANCH` 修改）上的提交推送 `v*` Tag 时才会触发构建与 Release（同步上游代码或上游 Tag 不会自动发布）。
+Dev 预发布流水线已改为仅支持手动触发，避免同步 `dev` 分支时误跑 CI。
+
+在 GitHub 仓库 **Settings → Secrets and variables → Actions → Variables** 中添加 `RELEASE_BRANCH` 可自定义发布分支名；不设置时默认为 `own`。
+
+```bash
+git checkout own
+git tag v0.6.5
+git push origin own --tags
+```
+
 Release 更新说明会基于已合并 Pull Request 自动生成，并按 `.github/release.yaml` 分类。
 
 支持目标：

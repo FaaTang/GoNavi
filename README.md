@@ -181,7 +181,17 @@ Artifacts are generated in `build/bin`.
 ### Cross-Platform Release (GitHub Actions)
 
 This fork includes its own release workflow.
-Push a `v*` tag to [FaaTang/GoNavi](https://github.com/FaaTang/GoNavi) to trigger automated build and release.
+A Release build runs **only when you push a `v*` tag pointing to a commit on the configured release branch** (default: `own`; override with the `RELEASE_BRANCH` repository variable). Syncing upstream code or upstream tags will not publish automatically.
+The dev pre-release workflow is manual-only so syncing the `dev` branch does not trigger CI.
+
+Set `RELEASE_BRANCH` under **Settings → Secrets and variables → Actions → Variables** to use a different branch; it defaults to `own` when unset.
+
+```bash
+git checkout own
+git tag v0.6.5
+git push origin own --tags
+```
+
 Release notes are generated automatically from merged pull requests and categorized by `.github/release.yaml`.
 
 Target artifacts include:
