@@ -38,7 +38,7 @@ const getGlobalShortcutCaseBlock = (action: string) => {
 };
 
 describe('tool center menu entries', () => {
-  it('exposes snippet management next to shortcut management', () => {
+  it('exposes snippet management in the workspace tool group', () => {
     expect(appSource).toContain("key: 'snippet-settings'");
     expect(appSource).toContain("title: t('app.tools.entry.snippets.title')");
     expect(appSource).toContain("description: t('app.tools.entry.snippets.description')");
@@ -46,11 +46,18 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain('gonavi:open-snippet-settings');
     expect(appSource).toContain("setIsSnippetModalOpen(false);");
     expect(appSource).not.toContain('setIsSnippetModalOpen(true)');
+    expect(appSource).not.toContain("key: 'shortcut-settings'");
+  });
 
-    const snippetIndex = appSource.indexOf("key: 'snippet-settings'");
-    const shortcutIndex = appSource.indexOf("key: 'shortcut-settings'", snippetIndex);
-    expect(snippetIndex).toBeGreaterThan(-1);
-    expect(shortcutIndex).toBeGreaterThan(snippetIndex);
+  it('exposes shortcut management from settings next to performance', () => {
+    const performanceIndex = appSource.indexOf("key: 'performance'");
+    const shortcutsIndex = appSource.indexOf("key: 'shortcuts'", performanceIndex);
+    expect(performanceIndex).toBeGreaterThan(-1);
+    expect(shortcutsIndex).toBeGreaterThan(performanceIndex);
+    expect(appSource).toContain("title: t('app.settings.entry.shortcuts.title')");
+    expect(appSource).toContain("description: t('app.settings.entry.shortcuts.description')");
+    expect(appSource).toContain('setIsShortcutModalOpen(true)');
+    expect(appSource).not.toContain("handleOpenToolCenterPane('workspace', 'shortcut-settings')");
   });
 
   it('uses scalable side navigation for the tool center instead of horizontal segmented switching', () => {
@@ -237,6 +244,7 @@ describe('tool center menu entries', () => {
       ['toggleLogPanel', 'handleToggleLogPanel();'],
       ['toggleTheme', 'setTheme('],
       ['openShortcutManager', 'setIsShortcutModalOpen(true);'],
+      ['openSettings', 'handleOpenSettingsModal();'],
       ['toggleMacFullscreen', 'handleTitleBarWindowToggle({ allowMacNativeFullscreen: true });'],
       ['resetWindowZoom', 'handleManualResetWindowZoom();'],
     ]);

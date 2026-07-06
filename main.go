@@ -15,6 +15,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
@@ -72,11 +73,14 @@ func main() {
 			DisableWindowIcon:                 false,
 			DisableFramelessWindowDecorations: false,
 			WebviewUserDataPath:               resolveWindowsWebviewUserDataPath(),
+			// 低内存模式：禁用 WebView2 硬件加速（--disable-gpu）。下次启动生效，与透明窗口层一致。
+			WebviewGpuIsDisabled: lowMemoryMode,
 		},
 		Mac: &mac.Options{
 			WebviewIsTransparent: !lowMemoryMode,
 			WindowIsTranslucent:  !lowMemoryMode,
 		},
+		Linux: resolveLinuxOptions(lowMemoryMode),
 	})
 
 	if err != nil {
@@ -137,5 +141,17 @@ func isLowMemoryMode() bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func resolveLinuxOptions(lowMemoryMode bool) *linux.Options {
+	if lowMemoryMode {
+		return &linux.Options{
+			WebviewGpuPolicy: linux.WebviewGpuPolicyNever,
+		}
+	}
+	// Wails 在未传 Linux 选项时默认 WebviewGpuPolicyNever，正常模式显式恢复按需加速。
+	return &linux.Options{
+		WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
 	}
 }

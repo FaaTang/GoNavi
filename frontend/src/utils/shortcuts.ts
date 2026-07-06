@@ -20,6 +20,7 @@ export type ShortcutAction =
   | 'toggleLogPanel'
   | 'toggleTheme'
   | 'openShortcutManager'
+  | 'openSettings'
   | 'toggleMacFullscreen'
   | 'resetWindowZoom'
   | 'diagnoseQuery'
@@ -122,6 +123,7 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'diagnoseQuery',
   'showSlowQueries',
   'openShortcutManager',
+  'openSettings',
   'toggleMacFullscreen',
   'resetWindowZoom',
 ];
@@ -246,6 +248,11 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
     descriptionKey: 'app.shortcuts.action.openShortcutManager.description',
     allowInEditable: true,
   },
+  openSettings: {
+    labelKey: 'app.shortcuts.action.openSettings.label',
+    descriptionKey: 'app.shortcuts.action.openSettings.description',
+    allowInEditable: true,
+  },
   toggleMacFullscreen: {
     labelKey: 'app.shortcuts.action.toggleMacFullscreen.label',
     descriptionKey: 'app.shortcuts.action.toggleMacFullscreen.description',
@@ -343,6 +350,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   openShortcutManager: {
     mac: { combo: 'Meta+,', enabled: true },
     windows: { combo: 'Ctrl+,', enabled: true },
+  },
+  openSettings: {
+    mac: { combo: 'Ctrl+Alt+S', enabled: true },
+    windows: { combo: 'Ctrl+Alt+S', enabled: true },
   },
   toggleMacFullscreen: {
     mac: { combo: 'Ctrl+Meta+F', enabled: true },

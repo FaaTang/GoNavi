@@ -1172,6 +1172,64 @@ describe('store appearance persistence', () => {
     expect(reloaded.useStore.getState().tabs[0].formatRestoreSnapshot).toBeUndefined();
   });
 
+  it('persists per-tab maxRows without changing global default', async () => {
+    const { useStore } = await importStore();
+
+    useStore.getState().setQueryOptions({ maxRows: 100 });
+    useStore.getState().addTab({
+      id: 'query-tab-a',
+      title: 'Query A',
+      type: 'query',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      query: 'select 1;',
+    });
+    useStore.getState().addTab({
+      id: 'query-tab-b',
+      title: 'Query B',
+      type: 'query',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      query: 'select 2;',
+    });
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-b')?.maxRows).toBe(100);
+
+    useStore.getState().updateQueryTabDraft('query-tab-a', { maxRows: 5000 });
+
+    expect(useStore.getState().queryOptions.maxRows).toBe(100);
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-a')?.maxRows).toBe(5000);
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-b')?.maxRows).toBe(100);
+
+    useStore.getState().setQueryOptions({ maxRows: 500 });
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-a')?.maxRows).toBe(5000);
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-b')?.maxRows).toBe(100);
+
+    useStore.getState().addTab({
+      id: 'query-tab-c',
+      title: 'Query C',
+      type: 'query',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      query: 'select 3;',
+    });
+    expect(useStore.getState().tabs.find((tab) => tab.id === 'query-tab-c')?.maxRows).toBe(500);
+
+    const persisted = JSON.parse(storage.getItem('lite-db-storage') || '{}');
+    expect(persisted.state.tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'query-tab-a', maxRows: 5000 }),
+        expect.objectContaining({ id: 'query-tab-b', maxRows: 100 }),
+        expect.objectContaining({ id: 'query-tab-c', maxRows: 500 }),
+      ]),
+    );
+
+    vi.resetModules();
+    const reloaded = await importStore();
+    expect(reloaded.useStore.getState().queryOptions.maxRows).toBe(500);
+    expect(reloaded.useStore.getState().tabs.find((tab) => tab.id === 'query-tab-a')?.maxRows).toBe(5000);
+    expect(reloaded.useStore.getState().tabs.find((tab) => tab.id === 'query-tab-b')?.maxRows).toBe(100);
+  });
+
   it('updates activeContext when switching between tabs with different host or database', async () => {
     const { useStore } = await importStore();
 

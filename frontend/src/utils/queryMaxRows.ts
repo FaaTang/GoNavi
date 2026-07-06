@@ -100,3 +100,25 @@ export const capQueryMaxRowsForLowMemory = (state: QueryMaxRowsState): QueryMaxR
     state.maxRowsCustomPresets.filter((value) => value <= LOW_MEMORY_MAX_ROWS_CAP),
   ),
 });
+
+export const resolveEffectiveTabMaxRows = (
+  tabMaxRows: number | undefined,
+  globalMaxRows: number,
+): number => {
+  if (tabMaxRows !== undefined && Number.isFinite(tabMaxRows) && tabMaxRows > 0) {
+    return clampMaxRows(tabMaxRows);
+  }
+  return clampMaxRows(globalMaxRows);
+};
+
+export const resolveCappedTabMaxRows = (
+  tabMaxRows: number | undefined,
+  globalMaxRows: number,
+  maxRowsCap?: number,
+): number => {
+  const effective = resolveEffectiveTabMaxRows(tabMaxRows, globalMaxRows);
+  if (Number.isFinite(maxRowsCap) && (maxRowsCap as number) > 0) {
+    return Math.min(effective, Math.trunc(maxRowsCap as number));
+  }
+  return effective;
+};

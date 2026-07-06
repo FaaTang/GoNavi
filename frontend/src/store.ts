@@ -83,8 +83,10 @@ import {
 } from "./utils/connectionReadOnly";
 import {
   capQueryMaxRowsForLowMemory,
+  MAX_MAX_ROWS,
   migrateQueryMaxRows,
   queryMaxRowsNeedsLowMemoryCap,
+  resolveEffectiveTabMaxRows,
 } from "./utils/queryMaxRows";
 import {
   DEFAULT_UPDATE_PREFERENCES,
@@ -1375,6 +1377,7 @@ interface AppState {
         | "title"
         | "resultPanelVisible"
         | "formatRestoreSnapshot"
+        | "maxRows"
       >
     >,
   ) => void;
@@ -1707,6 +1710,11 @@ const sanitizeQueryTabs = (value: unknown): TabData[] => {
         ? rawFormatRestoreSnapshot.query.slice(0, MAX_PERSISTED_QUERY_LENGTH)
         : "";
     const formatRestoreCreatedAt = Number(rawFormatRestoreSnapshot?.createdAt);
+    const rawMaxRows = Number(raw.maxRows);
+    const maxRows =
+      Number.isFinite(rawMaxRows) && rawMaxRows > 0
+        ? Math.min(MAX_MAX_ROWS, Math.max(1, Math.trunc(rawMaxRows)))
+        : undefined;
     if (!query.trim() && !filePath && !savedQueryId) return;
 
     let id = toTrimmedString(raw.id, `query-${index + 1}`) || `query-${index + 1}`;
@@ -1739,11 +1747,24 @@ const sanitizeQueryTabs = (value: unknown): TabData[] => {
               : Date.now(),
           }
         : undefined,
+      maxRows,
     });
   });
 
   return result.slice(0, MAX_PERSISTED_QUERY_TABS);
 };
+
+const snapshotUnsetQueryTabMaxRows = (
+  tabs: TabData[],
+  globalMaxRows: number,
+): TabData[] =>
+  tabs.map((tab) => {
+    if (tab.type !== "query" || tab.maxRows !== undefined) return tab;
+    return {
+      ...tab,
+      maxRows: resolveEffectiveTabMaxRows(undefined, globalMaxRows),
+    };
+  });
 
 const sanitizeActiveTabId = (activeTabId: unknown, tabs: TabData[]): string | null => {
   const id = toTrimmedString(activeTabId);
@@ -2788,10 +2809,20 @@ export const useStore = create<AppState>()(
       addTab: (tab) =>
         set((state) => {
           const incomingTab =
-            tab.type === "query" && tab.resultPanelVisible === undefined
+            tab.type === "query"
               ? {
                   ...tab,
-                  resultPanelVisible: state.queryOptions.showQueryResultsPanel,
+                  ...(tab.maxRows === undefined
+                    ? {
+                        maxRows: resolveEffectiveTabMaxRows(
+                          undefined,
+                          state.queryOptions.maxRows,
+                        ),
+                      }
+                    : {}),
+                  ...(tab.resultPanelVisible === undefined
+                    ? { resultPanelVisible: state.queryOptions.showQueryResultsPanel }
+                    : {}),
                 }
               : tab;
           const index = state.tabs.findIndex((t) => t.id === incomingTab.id);
@@ -2950,6 +2981,21 @@ export const useStore = create<AppState>()(
                   nextTab.formatRestoreSnapshot = nextSnapshot;
                 } else {
                   delete nextTab.formatRestoreSnapshot;
+                }
+                changed = true;
+              }
+            }
+            if (draft.maxRows !== undefined) {
+              const raw = Number(draft.maxRows);
+              const nextMaxRows =
+                Number.isFinite(raw) && raw > 0
+                  ? Math.min(MAX_MAX_ROWS, Math.max(1, Math.trunc(raw)))
+                  : undefined;
+              if (nextTab.maxRows !== nextMaxRows) {
+                if (nextMaxRows === undefined) {
+                  delete nextTab.maxRows;
+                } else {
+                  nextTab.maxRows = nextMaxRows;
                 }
                 changed = true;
               }
@@ -3300,19 +3346,27 @@ export const useStore = create<AppState>()(
         set((state) => {
           const merged = { ...state.queryOptions, ...options };
           const policy = resolveMemoryPolicy(state.memorySettings, state.appearance);
-          if (!policy.effectiveLowMemoryMode) {
-            return { queryOptions: merged };
+          const nextQueryOptions = !policy.effectiveLowMemoryMode
+            ? merged
+            : {
+                ...merged,
+                ...capQueryMaxRowsForLowMemory({
+                  maxRows: merged.maxRows,
+                  maxRowsCustomPresets: merged.maxRowsCustomPresets,
+                }),
+              };
+          const globalMaxRowsChanged =
+            options.maxRows !== undefined
+            && options.maxRows !== state.queryOptions.maxRows;
+          const nextTabs = globalMaxRowsChanged
+            ? snapshotUnsetQueryTabMaxRows(state.tabs, state.queryOptions.maxRows)
+            : state.tabs;
+          if (nextTabs === state.tabs && nextQueryOptions === merged) {
+            return { queryOptions: nextQueryOptions };
           }
-          const capped = capQueryMaxRowsForLowMemory({
-            maxRows: merged.maxRows,
-            maxRowsCustomPresets: merged.maxRowsCustomPresets,
-          });
           return {
-            queryOptions: {
-              ...merged,
-              maxRows: capped.maxRows,
-              maxRowsCustomPresets: capped.maxRowsCustomPresets,
-            },
+            queryOptions: nextQueryOptions,
+            ...(nextTabs !== state.tabs ? { tabs: nextTabs } : {}),
           };
         }),
       setUpdateAutoPromptEnabled: (enabled) =>
@@ -3945,6 +3999,10 @@ export const useStore = create<AppState>()(
         );
         nextState.queryOptions = hydratedLimits.queryOptions;
         nextState.sqlLogs = hydratedLimits.sqlLogs;
+        nextState.tabs = snapshotUnsetQueryTabMaxRows(
+          safeTabs,
+          hydratedLimits.queryOptions.maxRows,
+        );
         const existingSnippets = sanitizeSqlSnippets(state.sqlSnippets);
         const existingSnippetIds = new Set(existingSnippets.map((s) => s.id));
         const missingSnippets = DEFAULT_SQL_SNIPPETS.filter(
@@ -4025,14 +4083,18 @@ export const useStore = create<AppState>()(
           sanitizeRuntimeSqlLogs(state.sqlLogs),
           appearance,
         );
+        const tabsWithMaxRows = snapshotUnsetQueryTabMaxRows(
+          safeTabs,
+          hydratedLimits.queryOptions.maxRows,
+        );
         return {
           ...currentState,
           ...state,
           connections: persistedConnections,
           connectionTags: persistedConnectionTags,
           sidebarRootOrder: persistedSidebarRootOrder,
-          tabs: safeTabs,
-          activeTabId: sanitizeActiveTabId(state.activeTabId, safeTabs),
+          tabs: tabsWithMaxRows,
+          activeTabId: sanitizeActiveTabId(state.activeTabId, tabsWithMaxRows),
           savedQueries: currentState.savedQueries,
           externalSQLDirectories: sanitizeExternalSQLDirectories(
             state.externalSQLDirectories,

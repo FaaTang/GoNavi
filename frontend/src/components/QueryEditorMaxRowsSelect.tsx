@@ -19,6 +19,7 @@ export type QueryEditorMaxRowsSelectProps = {
   maxRowsCustomPresets: number[];
   maxRowsCap?: number;
   onChange: (next: QueryMaxRowsState) => void;
+  variant?: 'toolbar' | 'settings';
 };
 
 const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
@@ -26,6 +27,7 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
   maxRowsCustomPresets,
   maxRowsCap,
   onChange,
+  variant = 'toolbar',
 }) => {
   const i18n = useOptionalI18n();
   const t = i18n?.t ?? defaultTranslate;
@@ -110,7 +112,11 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
     <>
       <Tooltip title={t('query_editor.max_rows.tooltip')}>
         <Select
-          className="gn-v2-query-toolbar-select gn-v2-query-toolbar-max-rows-select"
+          className={
+            variant === 'settings'
+              ? 'gn-v2-settings-max-rows-select'
+              : 'gn-v2-query-toolbar-select gn-v2-query-toolbar-max-rows-select'
+          }
           style={undefined}
           value={maxRows}
           onChange={(val) => {

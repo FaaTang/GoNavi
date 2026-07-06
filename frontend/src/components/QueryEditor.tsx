@@ -29,7 +29,7 @@ import { canReusePendingSqlEditorTransactionForType, shouldUseSqlEditorManagedTr
 import { findSqlStatementRanges, resolveCurrentSqlStatementRange, resolveExecutableSql } from '../utils/sqlStatementSelection';
 import { isMacLikePlatform } from '../utils/appearance';
 import { resolveMemoryPolicy } from '../utils/memoryPolicy';
-import { LOW_MEMORY_MAX_ROWS_CAP } from '../utils/queryMaxRows';
+import { LOW_MEMORY_MAX_ROWS_CAP, resolveCappedTabMaxRows, resolveEffectiveTabMaxRows, type QueryMaxRowsState } from '../utils/queryMaxRows';
 import { splitSidebarQualifiedName } from '../utils/sidebarLocate';
 import { buildMySQLCompatibleViewMetadataSqls, isSidebarViewTableType, normalizeSidebarViewName } from '../utils/sidebarMetadata';
 import { SIDEBAR_SQL_EDITOR_DRAG_MIME, decodeSidebarSqlEditorDragPayload, hasSidebarSqlEditorDragPayload } from '../utils/sidebarSqlDrag';
@@ -315,6 +315,26 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const policy = resolveMemoryPolicy(memorySettings, appearance);
       return policy.effectiveLowMemoryMode ? LOW_MEMORY_MAX_ROWS_CAP : undefined;
   }, [appearance, memorySettings]);
+  const effectiveMaxRows = useMemo(
+      () => resolveCappedTabMaxRows(tab.maxRows, queryOptions.maxRows, maxRowsCap),
+      [maxRowsCap, queryOptions.maxRows, tab.maxRows],
+  );
+  const handleToolbarMaxRowsChange = useCallback((next: QueryMaxRowsState) => {
+      const presetsChanged =
+          next.maxRowsCustomPresets.length !== queryOptions.maxRowsCustomPresets.length
+          || next.maxRowsCustomPresets.some(
+              (value, index) => value !== queryOptions.maxRowsCustomPresets[index],
+          );
+      if (presetsChanged) {
+          setQueryOptions({ maxRowsCustomPresets: next.maxRowsCustomPresets });
+      }
+      updateQueryTabDraft(tab.id, { maxRows: next.maxRows });
+  }, [
+      queryOptions.maxRowsCustomPresets,
+      setQueryOptions,
+      tab.id,
+      updateQueryTabDraft,
+  ]);
   const sqlEditorTransactionOptions = useStore(state => state.sqlEditorTransactionOptions);
   const setSqlEditorTransactionOptions = useStore(state => state.setSqlEditorTransactionOptions);
   const [isResultPanelVisible, setIsResultPanelVisible] = useState(
@@ -3257,7 +3277,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           if (isAffectedResult) return; // 不应该出现，但保险起见
 
           let rows = Array.isArray(rsData.rows) ? rsData.rows : [];
-          const maxRows = Number(queryOptions?.maxRows) || 0;
+          const maxRows = effectiveMaxRows;
           let truncated = false;
           if (Number.isFinite(maxRows) && maxRows > 0 && rows.length > maxRows) {
               truncated = true;
@@ -3505,7 +3525,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             }
 
             const nextResultSets: ResultSet[] = [];
-            const maxRows = Number(queryOptions?.maxRows) || 0;
+            const maxRows = effectiveMaxRows;
             const wantsLimitProbe = Number.isFinite(maxRows) && maxRows > 0;
             let anyTruncated = false;
 
@@ -3772,7 +3792,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             }
 
             // 自动给 SELECT 语句注入行数限制（防止大结果集卡死）
-            const maxRowsForLimit = Number(queryOptions?.maxRows) || 0;
+            const maxRowsForLimit = effectiveMaxRows;
             let anyLimitApplied = false;
             const executablePlans = statementPlans.map((plan) => {
                 if (!Number.isFinite(maxRowsForLimit) || maxRowsForLimit <= 0) return plan;
@@ -3860,7 +3880,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             const resultSetDataArray = Array.isArray(res.data) ? (res.data as any[]) : [];
             const topLevelMessages = normalizeQueryResultMessages(res.messages);
             const nextResultSets: ResultSet[] = [];
-            const maxRows = Number(queryOptions?.maxRows) || 0;
+            const maxRows = effectiveMaxRows;
             let anyTruncated = false;
             const statementResultCounts = new Map<number, number>();
             const resolveSourceStatementIndex = (rsData: any, idx: number): number => {
@@ -4067,7 +4087,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       executeSqlEditorMultiQuery,
       getCurrentQuery,
       pendingSqlTransactionRef,
-      queryOptions?.maxRows,
+      effectiveMaxRows,
       resultSets,
       setQueryId,
       sqlEditorAutoCommitDelayMs,
@@ -4997,7 +5017,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         currentDb={currentDb}
         queryCapableConnections={queryCapableConnections}
         dbList={dbList}
-        maxRows={queryOptions?.maxRows ?? 100}
+        maxRows={resolveEffectiveTabMaxRows(tab.maxRows, queryOptions?.maxRows ?? 100)}
         maxRowsCustomPresets={queryOptions?.maxRowsCustomPresets ?? []}
         maxRowsCap={maxRowsCap}
         sqlEditorCommitMode={sqlEditorCommitMode}
@@ -5018,7 +5038,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             setCurrentDb('');
         }}
         onDatabaseChange={setCurrentDb}
-        onMaxRowsChange={(next) => setQueryOptions(next)}
+        onMaxRowsChange={handleToolbarMaxRowsChange}
         onCommitModeChange={(mode) => setSqlEditorTransactionOptions(
             mode === 'auto'
                 ? { commitMode: mode, autoCommitDelayMs: 0 }

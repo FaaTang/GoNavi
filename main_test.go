@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
+)
 
 func TestIsLowMemoryMode(t *testing.T) {
 	tests := []struct {
@@ -45,5 +49,14 @@ func TestShouldRunMCPServerMode(t *testing.T) {
 				t.Fatalf("shouldRunMCPServerMode(%v) = %v, want %v", tc.args, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestResolveLinuxOptions(t *testing.T) {
+	if got := resolveLinuxOptions(false); got == nil || got.WebviewGpuPolicy != linux.WebviewGpuPolicyOnDemand {
+		t.Fatalf("normal mode = %+v, want OnDemand", got)
+	}
+	if got := resolveLinuxOptions(true); got == nil || got.WebviewGpuPolicy != linux.WebviewGpuPolicyNever {
+		t.Fatalf("low memory mode = %+v, want Never", got)
 	}
 }

@@ -1,7 +1,7 @@
 ﻿import Modal from './components/common/ResizableDraggableModal';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Layout, Button, ConfigProvider, theme, message, Spin, Slider, Progress, Switch, Input, InputNumber, Select, Segmented, Tooltip } from 'antd';
-import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, BugOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined } from '@ant-design/icons';
+import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, BugOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { BrowserOpenURL, Environment, Quit, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
 import Sidebar from './components/Sidebar';
 import TabManager from './components/TabManager';
@@ -169,8 +169,7 @@ type ToolCenterPaneKey =
   | 'data-compare'
   | 'sync'
   | 'drivers'
-  | 'snippet-settings'
-  | 'shortcut-settings';
+  | 'snippet-settings';
 
 type ToolCenterPaneState = {
   key: ToolCenterPaneKey;
@@ -1889,6 +1888,7 @@ function App() {
   const [activeToolCenterPane, setActiveToolCenterPane] = useState<ToolCenterPaneState | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [themeModalSection, setThemeModalSection] = useState<'theme' | 'appearance'>('theme');
   const [isLinuxCJKFontBannerDismissed, setIsLinuxCJKFontBannerDismissed] = useState(false);
@@ -2577,6 +2577,9 @@ function App() {
               case 'openShortcutManager':
                   setIsShortcutModalOpen(true);
                   break;
+              case 'openSettings':
+                  handleOpenSettingsModal();
+                  break;
               case 'toggleMacFullscreen':
                   if (isMacRuntime && useNativeMacWindowControls) {
                       void handleTitleBarWindowToggle({ allowMacNativeFullscreen: true });
@@ -2592,7 +2595,7 @@ function App() {
       return () => {
           window.removeEventListener('keydown', handleGlobalShortcut, true);
       };
-  }, [activeShortcutPlatform, activeTabId, handleCreateConnection, handleManualResetWindowZoom, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
+  }, [activeShortcutPlatform, activeTabId, handleCreateConnection, handleManualResetWindowZoom, handleOpenSettingsModal, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
 
   useEffect(() => {
       if (!capturingShortcutAction) {
@@ -3169,15 +3172,6 @@ function App() {
                       handleOpenToolCenterPane('workspace', 'snippet-settings');
                     },
                   },
-                  {
-                    key: 'shortcut-settings',
-                    icon: <LinkOutlined />,
-                    title: t('app.tools.entry.shortcuts.title'),
-                    description: t('app.tools.entry.shortcuts.description'),
-                    onClick: () => {
-                      handleOpenToolCenterPane('workspace', 'shortcut-settings');
-                    },
-                  },
                 ],
               },
             ] as const;
@@ -3398,123 +3392,6 @@ function App() {
                     darkMode={darkMode}
                     overlayTheme={overlayTheme}
                   />
-                );
-              }
-
-              if (activeToolCenterPane.key === 'shortcut-settings') {
-                return (
-                  <Modal
-                    embedded
-                    open
-                    title={renderUtilityModalTitle(
-                      <LinkOutlined />,
-                      t('app.shortcuts.title'),
-                      t('app.shortcuts.description'),
-                    )}
-                    onCancel={() => {
-                      setCapturingShortcutAction(null);
-                      closeToolCenterPane();
-                    }}
-                    footer={[
-                      <Button
-                        key="reset"
-                        onClick={() => {
-                           resetShortcutOptions();
-                           setCapturingShortcutAction(null);
-                           void message.success(t('app.shortcuts.message.restored_defaults'));
-                        }}
-                      >
-                        {t('app.shortcuts.action.restore_defaults')}
-                      </Button>,
-                      <Button
-                        key="close"
-                        type="primary"
-                        onClick={() => {
-                          setCapturingShortcutAction(null);
-                          closeToolCenterPane();
-                        }}
-                      >
-                         {t('common.close')}
-                      </Button>,
-                      <Button
-                        key="back"
-                        onClick={() => {
-                          setCapturingShortcutAction(null);
-                          closeToolCenterPane();
-                        }}
-                      >
-                        {t('common.back_to_previous')}
-                      </Button>,
-                    ]}
-                    styles={{
-                      header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 },
-                      body: { paddingTop: 8, overflow: 'hidden', flex: 1, minHeight: 0 },
-                      footer: { background: 'transparent', borderTop: 'none', paddingTop: 10 },
-                    }}
-                  >
-                    <div data-gonavi-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>
-                      <div style={utilityPanelStyle}>
-                        <div style={{ fontSize: 12, color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(16,24,40,0.55)' }}>
-                             {t('app.shortcuts.capture_hint')}
-                        </div>
-                      </div>
-                      {SHORTCUT_ACTION_ORDER.map((action) => {
-                        const meta = SHORTCUT_ACTION_META[action];
-                        if (meta.platformOnly === 'mac' && !isMacRuntime) {
-                            return null;
-                        }
-                        const binding = resolveShortcutBinding(shortcutOptions, action, activeShortcutPlatform);
-                        const isCapturing = capturingShortcutAction === action;
-                        const conflicts = shortcutConflictMap[action];
-                        const conflictInfo = conflicts?.length ? splitConflictsByContext(conflicts) : null;
-                        return (
-                            <div
-                                key={action}
-                                style={{
-                                    ...utilityPanelStyle,
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr auto',
-                                    gap: 12,
-                                    alignItems: 'center',
-                                    padding: '10px 12px',
-                                }}
-                            >
-                                <div>
-                                    <div style={{ fontWeight: 500 }}>{meta.label}</div>
-                                    <div style={{ fontSize: 12, color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(16,24,40,0.55)' }}>{meta.description}</div>
-                                    {conflictInfo && (
-                                        <div style={{ fontSize: 11, color: darkMode ? '#faad14' : '#d48806', marginTop: 2 }}>
-                                            {conflictInfo.hasMonaco && (
-                                                <>⚠ {t('app.shortcuts.message.reserved_conflict_info', { labels: conflictInfo.monacoLabels })}</>
-                                             )}
-                                             {conflictInfo.hasOther && (
-                                                <>⚠ {t('app.shortcuts.message.reserved_conflict_warning', { contexts: conflictInfo.otherContexts, labels: conflictInfo.otherLabels })}</>
-                                             )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Input
-                                        readOnly
-                                        value={isCapturing ? t('app.shortcuts.capture_waiting') : getShortcutDisplayLabel(binding.combo, activeShortcutPlatform)}
-                                        style={{ width: 180, fontFamily: resolvedMonoFontFamily }}
-                                    />
-                                    <Button
-                                        size="small"
-                                        onClick={() => setCapturingShortcutAction((prev) => (prev === action ? null : action))}
-                                    >
-                                        {isCapturing ? t('common.cancel') : t('app.shortcuts.action.record')}
-                                    </Button>
-                                    <Switch
-                                        checked={binding.enabled}
-                                        onChange={(checked) => updateShortcut(action, { enabled: checked }, activeShortcutPlatform)}
-                                    />
-                                </div>
-                            </div>
-                        );
-                      })}
-                    </div>
-                  </Modal>
                 );
               }
 
@@ -3740,6 +3617,26 @@ function App() {
                   },
                 },
                 {
+                  key: 'performance',
+                  icon: <ThunderboltOutlined />,
+                  title: t('app.settings.entry.performance.title'),
+                  description: t('app.settings.entry.performance.description'),
+                  onClick: () => {
+                    setIsSettingsModalOpen(false);
+                    setIsPerformanceModalOpen(true);
+                  },
+                },
+                {
+                  key: 'shortcuts',
+                  icon: <LinkOutlined />,
+                  title: t('app.settings.entry.shortcuts.title'),
+                  description: t('app.settings.entry.shortcuts.description'),
+                  onClick: () => {
+                    setIsSettingsModalOpen(false);
+                    setIsShortcutModalOpen(true);
+                  },
+                },
+                {
                   key: 'proxy',
                   icon: <GlobalOutlined />,
                   title: t('app.settings.entry.proxy.title'),
@@ -3782,6 +3679,25 @@ function App() {
                 </Button>
               ))}
             </div>
+          </Modal>
+          )}
+          {isPerformanceModalOpen && (
+          <Modal
+            title={renderUtilityModalTitle(<ThunderboltOutlined />, t('app.settings.entry.performance.title'), t('app.settings.entry.performance.description'))}
+            open={isPerformanceModalOpen}
+            onCancel={() => setIsPerformanceModalOpen(false)}
+            footer={null}
+            width={620}
+            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10 } }}
+          >
+            <MemorySettingsPanel
+              mutedTextStyle={utilityMutedTextStyle}
+              onLowMemoryModeChange={(enabled) => {
+                if (enabled) {
+                  message.info(t('app.memory.low_memory.transparency_applied'));
+                }
+              }}
+            />
           </Modal>
           )}
           {isLanguageModalOpen && (
@@ -4673,17 +4589,6 @@ function App() {
                                   </div>
                               ) : null}
                               <div style={utilityPanelStyle}>
-                                  <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.memory.section.title')}</div>
-                                  <MemorySettingsPanel
-                                      mutedTextStyle={utilityMutedTextStyle}
-                                      onLowMemoryModeChange={(enabled) => {
-                                          if (enabled) {
-                                              message.info(t('app.memory.low_memory.transparency_applied'));
-                                          }
-                                      }}
-                                  />
-                              </div>
-                              <div style={utilityPanelStyle}>
                                   <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('app.theme.startup_window.title')}</div>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                                       <span>{isWindowsRuntime ? t('app.theme.startup_window.fullscreen_windows') : t('app.theme.startup_window.fullscreen')}</span>
@@ -4722,7 +4627,6 @@ function App() {
               onCancel={() => {
                   setIsShortcutModalOpen(false);
                   setCapturingShortcutAction(null);
-                  setToolCenterBackGroupKey(null);
               }}
               width={760}
               centered
@@ -4759,17 +4663,6 @@ function App() {
                   >
                        {t('common.close')}
                   </Button>,
-                  toolCenterBackGroupKey === 'workspace' ? (
-                    <Button
-                        key="back"
-                        onClick={() => handleReturnToToolCenter(() => {
-                            setIsShortcutModalOpen(false);
-                            setCapturingShortcutAction(null);
-                        })}
-                    >
-                        {t('common.back_to_previous')}
-                    </Button>
-                  ) : null,
               ]}
           >
               <div data-gonavi-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>

@@ -153,6 +153,11 @@ body[data-ui-version="v2"] .gn-v2-query-toolbar-max-rows-select {
   flex: 0 0 132px !important;
 }
 
+body[data-ui-version="v2"] .gn-v2-settings-max-rows-select {
+  width: 220px !important;
+  max-width: 100%;
+}
+
 body[data-ui-version="v2"] .gn-v2-query-toolbar-transaction-mode-select {
   width: 78px !important;
   flex: 0 0 78px !important;

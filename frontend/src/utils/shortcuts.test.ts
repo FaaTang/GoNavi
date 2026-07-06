@@ -414,6 +414,10 @@ describe('shortcut defaults', () => {
       mac: { combo: 'Meta+J', enabled: true },
       windows: { combo: 'Ctrl+J', enabled: true },
     });
+    expect(DEFAULT_SHORTCUT_OPTIONS.openSettings).toEqual({
+      mac: { combo: 'Ctrl+Alt+S', enabled: true },
+      windows: { combo: 'Ctrl+Alt+S', enabled: true },
+    });
     expect(SHORTCUT_ACTION_META.newConnection.label).toBe('新建数据源');
     expect(SHORTCUT_ACTION_META.toggleAIPanel.label).toBe('打开 AI 数据洞察');
   });

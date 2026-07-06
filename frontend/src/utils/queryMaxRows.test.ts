@@ -7,6 +7,8 @@ import {
   capQueryMaxRowsForLowMemory,
   migrateQueryMaxRows,
   queryMaxRowsNeedsLowMemoryCap,
+  resolveCappedTabMaxRows,
+  resolveEffectiveTabMaxRows,
   sanitizeMaxRowsCustomPresets,
 } from './queryMaxRows';
 
@@ -76,5 +78,17 @@ describe('queryMaxRows', () => {
       maxRows: LOW_MEMORY_MAX_ROWS_CAP,
       maxRowsCustomPresets: [],
     });
+  });
+
+  it('resolves per-tab max rows with global fallback', () => {
+    expect(resolveEffectiveTabMaxRows(undefined, 5000)).toBe(5000);
+    expect(resolveEffectiveTabMaxRows(200, 5000)).toBe(200);
+    expect(resolveEffectiveTabMaxRows(0, 5000)).toBe(5000);
+  });
+
+  it('applies low-memory cap on top of tab override', () => {
+    expect(resolveCappedTabMaxRows(5000, 100, LOW_MEMORY_MAX_ROWS_CAP)).toBe(100);
+    expect(resolveCappedTabMaxRows(undefined, 5000, LOW_MEMORY_MAX_ROWS_CAP)).toBe(100);
+    expect(resolveCappedTabMaxRows(50, 5000, LOW_MEMORY_MAX_ROWS_CAP)).toBe(50);
   });
 });

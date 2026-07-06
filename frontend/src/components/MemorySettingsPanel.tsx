@@ -3,16 +3,20 @@ import { Button, Collapse, InputNumber, Select, Switch, Tooltip } from "antd";
 import { InfoCircleOutlined, UndoOutlined } from "@ant-design/icons";
 import { useI18n } from "../i18n/provider";
 import { useStore } from "../store";
+import QueryEditorMaxRowsSelect from "./QueryEditorMaxRowsSelect";
 import {
   DEFAULT_MEMORY_SETTINGS,
   effectiveLowMemoryModeFromEnv,
+  resolveMemoryPolicy,
   type MemoryAdvancedOptionKey,
 } from "../utils/memoryPolicy";
+import { LOW_MEMORY_MAX_ROWS_CAP } from "../utils/queryMaxRows";
 
 const IMPACT_KEYS = [
   "app.memory.low_memory.impact.inactive_tabs_dom",
   "app.memory.low_memory.impact.inactive_results",
   "app.memory.low_memory.impact.transparency",
+  "app.memory.low_memory.impact.webview_gpu",
   "app.memory.low_memory.impact.default_max_rows",
   "app.memory.low_memory.impact.sidebar_cache",
   "app.memory.low_memory.impact.sql_logs",
@@ -35,10 +39,17 @@ const MemorySettingsPanel: React.FC<MemorySettingsPanelProps> = ({
 }) => {
   const { t } = useI18n();
   const memorySettings = useStore((state) => state.memorySettings);
+  const appearance = useStore((state) => state.appearance);
+  const queryOptions = useStore((state) => state.queryOptions);
   const setMemorySettings = useStore((state) => state.setMemorySettings);
+  const setQueryOptions = useStore((state) => state.setQueryOptions);
   const setMemoryAdvancedOption = useStore((state) => state.setMemoryAdvancedOption);
   const resetMemoryAdvancedOption = useStore((state) => state.resetMemoryAdvancedOption);
   const envForced = useMemo(() => effectiveLowMemoryModeFromEnv(), []);
+  const maxRowsCap = useMemo(() => {
+    const policy = resolveMemoryPolicy(memorySettings, appearance);
+    return policy.effectiveLowMemoryMode ? LOW_MEMORY_MAX_ROWS_CAP : undefined;
+  }, [memorySettings, appearance]);
 
   const renderAdvancedReset = (key: MemoryAdvancedOptionKey) => (
     <Tooltip title={t("app.memory.low_memory.advanced.reset")}>
@@ -245,9 +256,16 @@ const MemorySettingsPanel: React.FC<MemorySettingsPanelProps> = ({
         <div style={{ fontWeight: 500, marginBottom: 4 }}>
           {t("app.memory.max_rows.title")}
         </div>
-        <div style={{ ...(mutedTextStyle ?? {}), lineHeight: 1.6 }}>
+        <div style={{ ...(mutedTextStyle ?? {}), lineHeight: 1.6, marginBottom: 10 }}>
           {t("app.memory.max_rows.description")}
         </div>
+        <QueryEditorMaxRowsSelect
+          variant="settings"
+          maxRows={queryOptions.maxRows}
+          maxRowsCustomPresets={queryOptions.maxRowsCustomPresets}
+          maxRowsCap={maxRowsCap}
+          onChange={setQueryOptions}
+        />
       </div>
     </div>
   );
