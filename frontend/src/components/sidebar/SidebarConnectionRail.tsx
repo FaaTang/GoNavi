@@ -36,6 +36,7 @@ export interface SidebarConnectionRailProps {
     aiAssistant: string;
     tools: string;
     settings: string;
+    settingsTooltip?: string;
     expandButtonLabels: string;
     collapseButtonLabels: string;
   };
@@ -55,6 +56,7 @@ export interface SidebarConnectionRailProps {
 
 type RailActionButtonProps = {
   label: string;
+  tooltipLabel?: string;
   icon: React.ReactNode;
   onClick: () => void;
   showLabels: boolean;
@@ -65,6 +67,7 @@ type RailActionButtonProps = {
 
 const RailActionButton: React.FC<RailActionButtonProps> = ({
   label,
+  tooltipLabel,
   icon,
   onClick,
   showLabels,
@@ -91,7 +94,7 @@ const RailActionButton: React.FC<RailActionButtonProps> = ({
   }
 
   return (
-    <Tooltip title={label} placement="right">
+    <Tooltip title={tooltipLabel || label} placement="right">
       {button}
     </Tooltip>
   );
@@ -172,6 +175,7 @@ const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
         />
         <RailActionButton
           label={labels.settings}
+          tooltipLabel={labels.settingsTooltip}
           icon={<SettingOutlined />}
           onClick={handlers.openSettings}
           showLabels={showLabels}

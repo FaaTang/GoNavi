@@ -1856,6 +1856,67 @@ storeState.queryOptions.showQueryResultsPanel = false;
     });
   });
 
+  it('toggles formatted SQL back to compact single-line SQL on repeated beautify', async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<QueryEditor tab={createTab({ query: 'select * from users where id=1' })} />);
+    });
+
+    const formatButton = findButton(renderer, '美化');
+    await act(async () => {
+      await formatButton.props.onClick();
+    });
+    await act(async () => {
+      await formatButton.props.onClick();
+    });
+
+    expect(editorState.editor.executeEdits).toHaveBeenLastCalledWith(
+      'gonavi-format-sql',
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: 'SELECT * FROM users WHERE id = 1',
+        }),
+      ]),
+    );
+  });
+
+  it('compresses selected SQL when selected content is already beautified', async () => {
+    let renderer!: ReactTestRenderer;
+    const sql = 'SELECT\n  *\nFROM\n  users\nWHERE\n  id = 1;';
+
+    await act(async () => {
+      renderer = create(<QueryEditor tab={createTab({ query: sql })} />);
+    });
+
+    editorState.selection = {
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: 6,
+      endColumn: 10,
+    };
+
+    const formatButton = findButton(renderer, '美化');
+    await act(async () => {
+      await formatButton.props.onClick();
+    });
+
+    expect(editorState.editor.executeEdits).toHaveBeenLastCalledWith(
+      'gonavi-format-sql',
+      expect.arrayContaining([
+        expect.objectContaining({
+          range: expect.objectContaining({
+            startLineNumber: 1,
+            startColumn: 1,
+            endLineNumber: 6,
+            endColumn: 10,
+          }),
+          text: 'SELECT * FROM users WHERE id = 1;',
+        }),
+      ]),
+    );
+  });
+
   it('restores the last pre-beautify SQL snapshot after reopening a query tab', async () => {
     let renderer!: ReactTestRenderer;
     const originalSql = 'select * from users where id=1';

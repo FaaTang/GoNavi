@@ -37,6 +37,7 @@ type QueryEditorToolbarProps = {
   sqlEditorAutoCommitDelayMs: number;
   pendingTransactionToolbar: React.ReactNode;
   runQueryShortcutBinding: ShortcutPlatformBinding;
+  formatSqlShortcutBinding: ShortcutPlatformBinding;
   saveQueryShortcutBinding: ShortcutPlatformBinding;
   toggleQueryResultsPanelShortcutBinding: ShortcutPlatformBinding;
   activeShortcutPlatform: ShortcutPlatform;
@@ -72,6 +73,7 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
   sqlEditorAutoCommitDelayMs,
   pendingTransactionToolbar,
   runQueryShortcutBinding,
+  formatSqlShortcutBinding,
   saveQueryShortcutBinding,
   toggleQueryResultsPanelShortcutBinding,
   activeShortcutPlatform,
@@ -297,7 +299,18 @@ const QueryEditorToolbar: React.FC<QueryEditorToolbarProps> = ({
         className={"gn-v2-query-toolbar-action-pair"}
         style={{ display: "flex", gap: "8px", alignItems: "center" }}
       >
-        <Tooltip title={t("query_editor.action.format_sql")}>
+        <Tooltip
+          title={
+            formatSqlShortcutBinding.enabled && formatSqlShortcutBinding.combo
+              ? t("query_editor.action.format_with_shortcut", {
+                  shortcut: getShortcutDisplayLabel(
+                    formatSqlShortcutBinding.combo,
+                    activeShortcutPlatform,
+                  ),
+                })
+              : t("query_editor.action.format_sql")
+          }
+        >
           <Button icon={<FormatPainterOutlined />} onClick={onFormat}>
             {t("query_editor.action.format")}
           </Button>

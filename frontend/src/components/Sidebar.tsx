@@ -167,7 +167,7 @@ import {
     buildBatchTableExportWorkbenchTab,
 } from '../utils/tableExportTab';
 import { useExportProgressDialog } from './ExportProgressModal';
-import { getShortcutPlatform, isShortcutMatch, resolveShortcutBinding, resolveShortcutDisplay } from '../utils/shortcuts';
+import { getShortcutDisplayLabel, getShortcutPlatform, isShortcutMatch, resolveShortcutBinding, resolveShortcutDisplay } from '../utils/shortcuts';
 import { buildExternalSQLRootNode, type ExternalSQLTreeNode } from '../utils/externalSqlTree';
 import { t } from '../i18n';
 import {
@@ -464,6 +464,10 @@ const Sidebar: React.FC<{
   const disableLocalBackdropFilter = isMacLikePlatform();
   const autoFetchVisible = useAutoFetchVisibility();
   const activeShortcutPlatform = getShortcutPlatform(isMacLikePlatform());
+  const openSettingsShortcutBinding = resolveShortcutBinding(shortcutOptions, 'openSettings', activeShortcutPlatform);
+  const openSettingsShortcutLabel = openSettingsShortcutBinding.enabled && openSettingsShortcutBinding.combo
+      ? getShortcutDisplayLabel(openSettingsShortcutBinding.combo, activeShortcutPlatform)
+      : '';
   const focusSidebarSearchShortcut = resolveShortcutDisplay(shortcutOptions, 'focusSidebarSearch', activeShortcutPlatform);
   const focusSidebarSearchShortcutTokens = focusSidebarSearchShortcut === '-'
       ? []
@@ -2512,6 +2516,9 @@ const Sidebar: React.FC<{
   const v2AiAssistantLabel = t('app.sidebar.ai_assistant');
   const v2ToolsLabel = t('app.sidebar.tools');
   const v2SettingsLabel = t('app.sidebar.settings');
+  const v2SettingsTooltipLabel = openSettingsShortcutLabel
+      ? `${t('app.sidebar.settings')} (${openSettingsShortcutLabel})`
+      : v2SettingsLabel;
   const v2RailExpandButtonLabelsLabel = t('sidebar.rail.toggle_labels.expand');
   const v2RailCollapseButtonLabelsLabel = t('sidebar.rail.toggle_labels.collapse');
   const v2ActiveConnectionHeaderLabel = t('sidebar.active_connection.current_host_database');
@@ -2846,6 +2853,7 @@ const Sidebar: React.FC<{
       aiAssistant: v2AiAssistantLabel,
       tools: v2ToolsLabel,
       settings: v2SettingsLabel,
+      settingsTooltip: v2SettingsTooltipLabel,
       expandButtonLabels: v2RailExpandButtonLabelsLabel,
       collapseButtonLabels: v2RailCollapseButtonLabelsLabel,
     },

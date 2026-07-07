@@ -348,6 +348,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       () => resolveShortcutBinding(shortcutOptions, 'runQuery', activeShortcutPlatform),
       [activeShortcutPlatform, shortcutOptions],
   );
+  const formatSqlShortcutBinding = useMemo(
+      () => resolveShortcutBinding(shortcutOptions, 'formatSql', activeShortcutPlatform),
+      [activeShortcutPlatform, shortcutOptions],
+  );
   // SQL 诊断 / 慢 SQL 历史的快捷键绑定（从 store 读取，用户可在快捷键管理面板自定义）
   const diagnoseQueryShortcutBinding = useMemo(
       () => resolveShortcutBinding(shortcutOptions, 'diagnoseQuery', activeShortcutPlatform),
@@ -2879,41 +2883,72 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               || (tabConnectionId && tabConnectionId !== activeConnectionId
                   ? connectionsRef.current.find(c => c.id === tabConnectionId)
                   : undefined);
-          const formatterLanguage = resolveQueryEditorFormatterLanguage(conn);
-          const sourceSql = getCurrentQuery();
-          const formatted = format(sourceSql, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
-          if (sourceSql === formatted) {
-              return;
-          }
-          updateQueryTabDraft(tab.id, {
-              formatRestoreSnapshot: {
-                  query: sourceSql,
-                  createdAt: Date.now(),
-              },
-          });
           const editor = editorRef.current;
           const monaco = monacoRef.current;
           const model = editor?.getModel?.();
           if (editor && monaco && model) {
-              const currentValue = String(model.getValue?.() || sourceSql);
-              if (currentValue === formatted) {
-                  return;
-              }
               const fullRange = model.getFullModelRange?.()
                   || new monaco.Range(1, 1, model.getLineCount?.() || 1, model.getLineMaxColumn?.(model.getLineCount?.() || 1) || 1);
+              const selection = editor.getSelection?.();
+              const hasSelection = Boolean(
+                  selection
+                  && (
+                      selection.startLineNumber !== selection.endLineNumber
+                      || selection.startColumn !== selection.endColumn
+                  ),
+              );
+              const targetRange = hasSelection ? selection : fullRange;
+              const fullSql = String(model.getValue?.() || getCurrentQuery());
+              const sourceSql = String(model.getValueInRange?.(targetRange) || (hasSelection ? '' : fullSql));
+              if (!sourceSql.trim()) {
+                  return;
+              }
+              const formatterLanguage = resolveQueryEditorFormatterLanguage(conn);
+              const formatted = format(sourceSql, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
+              const compact = sourceSql.replace(/\s+/g, ' ').trim();
+              const compactFormatted = format(compact, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
+              const isAlreadyBeautified = sourceSql === formatted
+                  || (sourceSql.includes('\n  ') && compactFormatted === formatted);
+              const nextSql = isAlreadyBeautified ? compact : formatted;
+              if (sourceSql === nextSql) {
+                  return;
+              }
+              updateQueryTabDraft(tab.id, {
+                  formatRestoreSnapshot: {
+                      query: fullSql,
+                      createdAt: Date.now(),
+                  },
+              });
               editor.pushUndoStop?.();
               editor.executeEdits?.('gonavi-format-sql', [{
-                  range: fullRange,
-                  text: formatted,
+                  range: targetRange,
+                  text: nextSql,
                   forceMoveMarkers: true,
               }]);
               editor.pushUndoStop?.();
               const nextValue = editor.getValue?.();
-              applyQueryState(typeof nextValue === 'string' ? nextValue : formatted);
+              applyQueryState(typeof nextValue === 'string' ? nextValue : nextSql);
               refreshObjectDecorations();
               return;
       }
-      syncQueryToEditor(formatted);
+      const formatterLanguage = resolveQueryEditorFormatterLanguage(conn);
+      const sourceSql = getCurrentQuery();
+      const formatted = format(sourceSql, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
+      const compact = sourceSql.replace(/\s+/g, ' ').trim();
+      const compactFormatted = format(compact, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
+      const isAlreadyBeautified = sourceSql === formatted
+          || (sourceSql.includes('\n  ') && compactFormatted === formatted);
+      const nextSql = isAlreadyBeautified ? compact : formatted;
+      if (sourceSql === nextSql) {
+          return;
+      }
+      updateQueryTabDraft(tab.id, {
+          formatRestoreSnapshot: {
+              query: sourceSql,
+              createdAt: Date.now(),
+          },
+      });
+      syncQueryToEditor(nextSql);
   } catch (e) {
           void message.error(translate('query_editor.message.format_failed'));
       }
@@ -4794,6 +4829,39 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   }, [isActive, toggleQueryResultsPanelShortcutBinding, toggleResultPanelVisibility]);
 
   useEffect(() => {
+      const binding = formatSqlShortcutBinding;
+      if (!binding?.enabled || !binding.combo) {
+          return;
+      }
+
+      const handleFormatShortcut = (event: KeyboardEvent) => {
+          if (!isActive) {
+              return;
+          }
+          if (!isShortcutMatch(event, binding.combo)) {
+              return;
+          }
+
+          const editor = editorRef.current;
+          const targetNode = resolveEventTargetNode(event.target);
+          const editorHasFocus = !!editor?.hasTextFocus?.();
+          const inQueryEditor = !!(targetNode && queryEditorRootRef.current?.contains(targetNode));
+          if (!editorHasFocus && !inQueryEditor && !isDocumentLevelShortcutTarget(targetNode)) {
+              return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          handleFormat();
+      };
+
+      window.addEventListener('keydown', handleFormatShortcut, true);
+      return () => {
+          window.removeEventListener('keydown', handleFormatShortcut, true);
+      };
+  }, [formatSqlShortcutBinding, handleFormat, isActive]);
+
+  useEffect(() => {
       const handleSaveActiveQuery = () => {
           if (!isActive) {
               return;
@@ -5024,6 +5092,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         sqlEditorAutoCommitDelayMs={sqlEditorAutoCommitDelayMs}
         pendingTransactionToolbar={pendingSqlTransaction ? sqlEditorTransactionToolbar : null}
         runQueryShortcutBinding={runQueryShortcutBinding}
+        formatSqlShortcutBinding={formatSqlShortcutBinding}
         saveQueryShortcutBinding={saveQueryShortcutBinding}
         toggleQueryResultsPanelShortcutBinding={toggleQueryResultsPanelShortcutBinding}
         activeShortcutPlatform={activeShortcutPlatform}

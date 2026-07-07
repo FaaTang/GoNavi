@@ -4,6 +4,7 @@ import { getCurrentLanguage, t } from '../i18n';
 
 export type ShortcutAction =
   | 'runQuery'
+  | 'formatSql'
   | 'selectCurrentStatement'
   | 'saveQuery'
   | 'toggleQueryResultsPanel'
@@ -105,6 +106,7 @@ const KEY_ALIASES: Record<string, string> = {
 
 export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'runQuery',
+  'formatSql',
   'selectCurrentStatement',
   'saveQuery',
   'toggleQueryResultsPanel',
@@ -151,6 +153,12 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
   runQuery: {
     labelKey: 'app.shortcuts.action.runQuery.label',
     descriptionKey: 'app.shortcuts.action.runQuery.description',
+  },
+  formatSql: {
+    labelKey: 'app.shortcuts.action.formatSql.label',
+    descriptionKey: 'app.shortcuts.action.formatSql.description',
+    scope: 'queryEditor',
+    allowInEditable: true,
   },
   selectCurrentStatement: {
     labelKey: 'app.shortcuts.action.selectCurrentStatement.label',
@@ -276,6 +284,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   runQuery: {
     mac: { combo: 'Meta+Enter', enabled: true },
     windows: { combo: 'Ctrl+Enter', enabled: true },
+  },
+  formatSql: {
+    mac: { combo: 'Ctrl+Alt+L', enabled: true },
+    windows: { combo: 'Ctrl+Alt+L', enabled: true },
   },
   selectCurrentStatement: {
     mac: { combo: 'Meta+E', enabled: true },

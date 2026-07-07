@@ -318,6 +318,18 @@ describe('shortcut defaults', () => {
     });
   });
 
+  it('registers format SQL as a query editor shortcut', () => {
+    expect(DEFAULT_SHORTCUT_OPTIONS.formatSql).toEqual({
+      mac: { combo: 'Ctrl+Alt+L', enabled: true },
+      windows: { combo: 'Ctrl+Alt+L', enabled: true },
+    });
+    expect(SHORTCUT_ACTION_META.formatSql).toMatchObject({
+      label: '美化 SQL',
+      scope: 'queryEditor',
+      allowInEditable: true,
+    });
+  });
+
   it('registers query results panel toggle as a query editor shortcut', () => {
     expect(DEFAULT_SHORTCUT_OPTIONS.toggleQueryResultsPanel).toEqual({
       mac: { combo: 'Meta+Shift+M', enabled: true },
