@@ -260,9 +260,6 @@ func (a *App) InstallUpdateAndRestart() connection.QueryResult {
 	go func() {
 		time.Sleep(300 * time.Millisecond)
 		wailsRuntime.Quit(a.ctx)
-		// 兜底退出，避免某些平台/窗口状态下 Quit 未真正结束进程，导致更新脚本一直等待。
-		time.Sleep(2 * time.Second)
-		os.Exit(0)
 	}()
 
 	msg := a.appText("app.update.backend.message.install_started", nil)
@@ -791,15 +788,11 @@ func buildUpdateDownloadResult(info UpdateInfo, staged *stagedUpdate) updateDown
 }
 
 func buildUpdateInstallLogPath(baseDir string) string {
-	platform := stdRuntime.GOOS
-	if platform == "darwin" {
-		platform = "macos"
-	}
 	logDir := strings.TrimSpace(baseDir)
 	if logDir == "" {
 		logDir = os.TempDir()
 	}
-	return filepath.Join(logDir, fmt.Sprintf("gonavi-update-%s-%d.log", platform, time.Now().UnixNano()))
+	return filepath.Join(logDir, "update-install.log")
 }
 
 func sanitizeVersionForPath(version string) string {
@@ -1189,7 +1182,13 @@ exit /b 0
 }
 
 func buildWindowsLaunchCommand(scriptPath string) *exec.Cmd {
-	cmd := exec.Command("cmd.exe", "/D", "/C", "call", scriptPath)
+	// 通过 start /B 拉起独立 cmd，避免 WebView2 Job 在宿主进程退出时连带终止更新脚本。
+	cmd := exec.Command(
+		"cmd.exe",
+		"/D", "/C",
+		"start", "/B", "",
+		"cmd.exe", "/D", "/C", "call", scriptPath,
+	)
 	configureWindowsUpdateCommand(cmd)
 	return cmd
 }

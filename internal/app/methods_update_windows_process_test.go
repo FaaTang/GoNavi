@@ -16,4 +16,7 @@ func TestBuildWindowsLaunchCommandHidesConsoleWindow(t *testing.T) {
 	if cmd.SysProcAttr.CreationFlags&windowsCreateNoWindow == 0 {
 		t.Fatalf("expected Windows update launcher to set CREATE_NO_WINDOW, flags=%#x", cmd.SysProcAttr.CreationFlags)
 	}
+	if cmd.SysProcAttr.CreationFlags&windowsCreateBreakawayFromJob == 0 {
+		t.Fatalf("expected Windows update launcher to set CREATE_BREAKAWAY_FROM_JOB, flags=%#x", cmd.SysProcAttr.CreationFlags)
+	}
 }

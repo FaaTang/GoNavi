@@ -131,14 +131,18 @@ func TestBuildWindowsScriptRelaunchUsesTargetDirectory(t *testing.T) {
 	}
 }
 
-func TestBuildWindowsLaunchCommandUsesDirectHiddenCall(t *testing.T) {
+func TestBuildWindowsLaunchCommandUsesDetachedStart(t *testing.T) {
 	cmd := buildWindowsLaunchCommand(`C:\tmp\gonavi-update\update.cmd`)
 
 	if !strings.EqualFold(cmd.Args[0], cmd.Path) && !strings.HasSuffix(strings.ToLower(cmd.Path), `\cmd.exe`) {
 		t.Fatalf("unexpected command path: %s", cmd.Path)
 	}
 
-	want := []string{"cmd.exe", "/D", "/C", "call", `C:\tmp\gonavi-update\update.cmd`}
+	want := []string{
+		"cmd.exe", "/D", "/C",
+		"start", "/B", "",
+		"cmd.exe", "/D", "/C", "call", `C:\tmp\gonavi-update\update.cmd`,
+	}
 	if len(cmd.Args) != len(want) {
 		t.Fatalf("unexpected arg length: got %d want %d, args=%v", len(cmd.Args), len(want), cmd.Args)
 	}

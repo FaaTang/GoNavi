@@ -7,7 +7,10 @@ import (
 	"syscall"
 )
 
-const windowsCreateNoWindow = 0x08000000
+const (
+	windowsCreateNoWindow         = 0x08000000
+	windowsCreateBreakawayFromJob = 0x01000000
+)
 
 func configureWindowsUpdateCommand(cmd *exec.Cmd) {
 	if cmd == nil {
@@ -15,6 +18,6 @@ func configureWindowsUpdateCommand(cmd *exec.Cmd) {
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow:    true,
-		CreationFlags: windowsCreateNoWindow,
+		CreationFlags: windowsCreateNoWindow | windowsCreateBreakawayFromJob,
 	}
 }
