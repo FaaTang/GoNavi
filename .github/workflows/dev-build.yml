@@ -1130,6 +1130,6 @@ jobs:
             **构建时间**: ${{ steps.build_time.outputs.display }}
 
             > ⚠️ 这是开发测试版本，仅供内部测试使用，不建议用于生产环境。
-            > 每次 push 到 `dev` 分支会自动覆盖此 release。
+            > 请通过 Actions 页手动触发 Dev Build；不会在 push 到 `dev` 时自动覆盖此 release。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

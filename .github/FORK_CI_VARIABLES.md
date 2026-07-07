@@ -107,6 +107,26 @@ DRIVER_RELEASE_REPO = FaaTang/GoNavi
 |--------|----------|----------|
 | **Release** | push `v*` tag，且 tag 在 `RELEASE_BRANCH` 上 | 仅三端应用 |
 | **Dev Build** | Actions 页手动 **Run workflow** | 仅三端应用（pre-release 标签 `dev-latest`） |
+| **Docker Images** | 手动 **Run workflow**；或 push `v*` tag 且 tag 在 `RELEASE_BRANCH` 上 | 不响应 `dev` 分支 push |
+
+---
+
+## 同步上游 `dev` 后恢复 Fork CI 配置
+
+GitHub「Sync fork」会把上游的 `.github/workflows/` 覆盖到 fork 的 `dev` 分支。上游默认在 `dev` push 时触发 **Dev Build** 与 **Docker Images**，因此同步后可能再次误触发 Actions。
+
+Fork 的 CI 修复保存在 **`own` 分支**（或你维护 fork 配置的分支）。每次同步上游 `dev` 后，请把 fork 工作流合并回 `dev` 并推送：
+
+```bash
+git fetch origin
+git checkout dev
+git pull origin dev
+git checkout origin/own -- .github/workflows/dev-build.yml .github/workflows/docker-images.yml .github/workflows/release.yml .github/FORK_CI_VARIABLES.md
+git commit -m "chore(ci): restore fork workflow triggers after upstream sync"
+git push origin dev
+```
+
+> 若你直接在 `own` 上维护工作流，把上面命令里的 `origin/own` 换成对应分支名即可。
 
 ---
 
@@ -145,6 +165,7 @@ git push origin own --tags
 
 - `.github/workflows/release.yml` — 正式 Release
 - `.github/workflows/dev-build.yml` — 手动 Dev 预发布
+- `.github/workflows/docker-images.yml` — Docker 镜像（手动或 Release tag）
 - `tools/resolve-driver-release-source.py`
 - `tools/complete-driver-release-assets.py`
 - `internal/app/methods_update.go`

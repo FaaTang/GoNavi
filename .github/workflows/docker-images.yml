@@ -1,0 +1,254 @@
+name: Docker Images
+
+# Fork 维护说明：
+# - 不在 push 到 dev 时自动构建，避免同步上游代码后误触发 CI
+# - 推送 v* tag 时仅当 tag 落在 RELEASE_BRANCH 上才发布镜像（与 Release 工作流一致）
+# - 日常试构建请使用 workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: docker-images-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || 'own' }}
+
+jobs:
+  gate:
+    name: Verify docker image trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      release_branch: ${{ steps.check.outputs.release_branch }}
+    steps:
+      - name: Checkout code
+        if: github.event_name == 'push'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check trigger
+        id: check
+        env:
+          RELEASE_BRANCH: ${{ env.RELEASE_BRANCH }}
+        shell: bash
+        run: |
+          echo "release_branch=${RELEASE_BRANCH}" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual workflow_dispatch; proceed with docker image build"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch origin "${RELEASE_BRANCH}"
+          if ! git rev-parse --verify "origin/${RELEASE_BRANCH}" >/dev/null 2>&1; then
+            echo "Branch ${RELEASE_BRANCH} does not exist on origin; skip docker image publish"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${RELEASE_BRANCH}"; then
+            echo "Tag commit is on branch ${RELEASE_BRANCH}; proceed with docker image publish"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag commit is not on branch ${RELEASE_BRANCH}; skip docker image publish"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build ${{ matrix.image_name }} (${{ matrix.platform }})
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image_name:
+          - gonavi-mcp-server
+          - gonavi-build-env
+        platform:
+          - linux/amd64
+          - linux/arm64
+        include:
+          - image_name: gonavi-mcp-server
+            dockerfile: Dockerfile.mcp-server
+            description: GoNavi MCP Server container image
+          - image_name: gonavi-build-env
+            dockerfile: Dockerfile.build-env
+            description: GoNavi Linux build environment image
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Prepare build variables
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "owner_lc=$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "platform_pair=$(printf '%s' "${{ matrix.platform }}" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.prep.outputs.owner_lc }}/${{ matrix.image_name }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image_name }}
+            org.opencontainers.image.description=${{ matrix.description }}
+
+      - name: Build smoke image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: codex-smoke/${{ matrix.image_name }}:local
+          cache-from: type=gha,scope=${{ matrix.image_name }}-${{ steps.prep.outputs.platform_pair }}
+
+      - name: Smoke test MCP Server image
+        if: matrix.image_name == 'gonavi-mcp-server'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid="$(docker run -d -p 8765:8765 -e GONAVI_MCP_HTTP_TOKEN=smoke-token codex-smoke/${{ matrix.image_name }}:local http)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent http://127.0.0.1:8765/healthz >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$cid"
+          echo "MCP Server image smoke test failed" >&2
+          exit 1
+
+      - name: Smoke test build environment image
+        if: matrix.image_name == 'gonavi-build-env'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm codex-smoke/${{ matrix.image_name }}:local \
+            bash -lc 'go version && node -v && npm -v && wails version'
+
+      - name: Push by digest
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ steps.prep.outputs.owner_lc }}/${{ matrix.image_name }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.image_name }}-${{ steps.prep.outputs.platform_pair }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}-${{ steps.prep.outputs.platform_pair }}
+
+      - name: Export digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.push.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image_name }}-${{ steps.prep.outputs.platform_pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Publish ${{ matrix.image_name }}
+    needs:
+      - gate
+      - build
+    if: needs.gate.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: gonavi-mcp-server
+            description: GoNavi MCP Server container image
+          - image_name: gonavi-build-env
+            description: GoNavi Linux build environment image
+    steps:
+      - name: Normalize image namespace
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "owner_lc=$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.image_name }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.vars.outputs.owner_lc }}/${{ matrix.image_name }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=dev-latest,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha,format=short,prefix=dev-,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image_name }}
+            org.opencontainers.image.description=${{ matrix.description }}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'ghcr.io/${{ steps.vars.outputs.owner_lc }}/${{ matrix.image_name }}@sha256:%s ' *)
+
+      - name: Inspect image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "ghcr.io/${{ steps.vars.outputs.owner_lc }}/${{ matrix.image_name }}:${{ steps.meta.outputs.version }}"
