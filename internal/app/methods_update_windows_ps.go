@@ -8,7 +8,7 @@ import (
 )
 
 func buildWindowsPowerShellUpdateScript(pid int) string {
-	script := `$ErrorActionPreference = 'Continue'
+	script := `$ErrorActionPreference = 'Stop'
 $Source = $env:GONAVI_UPDATE_SOURCE
 $Target = $env:GONAVI_UPDATE_TARGET
 $Staged = $env:GONAVI_UPDATE_STAGED
@@ -111,37 +111,43 @@ function Replace-TargetExecutable([string]$SourceExe, [string]$TargetExe) {
 
 function Start-UpdatedApplication([string]$TargetExe) {
   $targetDir = [System.IO.Path]::GetDirectoryName($TargetExe)
-  Start-Process -LiteralPath $TargetExe -WorkingDirectory $targetDir
+  $proc = Start-Process -LiteralPath $TargetExe -WorkingDirectory $targetDir -PassThru -ErrorAction Stop
+  if (-not $proc -or $proc.HasExited) {
+    throw "relaunch failed for target: $TargetExe"
+  }
 }
 
-Write-UpdateLog 'updater started'
-Write-UpdateLog "source=$Source"
-Write-UpdateLog "target=$Target"
+try {
+  Write-UpdateLog 'updater started'
+  Write-UpdateLog "source=$Source"
+  Write-UpdateLog "target=$Target"
 
-if (-not (Test-Path -LiteralPath $Source)) {
-  Write-UpdateLog "source file not found: $Source"
+  if (-not (Test-Path -LiteralPath $Source)) {
+    throw "source file not found: $Source"
+  }
+  if (-not (Test-Path -LiteralPath $Target)) {
+    throw "target executable not found: $Target"
+  }
+
+  $sourceExe = Resolve-SourceExecutable -SourcePath $Source -TargetPath $Target -StagedDir $Staged
+  Write-UpdateLog "resolved source executable: $sourceExe"
+
+  Wait-ForHostExit
+  Write-UpdateLog 'host process exited'
+  Start-Sleep -Seconds 3
+  Write-UpdateLog 'cooldown finished, starting file replace'
+
+  Replace-TargetExecutable -SourceExe $sourceExe -TargetExe $Target
+  Start-UpdatedApplication -TargetExe $Target
+  if (Test-Path -LiteralPath $Staged) {
+    Remove-Item -LiteralPath $Staged -Recurse -Force
+  }
+  Write-UpdateLog 'update finished'
+  exit 0
+} catch {
+  Write-UpdateLog ("update failed: " + $_.Exception.Message)
   exit 1
 }
-if (-not (Test-Path -LiteralPath $Target)) {
-  Write-UpdateLog "target executable not found: $Target"
-  exit 1
-}
-
-$sourceExe = Resolve-SourceExecutable -SourcePath $Source -TargetPath $Target -StagedDir $Staged
-Write-UpdateLog "resolved source executable: $sourceExe"
-
-Wait-ForHostExit
-Write-UpdateLog 'host process exited'
-Start-Sleep -Seconds 3
-Write-UpdateLog 'cooldown finished, starting file replace'
-
-Replace-TargetExecutable -SourceExe $sourceExe -TargetExe $Target
-Start-UpdatedApplication -TargetExe $Target
-if (Test-Path -LiteralPath $Staged) {
-  Remove-Item -LiteralPath $Staged -Recurse -Force
-}
-Write-UpdateLog 'update finished'
-exit 0
 `
 	_ = pid
 	return strings.ReplaceAll(script, "\n", "\r\n")

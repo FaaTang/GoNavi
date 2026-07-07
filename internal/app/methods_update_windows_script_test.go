@@ -12,6 +12,7 @@ func TestBuildWindowsPowerShellUpdateScriptUsesEnvPaths(t *testing.T) {
 	script := buildWindowsPowerShellUpdateScript(13579)
 
 	mustContain := []string{
+		`$ErrorActionPreference = 'Stop'`,
 		`$Source = $env:GONAVI_UPDATE_SOURCE`,
 		`$Target = $env:GONAVI_UPDATE_TARGET`,
 		`$Staged = $env:GONAVI_UPDATE_STAGED`,
@@ -22,6 +23,7 @@ func TestBuildWindowsPowerShellUpdateScriptUsesEnvPaths(t *testing.T) {
 		`Test-Path -LiteralPath $Target`,
 		`Expand-Archive -LiteralPath $SourcePath`,
 		`Start-Process -LiteralPath $TargetExe -WorkingDirectory $targetDir`,
+		`Write-UpdateLog ("update failed: " + $_.Exception.Message)`,
 		`Start-Sleep -Seconds 3`,
 		`for ($retry = 0; $retry -lt 15; $retry++)`,
 	}
