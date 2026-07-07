@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	stdRuntime "runtime"
 	"strings"
 	"testing"
@@ -208,5 +210,81 @@ func TestBuildLinuxScriptPrefersTargetExecutableBasename(t *testing.T) {
 		if !strings.Contains(script, want) {
 			t.Fatalf("linux update script missing required token: %s\nscript:\n%s", want, script)
 		}
+	}
+}
+
+func TestResolveUpdateArtifactVersionsToKeepKeepsCurrentAndPrevious(t *testing.T) {
+	discovered := map[string][]string{
+		"0.8.0": {"/tmp/gonavi-updates/.gonavi-update-windows-0.8.0"},
+		"0.8.1": {"/tmp/gonavi-updates/.gonavi-update-windows-0.8.1"},
+		"0.8.2": {"/tmp/gonavi-updates/.gonavi-update-windows-0.8.2"},
+	}
+
+	keep := resolveUpdateArtifactVersionsToKeep("0.8.2", "", discovered)
+	if len(keep) != 2 {
+		t.Fatalf("expected 2 kept versions, got %#v", keep)
+	}
+	if _, ok := keep["0.8.2"]; !ok {
+		t.Fatalf("expected current version to be kept, got %#v", keep)
+	}
+	if _, ok := keep["0.8.1"]; !ok {
+		t.Fatalf("expected previous version to be kept, got %#v", keep)
+	}
+	if _, ok := keep["0.8.0"]; ok {
+		t.Fatalf("expected oldest version to be pruned, got %#v", keep)
+	}
+}
+
+func TestResolveUpdateArtifactVersionsToKeepKeepsDownloadedFutureVersion(t *testing.T) {
+	discovered := map[string][]string{
+		"0.8.1": {"/tmp/gonavi-updates/.gonavi-update-windows-0.8.1"},
+		"0.8.2": {"/tmp/gonavi-updates/.gonavi-update-windows-0.8.2"},
+	}
+
+	keep := resolveUpdateArtifactVersionsToKeep("0.8.1", "0.8.2", discovered)
+	if len(keep) != 2 {
+		t.Fatalf("expected 2 kept versions, got %#v", keep)
+	}
+	if _, ok := keep["0.8.2"]; !ok {
+		t.Fatalf("expected downloaded version to be kept, got %#v", keep)
+	}
+	if _, ok := keep["0.8.1"]; !ok {
+		t.Fatalf("expected current version to be kept, got %#v", keep)
+	}
+}
+
+func TestPruneHistoricalUpdateArtifactsRemovesOlderVersions(t *testing.T) {
+	workspace := t.TempDir()
+	keepDir := filepath.Join(workspace, ".gonavi-update-windows-0.8.2")
+	prevDir := filepath.Join(workspace, ".gonavi-update-windows-0.8.1")
+	oldDir := filepath.Join(workspace, ".gonavi-update-windows-0.8.0")
+	for _, dir := range []string{keepDir, prevDir, oldDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("mkdir failed: %v", err)
+		}
+	}
+
+	originalLegacy := resolveLegacyUpdateWorkspaceDir
+	resolveLegacyUpdateWorkspaceDir = func() string { return workspace }
+	defer func() {
+		resolveLegacyUpdateWorkspaceDir = originalLegacy
+	}()
+
+	pruneHistoricalUpdateArtifacts("0.8.2", "")
+
+	if _, err := os.Stat(keepDir); err != nil {
+		t.Fatalf("expected current version dir to remain: %v", err)
+	}
+	if _, err := os.Stat(prevDir); err != nil {
+		t.Fatalf("expected previous version dir to remain: %v", err)
+	}
+	if _, err := os.Stat(oldDir); !os.IsNotExist(err) {
+		t.Fatalf("expected oldest version dir to be removed, err=%v", err)
+	}
+}
+
+func TestParseUpdateStagedDirVersionSupportsTimestampSuffix(t *testing.T) {
+	if got := parseUpdateStagedDirVersion(".gonavi-update-windows-0.8.2-1710000000000"); got != "0.8.2" {
+		t.Fatalf("unexpected parsed version: %q", got)
 	}
 }

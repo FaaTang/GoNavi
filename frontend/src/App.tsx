@@ -1436,6 +1436,7 @@ function App() {
       aboutDisplayVersion,
       aboutInfo,
       aboutLoading,
+      aboutUpdateDownloadPath,
       aboutUpdateStatus,
       canShowProgressEntry,
       checkForUpdates,
@@ -1448,6 +1449,7 @@ function App() {
       isLatestUpdateDownloaded,
       lastUpdateInfo,
       markUpdateProgressDismissed,
+      openDownloadedUpdatePackage,
       skipCurrentUpdateVersion,
       disableAutoUpdatePrompt,
       setIsAboutOpen,
@@ -3960,6 +3962,21 @@ function App() {
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <div style={{ marginBottom: 6, fontWeight: 600 }}>{t('app.about.field.update_status')}</div>
                                 <div style={utilityMutedTextStyle}>{aboutUpdateStatus || t('app.about.update_status.not_checked')}</div>
+                                {aboutUpdateDownloadPath ? (
+                                    <div style={{ marginTop: 8 }}>
+                                        <div style={{ marginBottom: 4, fontWeight: 600 }}>{t('app.about.field.update_download_path')}</div>
+                                        <a
+                                            href="#"
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                void openDownloadedUpdatePackage();
+                                            }}
+                                            style={{ ...utilityMutedTextStyle, wordBreak: 'break-all' }}
+                                        >
+                                            {aboutUpdateDownloadPath}
+                                        </a>
+                                    </div>
+                                ) : null}
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>

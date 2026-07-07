@@ -167,6 +167,7 @@ describe("i18n catalog", () => {
       "app.ai_panel.error.title",
       "app.about.title",
       "app.about.field.update_status",
+      "app.about.field.update_download_path",
       "common.back_to_previous",
       "common.unknown",
       "common.close",

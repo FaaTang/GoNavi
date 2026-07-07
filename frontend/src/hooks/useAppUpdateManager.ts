@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { message } from 'antd';
 import { EventsOn } from '../../wailsjs/runtime';
 import { resolveAboutDisplayVersion } from '../utils/appVersionDisplay';
@@ -195,6 +195,14 @@ export const useAppUpdateManager = ({
     Boolean(lastUpdateInfo?.downloaded)
     || (Boolean(lastUpdateInfo?.latestVersion) && updateDownloadedVersionRef.current === lastUpdateInfo?.latestVersion)
   );
+  const aboutUpdateDownloadPath = useMemo(() => {
+    const hasDownloaded = Boolean(lastUpdateInfo?.downloaded)
+      || (Boolean(lastUpdateInfo?.latestVersion) && updateDownloadedVersionRef.current === lastUpdateInfo?.latestVersion);
+    if (!hasDownloaded) {
+      return '';
+    }
+    return String(lastUpdateInfo?.downloadPath || '').trim();
+  }, [lastUpdateInfo]);
   const isBackgroundProgressForLatestUpdate = Boolean(lastUpdateInfo?.hasUpdate)
     && Boolean(lastUpdateInfo?.latestVersion)
     && updateDownloadProgress.version === lastUpdateInfo?.latestVersion
@@ -219,6 +227,28 @@ export const useAppUpdateManager = ({
     updateInstallTriggeredVersionRef.current = updateDownloadProgress.version || lastUpdateInfo?.latestVersion || null;
     hideUpdateDownloadProgress();
   }, [hideUpdateDownloadProgress, lastUpdateInfo, updateDownloadProgress.status, updateDownloadProgress.version, t]);
+
+  const openDownloadedUpdatePackage = useCallback(async () => {
+    const downloadPath = String(lastUpdateInfo?.downloadPath || updateDownloadMetaRef.current?.downloadPath || '').trim();
+    if (!downloadPath) {
+      void message.error(t('app.about.message.open_install_directory_failed_with_error', { error: t('common.unknown') }));
+      return;
+    }
+    let res: any = null;
+    try {
+      const api = (window as any).go?.app?.App;
+      if (typeof api?.OpenDownloadedUpdatePackage === 'function') {
+        res = await api.OpenDownloadedUpdatePackage();
+      } else if (typeof api?.OpenDownloadedUpdateDirectory === 'function') {
+        res = await api.OpenDownloadedUpdateDirectory();
+      }
+    } catch (e) {
+      console.warn('Wails API: OpenDownloadedUpdatePackage unavailable', e);
+    }
+    if (!res?.success) {
+      void message.error(t('app.about.message.open_install_directory_failed_with_error', { error: res?.message || t('common.unknown') }));
+    }
+  }, [lastUpdateInfo?.downloadPath, t]);
 
   const checkForUpdates = useCallback(async (silent: boolean) => {
     if (updateCheckInFlightRef.current) return;
@@ -433,6 +463,7 @@ export const useAppUpdateManager = ({
     aboutDisplayVersion,
     aboutInfo,
     aboutLoading,
+    aboutUpdateDownloadPath,
     aboutUpdateStatus,
     canShowProgressEntry,
     checkForUpdates,
@@ -446,6 +477,7 @@ export const useAppUpdateManager = ({
     lastUpdateInfo,
     markUpdateProgressDismissed,
     disableAutoUpdatePrompt,
+    openDownloadedUpdatePackage,
     skipCurrentUpdateVersion,
     setIsAboutOpen,
     showUpdateDownloadProgress,

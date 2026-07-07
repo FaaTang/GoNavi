@@ -304,6 +304,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
                 CheckForUpdates: async () => ({ success: false }),
                 CheckForUpdatesSilently: async () => ({ success: false }),
                 OpenDownloadedUpdateDirectory: async () => ({ success: false }),
+                OpenDownloadedUpdatePackage: async () => ({ success: false }),
                 OpenDriverDownloadDirectory: async (path: string) => ({ success: true, data: { path } }),
                 OpenDataRootDirectory: async () => ({ success: true }),
                 SelectSQLDirectory: async (currentPath: string) => ({ success: false, message: currentPath ? '已取消' : '已取消' }),

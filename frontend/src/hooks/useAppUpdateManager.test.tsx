@@ -27,6 +27,7 @@ type BackendAppMock = {
   DownloadUpdate: ReturnType<typeof vi.fn>;
   InstallUpdateAndRestart: ReturnType<typeof vi.fn>;
   OpenDownloadedUpdateDirectory: ReturnType<typeof vi.fn>;
+  OpenDownloadedUpdatePackage: ReturnType<typeof vi.fn>;
   GetAppInfo: ReturnType<typeof vi.fn>;
 };
 
@@ -36,6 +37,7 @@ const createBackendAppMock = (): BackendAppMock => ({
   DownloadUpdate: vi.fn(),
   InstallUpdateAndRestart: vi.fn(),
   OpenDownloadedUpdateDirectory: vi.fn(),
+  OpenDownloadedUpdatePackage: vi.fn(),
   GetAppInfo: vi.fn(async () => ({ success: true, data: { version: '0.8.1', author: 'Syngnat' } })),
 });
 
@@ -162,6 +164,33 @@ describe('useAppUpdateManager', () => {
     expect(backendApp.DownloadUpdate).toHaveBeenCalledTimes(1);
     expect(backendApp.OpenDownloadedUpdateDirectory).not.toHaveBeenCalled();
     expect(hook?.lastUpdateInfo?.downloaded).toBe(true);
+    expect(hook?.aboutUpdateDownloadPath).toBe('/Users/test/Desktop/GoNavi-0.8.2-MacOS-Arm64.dmg');
+  });
+
+  it('opens downloaded update package from about dialog action', async () => {
+    backendApp.CheckForUpdates.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+        downloaded: true,
+        downloadPath: 'C:\\Temp\\gonavi-updates\\.gonavi-update-windows-0.8.2\\GoNavi.exe',
+      },
+    });
+    backendApp.OpenDownloadedUpdatePackage.mockResolvedValue({ success: true });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(false);
+    });
+
+    await act(async () => {
+      await hook?.openDownloadedUpdatePackage();
+    });
+
+    expect(backendApp.OpenDownloadedUpdatePackage).toHaveBeenCalledTimes(1);
   });
 
   it('auto-opens About on silent update check when auto prompt is enabled', async () => {

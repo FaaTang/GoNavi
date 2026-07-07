@@ -2424,6 +2424,7 @@
   "app.about.field.author": "Author",
   "app.about.field.community": "Community",
   "app.about.field.update_status": "Update Status",
+  "app.about.field.update_download_path": "Download Path",
   "app.about.field.version": "Version",
   "app.about.field.auto_update_prompt": "Automatically Prompt for Updates",
   "app.about.hint.auto_update_prompt_disabled": "Auto prompts are off. You can still check manually above, or turn this on to restore reminders.",

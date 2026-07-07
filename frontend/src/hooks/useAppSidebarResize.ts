@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 
 const SIDEBAR_RESIZE_MIN_WIDTH = 200;
 const SIDEBAR_RESIZE_MAX_WIDTH = 600;
+const SIDEBAR_RESIZE_DRAG_SCALE = 2;
 
 type SidebarResizeBounds = { minWidth: number; maxWidth: number };
 type SidebarResizeDragState = SidebarResizeBounds & {
@@ -30,6 +31,12 @@ const resolveSidebarResizeBounds = (siderElement: Element | null): SidebarResize
 const clampSidebarResizeWidth = (width: number, bounds: SidebarResizeBounds): number => (
   Math.max(bounds.minWidth, Math.min(bounds.maxWidth, width))
 );
+
+const resolveSidebarResizeDelta = (clientX: number, startX: number): number => (
+  (clientX - startX) * SIDEBAR_RESIZE_DRAG_SCALE
+);
+
+export { resolveSidebarResizeDelta, SIDEBAR_RESIZE_DRAG_SCALE };
 
 type UseAppSidebarResizeOptions = {
   effectiveUiScale: number;
@@ -115,7 +122,7 @@ export const useAppSidebarResize = ({
     rafRef.current = requestAnimationFrame(() => {
       if (!sidebarDragRef.current || !ghostRef.current) return;
       const { startX, startWidth, startGuideLeft, minWidth, maxWidth } = sidebarDragRef.current;
-      const delta = latestMouseX.current - startX;
+      const delta = resolveSidebarResizeDelta(latestMouseX.current, startX);
       const newWidth = clampSidebarResizeWidth(startWidth + delta, { minWidth, maxWidth });
       ghostRef.current.style.left = `${startGuideLeft + (newWidth - startWidth)}px`;
       rafRef.current = null;
@@ -130,7 +137,7 @@ export const useAppSidebarResize = ({
 
     if (sidebarDragRef.current) {
       const { startX, startWidth, minWidth, maxWidth } = sidebarDragRef.current;
-      const delta = e.clientX - startX;
+      const delta = resolveSidebarResizeDelta(e.clientX, startX);
       const newWidth = clampSidebarResizeWidth(startWidth + delta, { minWidth, maxWidth });
       setSidebarWidth(newWidth);
     }

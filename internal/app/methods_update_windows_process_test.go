@@ -5,7 +5,7 @@ package app
 import "testing"
 
 func TestBuildWindowsLaunchCommandHidesConsoleWindow(t *testing.T) {
-	cmd := buildWindowsLaunchCommand(`C:\tmp\gonavi-update\update.cmd`)
+	cmd := buildWindowsLaunchCommand(`C:\tmp\gonavi-update\update.ps1`)
 
 	if cmd.SysProcAttr == nil {
 		t.Fatalf("expected Windows update launcher to configure SysProcAttr")

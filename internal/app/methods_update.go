@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	stdRuntime "runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -128,6 +127,16 @@ func (a *App) localizedUpdateError(err error) string {
 	return err.Error()
 }
 
+func (a *App) pruneUpdateArtifacts() {
+	var stagedVersion string
+	a.updateMu.Lock()
+	if a.updateState.staged != nil {
+		stagedVersion = a.updateState.staged.Version
+	}
+	a.updateMu.Unlock()
+	pruneHistoricalUpdateArtifacts(getCurrentVersion(), stagedVersion)
+}
+
 func (a *App) CheckForUpdates() connection.QueryResult {
 	return a.checkForUpdates(true)
 }
@@ -167,6 +176,8 @@ func (a *App) checkForUpdates(logFailure bool) connection.QueryResult {
 	a.updateState.lastCheck = &info
 	a.updateState.staged = currentStaged
 	a.updateMu.Unlock()
+
+	go a.pruneUpdateArtifacts()
 
 	msg := a.appText("app.update.backend.message.latest", nil)
 	if info.HasUpdate {
@@ -276,6 +287,14 @@ func (a *App) InstallUpdateAndRestart() connection.QueryResult {
 }
 
 func (a *App) OpenDownloadedUpdateDirectory() connection.QueryResult {
+	return a.openDownloadedUpdatePackage(false)
+}
+
+func (a *App) OpenDownloadedUpdatePackage() connection.QueryResult {
+	return a.openDownloadedUpdatePackage(true)
+}
+
+func (a *App) openDownloadedUpdatePackage(revealFile bool) connection.QueryResult {
 	a.updateMu.Lock()
 	staged := a.updateState.staged
 	a.updateMu.Unlock()
@@ -286,34 +305,43 @@ func (a *App) OpenDownloadedUpdateDirectory() connection.QueryResult {
 	if assetPath == "" {
 		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.package_path_empty", nil)}
 	}
+	if stat, err := os.Stat(assetPath); err != nil || stat.IsDir() {
+		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.package_directory_unavailable", nil)}
+	}
+
 	dirPath := strings.TrimSpace(filepath.Dir(assetPath))
 	if dirPath == "" || dirPath == "." {
 		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.package_directory_unresolved", nil)}
-	}
-	if stat, err := os.Stat(dirPath); err != nil || !stat.IsDir() {
-		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.package_directory_unavailable", nil)}
 	}
 
 	var cmd *exec.Cmd
 	switch stdRuntime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", dirPath)
+		if revealFile {
+			cmd = exec.Command("open", "-R", assetPath)
+		} else {
+			cmd = exec.Command("open", dirPath)
+		}
 	case "windows":
-		cmd = exec.Command("explorer", dirPath)
+		if revealFile {
+			cmd = exec.Command("explorer", "/select,", filepath.Clean(assetPath))
+		} else {
+			cmd = exec.Command("explorer", dirPath)
+		}
 	case "linux":
 		cmd = exec.Command("xdg-open", dirPath)
 	default:
 		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.open_directory_unsupported", map[string]any{"platform": stdRuntime.GOOS})}
 	}
 	if err := cmd.Start(); err != nil {
-		logger.Error(err, "打开更新目录失败")
+		logger.Error(err, "打开更新包路径失败")
 		return connection.QueryResult{Success: false, Message: a.appText("app.update.backend.message.open_directory_failed", map[string]any{"detail": err.Error()})}
 	}
 	return connection.QueryResult{
 		Success: true,
-		Message: a.appText("app.update.backend.message.opened_install_directory", map[string]any{"path": dirPath}),
+		Message: a.appText("app.update.backend.message.opened_install_directory", map[string]any{"path": assetPath}),
 		Data: map[string]any{
-			"path": dirPath,
+			"path": assetPath,
 		},
 	}
 }
@@ -397,6 +425,8 @@ func (a *App) downloadAndStageUpdate(info UpdateInfo) connection.QueryResult {
 	a.updateMu.Lock()
 	a.updateState.staged = staged
 	a.updateMu.Unlock()
+
+	go a.pruneUpdateArtifacts()
 
 	a.emitUpdateDownloadProgress("done", info.AssetSize, info.AssetSize, "")
 	return connection.QueryResult{Success: true, Message: a.appText("app.update.backend.message.package_downloaded", nil), Data: buildUpdateDownloadResult(info, staged)}
@@ -823,7 +853,7 @@ func sanitizeVersionForPath(version string) string {
 	return result
 }
 
-func resolveLegacyUpdateWorkspaceDir() string {
+var resolveLegacyUpdateWorkspaceDir = func() string {
 	return filepath.Join(os.TempDir(), "gonavi-updates")
 }
 
@@ -938,6 +968,11 @@ func resolveReusableStagedUpdate(info UpdateInfo, current *stagedUpdate) *staged
 }
 
 func resolveUpdateInstallTarget() string {
+	if stdRuntime.GOOS == "windows" {
+		if exePath, err := resolveWindowsUpdateTarget(); err == nil {
+			return exePath
+		}
+	}
 	exePath, err := os.Executable()
 	if err != nil {
 		return ""
@@ -970,19 +1005,28 @@ func (a *App) emitUpdateDownloadProgress(status string, downloaded, total int64,
 }
 
 func launchUpdateScript(staged *stagedUpdate) error {
-	exePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	exePath, _ = filepath.EvalSymlinks(exePath)
 	pid := os.Getpid()
 
 	switch stdRuntime.GOOS {
 	case "windows":
+		exePath, err := resolveWindowsUpdateTarget()
+		if err != nil {
+			return err
+		}
 		return launchWindowsUpdate(staged, exePath, pid)
 	case "darwin":
+		exePath, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		exePath, _ = filepath.EvalSymlinks(exePath)
 		return launchMacUpdate(staged, exePath, pid)
 	case "linux":
+		exePath, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		exePath, _ = filepath.EvalSymlinks(exePath)
 		return launchLinuxUpdate(staged, exePath, pid)
 	default:
 		return localizedUpdateError{
@@ -993,19 +1037,20 @@ func launchUpdateScript(staged *stagedUpdate) error {
 }
 
 func launchWindowsUpdate(staged *stagedUpdate, targetExe string, pid int) error {
-	scriptPath := filepath.Join(staged.StagedDir, "update.cmd")
+	scriptPath := filepath.Join(staged.StagedDir, "update.ps1")
 	logPath := strings.TrimSpace(staged.InstallLogPath)
 	if logPath == "" {
 		logPath = buildUpdateInstallLogPath(filepath.Dir(staged.FilePath))
 		staged.InstallLogPath = logPath
 	}
-	content := buildWindowsScript(staged.FilePath, targetExe, staged.StagedDir, logPath, pid)
+	content := buildWindowsPowerShellUpdateScript(pid)
 	if err := os.WriteFile(scriptPath, []byte(content), 0o644); err != nil {
 		return err
 	}
 
 	logger.Infof("启动 Windows 更新脚本：target=%s script=%s log=%s", targetExe, scriptPath, logPath)
 	cmd := buildWindowsLaunchCommand(scriptPath)
+	cmd.Env = append(os.Environ(), windowsUpdateScriptEnv(staged.FilePath, targetExe, staged.StagedDir, logPath, pid)...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -1051,143 +1096,13 @@ func launchLinuxUpdate(staged *stagedUpdate, targetExe string, pid int) error {
 	return cmd.Start()
 }
 
-func buildWindowsScript(source, target, stagedDir, logPath string, pid int) string {
-	script := `@echo off
-setlocal EnableExtensions EnableDelayedExpansion
-set "SOURCE=__GONAVI_UPDATE_SOURCE__"
-set "TARGET=__GONAVI_UPDATE_TARGET__"
-set "TARGET_OLD=%TARGET%.old"
-set "STAGED=__GONAVI_UPDATE_STAGED__"
-set "LOG_FILE=__GONAVI_UPDATE_LOG__"
-set PID=__GONAVI_UPDATE_PID__
-set /a WAIT_PID_SECONDS=0
-
-call :log updater started
-if not exist "%SOURCE%" (
-  call :log source file not found: %SOURCE%
-  exit /b 1
-)
-
-for %%I in ("%TARGET%") do set "TARGET_NAME=%%~nxI"
-for %%I in ("%TARGET%") do set "TARGET_DIR=%%~dpI"
-for %%I in ("%SOURCE%") do set "SOURCE_EXT=%%~xI"
-set "SOURCE_EXE="
-
-if /I "%SOURCE_EXT%"==".zip" (
-  set "EXTRACT_DIR=%STAGED%\_extract"
-  if exist "%EXTRACT_DIR%" (
-    rmdir /S /Q "%EXTRACT_DIR%" >> "%LOG_FILE%" 2>&1
-  )
-  mkdir "%EXTRACT_DIR%" >> "%LOG_FILE%" 2>&1
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "$src=$env:SOURCE; $dst=$env:EXTRACT_DIR; Expand-Archive -LiteralPath $src -DestinationPath $dst -Force" >> "%LOG_FILE%" 2>&1
-  if !ERRORLEVEL! NEQ 0 (
-    call :log expand zip failed: %SOURCE%
-    exit /b 1
-  )
-  if exist "%EXTRACT_DIR%\%TARGET_NAME%" (
-    set "SOURCE_EXE=%EXTRACT_DIR%\%TARGET_NAME%"
-  ) else (
-    for /R "%EXTRACT_DIR%" %%F in (*.exe) do (
-      if not defined SOURCE_EXE (
-        set "SOURCE_EXE=%%~fF"
-      )
-    )
-  )
-  if not defined SOURCE_EXE (
-    call :log no executable found in portable zip: %SOURCE%
-    exit /b 1
-  )
-) else (
-  set "SOURCE_EXE=%SOURCE%"
-)
-
-:waitloop
-tasklist /FI "PID eq %PID%" | find "%PID%" >nul
-if %ERRORLEVEL%==0 (
-  if !WAIT_PID_SECONDS! GEQ 90 (
-    call :log host process still running after !WAIT_PID_SECONDS! seconds, aborting update
-    exit /b 1
-  )
-  timeout /t 1 /nobreak >nul
-  set /a WAIT_PID_SECONDS+=1
-  goto waitloop
-)
-call :log host process exited
-
-rem -- Win10 needs extra time for kernel to release exe file handles --
-timeout /t 3 /nobreak >nul
-call :log cooldown finished, starting file replace
-
-set /a RETRY=0
-:move_retry
-call :log attempt !RETRY!: trying rename-then-copy strategy
-move /Y "%TARGET%" "%TARGET_OLD%" >> "%LOG_FILE%" 2>&1
-if !ERRORLEVEL!==0 (
-  copy /Y "%SOURCE_EXE%" "%TARGET%" >> "%LOG_FILE%" 2>&1
-  if !ERRORLEVEL!==0 (
-    del /F /Q "%TARGET_OLD%" >> "%LOG_FILE%" 2>&1
-    goto move_done
-  )
-  call :log copy after rename failed, restoring old file
-  move /Y "%TARGET_OLD%" "%TARGET%" >> "%LOG_FILE%" 2>&1
-)
-
-call :log rename strategy failed, trying direct move
-move /Y "%SOURCE_EXE%" "%TARGET%" >> "%LOG_FILE%" 2>&1
-if %ERRORLEVEL%==0 goto move_done
-
-copy /Y "%SOURCE_EXE%" "%TARGET%" >> "%LOG_FILE%" 2>&1
-if %ERRORLEVEL%==0 goto move_done
-
-set /a RETRY+=1
-if !RETRY! LSS 15 (
-  set /a WAIT=1
-  if !RETRY! GEQ 3 set /a WAIT=2
-  if !RETRY! GEQ 6 set /a WAIT=3
-  if !RETRY! GEQ 9 set /a WAIT=5
-  call :log waiting !WAIT! seconds before retry
-  timeout /t !WAIT! /nobreak >nul
-  goto move_retry
-)
-
-call :log replace failed after retries (portable mode, no elevation): check directory write permission or file lock
-exit /b 1
-
-:move_done
-del /F /Q "%TARGET_OLD%" >> "%LOG_FILE%" 2>&1
-start "" /D "%TARGET_DIR%" "%TARGET%" >> "%LOG_FILE%" 2>&1
-if %ERRORLEVEL% NEQ 0 (
-  call :log cmd start failed, trying powershell Start-Process
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%TARGET%' -WorkingDirectory '%TARGET_DIR%'" >> "%LOG_FILE%" 2>&1
-  if !ERRORLEVEL! NEQ 0 (
-    call :log relaunch failed
-    exit /b 1
-  )
-)
-rmdir /S /Q "%STAGED%" >> "%LOG_FILE%" 2>&1
-call :log update finished
-exit /b 0
-
-:log
-echo [%date% %time%] %*>>"%LOG_FILE%"
-exit /b 0
-`
-	return strings.NewReplacer(
-		"__GONAVI_UPDATE_SOURCE__", source,
-		"__GONAVI_UPDATE_TARGET__", target,
-		"__GONAVI_UPDATE_STAGED__", stagedDir,
-		"__GONAVI_UPDATE_LOG__", logPath,
-		"__GONAVI_UPDATE_PID__", strconv.Itoa(pid),
-	).Replace(strings.ReplaceAll(script, "\n", "\r\n"))
-}
-
 func buildWindowsLaunchCommand(scriptPath string) *exec.Cmd {
-	// 通过 start /B 拉起独立 cmd，避免 WebView2 Job 在宿主进程退出时连带终止更新脚本。
+	// 通过 start /B 拉起独立 PowerShell，避免 WebView2 Job 在宿主进程退出时连带终止更新脚本。
 	cmd := exec.Command(
 		"cmd.exe",
 		"/D", "/C",
 		"start", "/B", "",
-		"cmd.exe", "/D", "/C", "call", scriptPath,
+		"powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath,
 	)
 	configureWindowsUpdateCommand(cmd)
 	return cmd

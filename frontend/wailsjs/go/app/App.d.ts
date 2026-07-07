@@ -234,6 +234,8 @@ export function OpenDataRootDirectory():Promise<connection.QueryResult>;
 
 export function OpenDownloadedUpdateDirectory():Promise<connection.QueryResult>;
 
+export function OpenDownloadedUpdatePackage():Promise<connection.QueryResult>;
+
 export function OpenDriverDownloadDirectory(arg1:string):Promise<connection.QueryResult>;
 
 export function OpenSQLFile():Promise<connection.QueryResult>;
