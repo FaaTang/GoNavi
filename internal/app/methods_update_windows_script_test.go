@@ -20,11 +20,12 @@ func TestBuildWindowsPowerShellUpdateScriptUsesEnvPaths(t *testing.T) {
 		`$HostPid = [int]$env:GONAVI_UPDATE_PID`,
 		`Write-UpdateLog "source=$Source"`,
 		`Write-UpdateLog "target=$Target"`,
-		`Test-Path -LiteralPath $Target`,
-		`Expand-Archive -LiteralPath $SourcePath`,
+		`Test-Path -Path $Target`,
+		`Expand-Archive -Path $SourcePath`,
 		`function Resolve-LaunchTarget`,
 		`target filename differs, renaming to latest`,
 		`Start-Process -FilePath $TargetExe -WorkingDirectory $targetDir`,
+		`Write-UpdateLog ("started updated application: pid={0} path={1}" -f $proc.Id, $TargetExe)`,
 		`$launchTarget = Resolve-LaunchTarget -SourceExe $sourceExe -TargetExe $Target`,
 		`Start-UpdatedApplication -TargetExe $launchTarget`,
 		`Write-UpdateLog ("update failed: " + $_.Exception.Message)`,
@@ -73,13 +74,11 @@ func TestWindowsUpdateScriptEnv(t *testing.T) {
 func TestBuildWindowsLaunchCommandUsesDetachedPowerShell(t *testing.T) {
 	cmd := buildWindowsLaunchCommand(`C:\tmp\gonavi-update\update.ps1`)
 
-	if !strings.EqualFold(cmd.Args[0], cmd.Path) && !strings.HasSuffix(strings.ToLower(cmd.Path), `\cmd.exe`) {
+	if !strings.EqualFold(cmd.Args[0], cmd.Path) && !strings.HasSuffix(strings.ToLower(cmd.Path), `\powershell.exe`) {
 		t.Fatalf("unexpected command path: %s", cmd.Path)
 	}
 
 	want := []string{
-		"cmd.exe", "/D", "/C",
-		"start", "/B", "",
 		"powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", `C:\tmp\gonavi-update\update.ps1`,
 	}
 	if len(cmd.Args) != len(want) {

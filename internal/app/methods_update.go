@@ -1097,12 +1097,12 @@ func launchLinuxUpdate(staged *stagedUpdate, targetExe string, pid int) error {
 }
 
 func buildWindowsLaunchCommand(scriptPath string) *exec.Cmd {
-	// 通过 start /B 拉起独立 PowerShell，避免 WebView2 Job 在宿主进程退出时连带终止更新脚本。
+	// 直接拉起独立 PowerShell，避免 cmd/start 带来的控制台闪烁。
 	cmd := exec.Command(
-		"cmd.exe",
-		"/D", "/C",
-		"start", "/B", "",
-		"powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath,
+		"powershell.exe",
+		"-NoProfile",
+		"-ExecutionPolicy", "Bypass",
+		"-File", scriptPath,
 	)
 	configureWindowsUpdateCommand(cmd)
 	return cmd
