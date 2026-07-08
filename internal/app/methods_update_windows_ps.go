@@ -117,6 +117,26 @@ function Start-UpdatedApplication([string]$TargetExe) {
   }
 }
 
+function Resolve-LaunchTarget([string]$SourceExe, [string]$TargetExe) {
+  $sourceName = [System.IO.Path]::GetFileName($SourceExe)
+  $targetName = [System.IO.Path]::GetFileName($TargetExe)
+  if ([string]::IsNullOrWhiteSpace($sourceName) -or [string]::IsNullOrWhiteSpace($targetName)) {
+    return $TargetExe
+  }
+  if ($sourceName -ieq $targetName) {
+    return $TargetExe
+  }
+
+  $targetDir = [System.IO.Path]::GetDirectoryName($TargetExe)
+  $renamedTarget = Join-Path $targetDir $sourceName
+  Write-UpdateLog "target filename differs, renaming to latest: $renamedTarget"
+  if (Test-Path -LiteralPath $renamedTarget) {
+    Remove-Item -LiteralPath $renamedTarget -Force
+  }
+  Move-Item -LiteralPath $TargetExe -Destination $renamedTarget -Force
+  return $renamedTarget
+}
+
 try {
   Write-UpdateLog 'updater started'
   Write-UpdateLog "source=$Source"
@@ -138,7 +158,8 @@ try {
   Write-UpdateLog 'cooldown finished, starting file replace'
 
   Replace-TargetExecutable -SourceExe $sourceExe -TargetExe $Target
-  Start-UpdatedApplication -TargetExe $Target
+  $launchTarget = Resolve-LaunchTarget -SourceExe $sourceExe -TargetExe $Target
+  Start-UpdatedApplication -TargetExe $launchTarget
   if (Test-Path -LiteralPath $Staged) {
     Remove-Item -LiteralPath $Staged -Recurse -Force
   }
