@@ -274,25 +274,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # 平台发布说明：
+        # 1) 当前仅启用 windows/amd64（用于快速稳定发布）。
+        # 2) 如需恢复多平台发布，直接取消对应平台块的注释即可。
+        # 3) 恢复后请同步检查下面“Verify Optional Driver Assets”步骤中的必需资产清单，
+        #    确保包含该平台对应的 drivers/* 文件，避免发布阶段因校验缺失而失败。
         include:
-          - os: macos-latest
-            platform: darwin/amd64
-            os_name: MacOS
-            arch_name: Amd64
-            build_name: gonavi-build-darwin-amd64
-            wails_tags: ""
-            artifact_suffix: ""
-            build_optional_agents: true
-            linux_webkit: ""
-          - os: macos-latest
-            platform: darwin/arm64
-            os_name: MacOS
-            arch_name: Arm64
-            build_name: gonavi-build-darwin-arm64
-            wails_tags: ""
-            artifact_suffix: ""
-            build_optional_agents: true
-            linux_webkit: ""
+          # 暂时只发布 Windows AMD64；其他平台先注释。
+          # - os: macos-latest
+          #   platform: darwin/amd64
+          #   os_name: MacOS
+          #   arch_name: Amd64
+          #   build_name: gonavi-build-darwin-amd64
+          #   wails_tags: ""
+          #   artifact_suffix: ""
+          #   build_optional_agents: true
+          #   linux_webkit: ""
+          # - os: macos-latest
+          #   platform: darwin/arm64
+          #   os_name: MacOS
+          #   arch_name: Arm64
+          #   build_name: gonavi-build-darwin-arm64
+          #   wails_tags: ""
+          #   artifact_suffix: ""
+          #   build_optional_agents: true
+          #   linux_webkit: ""
           - os: windows-2025-vs2026
             platform: windows/amd64
             os_name: Windows
@@ -302,34 +308,34 @@ jobs:
             artifact_suffix: ""
             build_optional_agents: true
             linux_webkit: ""
-          - os: windows-2025-vs2026
-            platform: windows/arm64
-            os_name: Windows
-            arch_name: Arm64
-            build_name: gonavi-build-windows-arm64
-            wails_tags: ""
-            artifact_suffix: ""
-            build_optional_agents: true
-            linux_webkit: ""
-          - os: ubuntu-22.04
-            platform: linux/amd64
-            os_name: Linux
-            arch_name: Amd64
-            build_name: gonavi-build-linux-amd64
-            wails_tags: ""
-            artifact_suffix: ""
-            build_optional_agents: true
-            linux_webkit: "4.0"
+          # - os: windows-2025-vs2026
+          #   platform: windows/arm64
+          #   os_name: Windows
+          #   arch_name: Arm64
+          #   build_name: gonavi-build-windows-arm64
+          #   wails_tags: ""
+          #   artifact_suffix: ""
+          #   build_optional_agents: true
+          #   linux_webkit: ""
+          # - os: ubuntu-22.04
+          #   platform: linux/amd64
+          #   os_name: Linux
+          #   arch_name: Amd64
+          #   build_name: gonavi-build-linux-amd64
+          #   wails_tags: ""
+          #   artifact_suffix: ""
+          #   build_optional_agents: true
+          #   linux_webkit: "4.0"
           # Debian 13 (trixie) 默认仓库已切到 WebKitGTK 4.1：单独提供 4.1 变体产物
-          - os: ubuntu-24.04
-            platform: linux/amd64
-            os_name: Linux
-            arch_name: Amd64
-            build_name: gonavi-build-linux-amd64-webkit41
-            wails_tags: "webkit2_41"
-            artifact_suffix: "-WebKit41"
-            build_optional_agents: false
-            linux_webkit: "4.1"
+          # - os: ubuntu-24.04
+          #   platform: linux/amd64
+          #   os_name: Linux
+          #   arch_name: Amd64
+          #   build_name: gonavi-build-linux-amd64-webkit41
+          #   wails_tags: "webkit2_41"
+          #   artifact_suffix: "-WebKit41"
+          #   build_optional_agents: false
+          #   linux_webkit: "4.1"
 
     steps:
       - name: Checkout code
@@ -1017,13 +1023,8 @@ jobs:
           for driver in "${DRIVERS[@]}"; do
             REQUIRED_FILES=(
               "drivers/Windows/${driver}-driver-agent-windows-amd64.exe"
-              "drivers/MacOS/${driver}-driver-agent-darwin-amd64"
-              "drivers/MacOS/${driver}-driver-agent-darwin-arm64"
-              "drivers/Linux/${driver}-driver-agent-linux-amd64"
             )
-            if [ "$driver" != "duckdb" ]; then
-              REQUIRED_FILES+=("drivers/Windows/${driver}-driver-agent-windows-arm64.exe")
-            else
+            if [ "$driver" = "duckdb" ]; then
               REQUIRED_FILES+=("drivers/Windows/duckdb.dll")
               REQUIRED_FILES+=("drivers/Windows/duckdb-driver.zip")
             fi
