@@ -24,7 +24,7 @@ func TestBuildWindowsPowerShellUpdateScriptUsesEnvPaths(t *testing.T) {
 		`Expand-Archive -LiteralPath $SourcePath`,
 		`function Resolve-LaunchTarget`,
 		`target filename differs, renaming to latest`,
-		`Start-Process -LiteralPath $TargetExe -WorkingDirectory $targetDir`,
+		`Start-Process -FilePath $TargetExe -WorkingDirectory $targetDir`,
 		`$launchTarget = Resolve-LaunchTarget -SourceExe $sourceExe -TargetExe $Target`,
 		`Start-UpdatedApplication -TargetExe $launchTarget`,
 		`Write-UpdateLog ("update failed: " + $_.Exception.Message)`,

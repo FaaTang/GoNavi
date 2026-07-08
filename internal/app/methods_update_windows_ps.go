@@ -111,7 +111,7 @@ function Replace-TargetExecutable([string]$SourceExe, [string]$TargetExe) {
 
 function Start-UpdatedApplication([string]$TargetExe) {
   $targetDir = [System.IO.Path]::GetDirectoryName($TargetExe)
-  $proc = Start-Process -LiteralPath $TargetExe -WorkingDirectory $targetDir -PassThru -ErrorAction Stop
+  $proc = Start-Process -FilePath $TargetExe -WorkingDirectory $targetDir -PassThru -ErrorAction Stop
   if (-not $proc -or $proc.HasExited) {
     throw "relaunch failed for target: $TargetExe"
   }
