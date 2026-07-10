@@ -1881,7 +1881,7 @@ describe("i18n catalog", () => {
     const resColsFailureSource = sliceBetween(
       resolveQueryLocatorPlanSource,
       "        if (!resCols?.success || !Array.isArray(resCols.data)) {",
-      "            return plan;",
+      "        const tableColumns = resCols.data as ColumnDefinition[];",
     );
     const catchFailureSource = sliceBetween(
       resolveQueryLocatorPlanSource,

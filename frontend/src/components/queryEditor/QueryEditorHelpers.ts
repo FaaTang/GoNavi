@@ -2212,11 +2212,15 @@ export const resolveQueryLocatorPlan = async ({
     }
 
     try {
+        // 列元数据决定能否识别主键：不可软超时放弃，否则有 PK 的表也会被误判为「无法加载元数据」。
+        // 索引仅用于无 PK 时的唯一键回退，可软超时；MySQL/PG 仍可走 COUNT 二次定位。
         const [resCols, resIndexes] = await Promise.all([
-            withSoftTimeout(
-                DBGetColumns(buildRpcConnectionConfig(config) as any, tableRef.metadataDbName, tableRef.metadataTableName),
-                () => ({ success: false, message: 'Timed out while loading columns', data: [] }),
-            ),
+            DBGetColumns(buildRpcConnectionConfig(config) as any, tableRef.metadataDbName, tableRef.metadataTableName)
+                .catch((error: any) => ({
+                    success: false,
+                    message: String(error?.message || error || 'Failed to load columns'),
+                    data: [],
+                })),
             withSoftTimeout(
                 DBGetIndexes(buildRpcConnectionConfig(config) as any, tableRef.metadataDbName, tableRef.metadataTableName)
                     .catch((error: any) => ({ success: false, message: String(error?.message || error || 'Failed to load indexes'), data: [] })),
@@ -2224,6 +2228,20 @@ export const resolveQueryLocatorPlan = async ({
             ),
         ]);
         if (!resCols?.success || !Array.isArray(resCols.data)) {
+            // 列元数据失败时：支持 COUNT 二次定位的方言仍可按结果列编辑，避免误伤有 PK 但元数据偶发失败的场景。
+            if (countFallbackEnabled && supportsCountFallbackLocate(dbType) && !selectInfo.selectsAll && Object.keys(selectInfo.writableColumns).length > 0) {
+                const reason = translate('query_editor.message.read_only_no_safe_locator');
+                plan.editLocator = {
+                    strategy: 'none',
+                    columns: [],
+                    valueColumns: [],
+                    writableColumns: { ...selectInfo.writableColumns },
+                    readOnly: false,
+                    fallbackMode: 'count-where',
+                    reason,
+                };
+                return plan;
+            }
             const reason = translate('query_editor.message.read_only_table_locator_metadata_unavailable', {
                 table: `${tableRef.metadataDbName}.${tableRef.metadataTableName}`,
             });
