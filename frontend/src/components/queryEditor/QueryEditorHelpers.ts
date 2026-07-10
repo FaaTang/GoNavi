@@ -2,7 +2,7 @@ import type { SqlLanguage } from 'sql-formatter';
 import type { TabData, ColumnDefinition, IndexDefinition } from '../../types';
 import { DBGetColumns, DBGetIndexes, DBQuery } from '../../../wailsjs/go/app/App';
 import { buildRpcConnectionConfig } from '../../utils/connectionRpcConfig';
-import { isOracleLikeDialect, resolveSqlDialect } from '../../utils/sqlDialect';
+import { isOracleLikeDialect, isPgLikeDialect, resolveSqlDialect } from '../../utils/sqlDialect';
 import { extractQueryResultTableRef, type QueryResultTableRef } from '../../utils/queryResultTable';
 import { quoteIdentPart } from '../../utils/sql';
 import { splitSidebarQualifiedName } from '../../utils/sidebarLocate';
@@ -30,6 +30,44 @@ export type CompletionPackageMeta = {dbName: string, packageName: string, schema
 export const QUERY_LOCATOR_ALIAS_PREFIX = '__gonavi_locator_';
 const QUERY_LOCATOR_METADATA_TIMEOUT_MS = 1500;
 const SQLSERVER_MESSAGE_PREFIX_RE = /^\s*mssql:/i;
+
+/**
+ * DBGetColumns/DBGetIndexes 的第一个参数在 PG 系里是「数据库名」，不是 schema。
+ * extractQueryResultTableRef 在 `public.t` 时会把 schema 放进 metadataDbName，
+ * 若直接拿去 RPC，会把连接切到名为 public 的库，导致有主键的表也加载失败。
+ */
+export const resolveQueryLocatorMetadataRpcTarget = (
+    dbType: string,
+    currentDb: string,
+    tableRef: QueryResultTableRef,
+    config?: { database?: string; Database?: string },
+): { dbName: string; tableName: string } => {
+    if (!isPgLikeDialect(dbType)) {
+        return {
+            dbName: tableRef.metadataDbName,
+            tableName: tableRef.metadataTableName,
+        };
+    }
+
+    const databaseName = String(currentDb || config?.database || config?.Database || '').trim()
+        || String(tableRef.metadataDbName || '').trim();
+    const schemaOrDb = String(tableRef.metadataDbName || '').trim();
+    const tableName = String(tableRef.metadataTableName || '').trim();
+    if (
+        schemaOrDb
+        && tableName
+        && schemaOrDb.toLowerCase() !== databaseName.toLowerCase()
+    ) {
+        return {
+            dbName: databaseName,
+            tableName: `${schemaOrDb}.${tableName}`,
+        };
+    }
+    return {
+        dbName: databaseName,
+        tableName,
+    };
+};
 
 const withSoftTimeout = <T,>(promise: Promise<T>, fallback: () => T, timeoutMs = QUERY_LOCATOR_METADATA_TIMEOUT_MS): Promise<T> => {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || typeof globalThis.setTimeout !== 'function') {
@@ -2212,17 +2250,18 @@ export const resolveQueryLocatorPlan = async ({
     }
 
     try {
+        const metadataRpc = resolveQueryLocatorMetadataRpcTarget(dbType, currentDb, tableRef, config);
         // 列元数据决定能否识别主键：不可软超时放弃，否则有 PK 的表也会被误判为「无法加载元数据」。
         // 索引仅用于无 PK 时的唯一键回退，可软超时；MySQL/PG 仍可走 COUNT 二次定位。
         const [resCols, resIndexes] = await Promise.all([
-            DBGetColumns(buildRpcConnectionConfig(config) as any, tableRef.metadataDbName, tableRef.metadataTableName)
+            DBGetColumns(buildRpcConnectionConfig(config) as any, metadataRpc.dbName, metadataRpc.tableName)
                 .catch((error: any) => ({
                     success: false,
                     message: String(error?.message || error || 'Failed to load columns'),
                     data: [],
                 })),
             withSoftTimeout(
-                DBGetIndexes(buildRpcConnectionConfig(config) as any, tableRef.metadataDbName, tableRef.metadataTableName)
+                DBGetIndexes(buildRpcConnectionConfig(config) as any, metadataRpc.dbName, metadataRpc.tableName)
                     .catch((error: any) => ({ success: false, message: String(error?.message || error || 'Failed to load indexes'), data: [] })),
                 () => ({ success: false, message: 'Timed out while loading indexes', data: [] }),
             ),

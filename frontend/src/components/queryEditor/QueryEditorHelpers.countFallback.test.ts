@@ -193,4 +193,43 @@ describe('resolveQueryLocatorPlan MySQL COUNT fallback', () => {
     });
     expect(plan.warning).toBeUndefined();
   });
+
+  it('loads postgres schema-qualified PK metadata via current database + schema.table', async () => {
+    backendApp.DBGetColumns.mockResolvedValue({
+      success: true,
+      data: [
+        { name: 'id', key: 'PRI' },
+        { name: 'name', key: '' },
+      ],
+    });
+    backendApp.DBGetIndexes.mockResolvedValue({
+      success: true,
+      data: [],
+    });
+
+    const plan = await resolveQueryLocatorPlan({
+      statement: 'SELECT * FROM public.rule_list_item',
+      dbType: 'postgres',
+      currentDb: 'aml_schema',
+      config: { type: 'postgres', database: 'aml_schema' },
+      forceReadOnly: false,
+    });
+
+    expect(backendApp.DBGetColumns).toHaveBeenCalledWith(
+      expect.anything(),
+      'aml_schema',
+      'public.rule_list_item',
+    );
+    expect(backendApp.DBGetIndexes).toHaveBeenCalledWith(
+      expect.anything(),
+      'aml_schema',
+      'public.rule_list_item',
+    );
+    expect(plan.editLocator).toMatchObject({
+      strategy: 'primary-key',
+      columns: ['id'],
+      readOnly: false,
+    });
+    expect(plan.warning).toBeUndefined();
+  });
 });
