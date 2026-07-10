@@ -21,3 +21,17 @@ func configureWindowsUpdateCommand(cmd *exec.Cmd) {
 		CreationFlags: windowsCreateNoWindow | windowsCreateBreakawayFromJob,
 	}
 }
+
+func buildWindowsHiddenPowerShellCommand(mode string, payload string) *exec.Cmd {
+	cmd := exec.Command(
+		"powershell.exe",
+		"-NoProfile",
+		"-NoLogo",
+		"-NonInteractive",
+		"-WindowStyle", "Hidden",
+		"-ExecutionPolicy", "Bypass",
+		mode, payload,
+	)
+	configureWindowsUpdateCommand(cmd)
+	return cmd
+}

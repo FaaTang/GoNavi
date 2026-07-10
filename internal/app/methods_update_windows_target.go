@@ -3,10 +3,8 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -14,21 +12,33 @@ import (
 )
 
 var (
-	modKernel32            = syscall.NewLazyDLL("kernel32.dll")
-	procGetModuleFileNameW = modKernel32.NewProc("GetModuleFileNameW")
-	procGetLongPathNameW   = modKernel32.NewProc("GetLongPathNameW")
+	modKernel32                       = syscall.NewLazyDLL("kernel32.dll")
+	procGetModuleFileNameW              = modKernel32.NewProc("GetModuleFileNameW")
+	procGetLongPathNameW                = modKernel32.NewProc("GetLongPathNameW")
+	procOpenProcess                     = modKernel32.NewProc("OpenProcess")
+	procQueryFullProcessImageNameW      = modKernel32.NewProc("QueryFullProcessImageNameW")
 )
 
+const windowsProcessQueryLimitedInformation = 0x1000
+
 func resolveWindowsUpdateTarget() (string, error) {
-	candidates := make([]string, 0, 4)
+	candidates := make([]string, 0, 6)
+	if len(os.Args) > 0 {
+		arg0 := strings.TrimSpace(os.Args[0])
+		if arg0 != "" {
+			if strings.EqualFold(filepath.Ext(arg0), ".lnk") {
+				if target, err := resolveWindowsShortcutTarget(arg0); err == nil {
+					candidates = append(candidates, target)
+				}
+			}
+			candidates = append(candidates, arg0)
+		}
+	}
 	if path, err := getWindowsModuleFileName(); err == nil {
 		candidates = append(candidates, path)
 	}
 	if path, err := os.Executable(); err == nil {
 		candidates = append(candidates, path)
-	}
-	if len(os.Args) > 0 {
-		candidates = append(candidates, os.Args[0])
 	}
 	if path, err := queryWindowsProcessImagePath(os.Getpid()); err == nil {
 		candidates = append(candidates, path)
@@ -125,47 +135,35 @@ func resolveWindowsShortcutTarget(lnkPath string) (string, error) {
 	if lnkPath == "" {
 		return "", fmt.Errorf("shortcut path is empty")
 	}
-	escaped := strings.ReplaceAll(lnkPath, "'", "''")
-	script := fmt.Sprintf(
-		"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('%s'); if ($s.TargetPath) { [Console]::Out.Write($s.TargetPath) }",
-		escaped,
-	)
-	out, err := exec.Command(
-		"powershell.exe",
-		"-NoProfile",
-		"-NonInteractive",
-		"-ExecutionPolicy", "Bypass",
-		"-Command", script,
-	).Output()
-	if err != nil {
-		return "", err
-	}
-	target := strings.TrimSpace(string(out))
-	if target == "" {
-		return "", fmt.Errorf("shortcut target is empty: %s", lnkPath)
-	}
-	return target, nil
+	return parseWindowsShortcutTarget(lnkPath)
 }
 
 func queryWindowsProcessImagePath(pid int) (string, error) {
 	if pid <= 0 {
 		return "", fmt.Errorf("invalid pid: %d", pid)
 	}
-	script := fmt.Sprintf(
-		"(Get-CimInstance Win32_Process -Filter 'ProcessId=%d' -ErrorAction Stop).ExecutablePath",
-		pid,
+	handle, _, err := procOpenProcess.Call(
+		uintptr(windowsProcessQueryLimitedInformation),
+		0,
+		uintptr(pid),
 	)
-	out, err := exec.Command(
-		"powershell.exe",
-		"-NoProfile",
-		"-NonInteractive",
-		"-ExecutionPolicy", "Bypass",
-		"-Command", script,
-	).Output()
-	if err != nil {
+	if handle == 0 {
 		return "", err
 	}
-	path := strings.TrimSpace(string(bytes.TrimSpace(out)))
+	defer syscall.CloseHandle(syscall.Handle(handle))
+
+	buf := make([]uint16, syscall.MAX_PATH)
+	size := uint32(len(buf))
+	r, _, err := procQueryFullProcessImageNameW.Call(
+		handle,
+		0,
+		uintptr(unsafe.Pointer(&buf[0])),
+		uintptr(unsafe.Pointer(&size)),
+	)
+	if r == 0 {
+		return "", err
+	}
+	path := strings.TrimSpace(syscall.UTF16ToString(buf[:size]))
 	if path == "" {
 		return "", fmt.Errorf("process image path is empty for pid %d", pid)
 	}

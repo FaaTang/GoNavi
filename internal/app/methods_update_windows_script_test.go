@@ -24,7 +24,7 @@ func TestBuildWindowsPowerShellUpdateScriptUsesEnvPaths(t *testing.T) {
 		`Expand-Archive -Path $SourcePath`,
 		`function Resolve-LaunchTarget`,
 		`target filename differs, renaming to latest`,
-		`Start-Process -FilePath $TargetExe -WorkingDirectory $targetDir`,
+		`Start-Process -FilePath $TargetExe -WorkingDirectory $targetDir -WindowStyle Hidden -PassThru -ErrorAction Stop`,
 		`Write-UpdateLog ("started updated application: pid={0} path={1}" -f $proc.Id, $TargetExe)`,
 		`$launchTarget = Resolve-LaunchTarget -SourceExe $sourceExe -TargetExe $Target`,
 		`Start-UpdatedApplication -TargetExe $launchTarget`,
@@ -79,7 +79,7 @@ func TestBuildWindowsLaunchCommandUsesDetachedPowerShell(t *testing.T) {
 	}
 
 	want := []string{
-		"powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", `C:\tmp\gonavi-update\update.ps1`,
+		"powershell.exe", "-NoProfile", "-NoLogo", "-NonInteractive", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", `C:\tmp\gonavi-update\update.ps1`,
 	}
 	if len(cmd.Args) != len(want) {
 		t.Fatalf("unexpected arg length: got %d want %d, args=%v", len(cmd.Args), len(want), cmd.Args)

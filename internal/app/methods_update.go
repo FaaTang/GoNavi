@@ -1101,6 +1101,9 @@ func buildWindowsLaunchCommand(scriptPath string) *exec.Cmd {
 	cmd := exec.Command(
 		"powershell.exe",
 		"-NoProfile",
+		"-NoLogo",
+		"-NonInteractive",
+		"-WindowStyle", "Hidden",
 		"-ExecutionPolicy", "Bypass",
 		"-File", scriptPath,
 	)
