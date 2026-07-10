@@ -337,6 +337,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   ]);
   const sqlEditorTransactionOptions = useStore(state => state.sqlEditorTransactionOptions);
   const setSqlEditorTransactionOptions = useStore(state => state.setSqlEditorTransactionOptions);
+  const countFallbackLocateEnabled = useStore(
+    (state) => state.dataEditTransactionOptions?.mysqlCountFallbackLocateEnabled !== false,
+  );
   const [isResultPanelVisible, setIsResultPanelVisible] = useState(
       () => tab.resultPanelVisible === true
   );
@@ -411,6 +414,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   );
   const duplicateSelectionOrLineShortcutBinding = useMemo(
       () => resolveShortcutBinding(shortcutOptions, 'duplicateSelectionOrLine', activeShortcutPlatform),
+      [activeShortcutPlatform, shortcutOptions],
+  );
+  const deleteCurrentLineShortcutBinding = useMemo(
+      () => resolveShortcutBinding(shortcutOptions, 'deleteSelectedRows', activeShortcutPlatform),
       [activeShortcutPlatform, shortcutOptions],
   );
   const primaryShortcutModifierLabel = useMemo(
@@ -853,6 +860,16 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
   }, [isActive]);
 
+  useEffect(() => {
+      if (!isActive) {
+          return;
+      }
+      const raf = requestAnimationFrame(() => {
+          editorRef.current?.focus?.();
+      });
+      return () => cancelAnimationFrame(raf);
+  }, [isActive, tab.id]);
+
   const handleSidebarObjectDrop = useCallback((event: DragEvent) => {
       if (!hasSidebarSqlEditorDragPayload(event.dataTransfer)) {
           return;
@@ -949,6 +966,19 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           text: `\n${lineContent}`,
           forceMoveMarkers: true,
       }]);
+  }, []);
+
+  const handleDeleteCurrentLine = useCallback(() => {
+      const editor = editorRef.current;
+      if (!editor) {
+          return;
+      }
+      try {
+          editor.focus?.();
+          editor.trigger?.('keyboard', 'editor.action.deleteLines', null);
+      } catch {
+          // no-op: Monaco command unavailable
+      }
   }, []);
 
   const buildQueryEditorAiContextMenuActions = useCallback(() => ([
@@ -3823,6 +3853,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                     currentDb,
                     config,
                     forceReadOnly: forceReadOnlyResult,
+                    allowCountFallback: countFallbackLocateEnabled !== false,
                 }));
             }
 
@@ -4123,6 +4154,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       getCurrentQuery,
       pendingSqlTransactionRef,
       effectiveMaxRows,
+      countFallbackLocateEnabled,
       resultSets,
       setQueryId,
       sqlEditorAutoCommitDelayMs,
@@ -4860,6 +4892,39 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           window.removeEventListener('keydown', handleFormatShortcut, true);
       };
   }, [formatSqlShortcutBinding, handleFormat, isActive]);
+
+  useEffect(() => {
+      const binding = deleteCurrentLineShortcutBinding;
+      if (!binding?.enabled || !binding.combo) {
+          return;
+      }
+
+      const handleDeleteCurrentLineShortcut = (event: KeyboardEvent) => {
+          if (!isActive) {
+              return;
+          }
+          if (!isShortcutMatch(event, binding.combo)) {
+              return;
+          }
+
+          const editor = editorRef.current;
+          const targetNode = resolveEventTargetNode(event.target);
+          const editorHasFocus = !!editor?.hasTextFocus?.();
+          const inQueryEditor = !!(targetNode && queryEditorRootRef.current?.contains(targetNode));
+          if (!editorHasFocus && !inQueryEditor && !isDocumentLevelShortcutTarget(targetNode)) {
+              return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          handleDeleteCurrentLine();
+      };
+
+      window.addEventListener('keydown', handleDeleteCurrentLineShortcut, true);
+      return () => {
+          window.removeEventListener('keydown', handleDeleteCurrentLineShortcut, true);
+      };
+  }, [deleteCurrentLineShortcutBinding, handleDeleteCurrentLine, isActive]);
 
   useEffect(() => {
       const handleSaveActiveQuery = () => {

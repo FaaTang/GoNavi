@@ -61,6 +61,7 @@ vi.mock('../store', () => ({
     dataEditTransactionOptions: {
       commitMode: 'manual',
       autoCommitDelayMs: 5000,
+      mysqlCountFallbackLocateEnabled: true,
     },
     setDataEditTransactionOptions: vi.fn(),
     addTab: vi.fn(),

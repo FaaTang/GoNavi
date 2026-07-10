@@ -286,7 +286,8 @@ const DataGrid: React.FC<DataGridProps> = ({
     resultExportAllSql,
     onReload, onSort, onPageChange, pagination, onRequestTotalCount, onCancelTotalCount, sortInfoExternal, showFilter, onToggleFilter, exportSqlWithFilter, onApplyFilter, appliedFilterConditions, quickWhereCondition,
     onApplyQuickWhereCondition,
-    scrollSnapshot, onScrollSnapshotChange, toolbarExtraActions, showRowNumberColumn = false
+    scrollSnapshot, onScrollSnapshotChange, toolbarExtraActions, showRowNumberColumn = false,
+    surfaceActive = true, surfaceKey,
 }) => {
   const connections = useStore(state => state.connections);
   const addTab = useStore(state => state.addTab);
@@ -385,7 +386,9 @@ const DataGrid: React.FC<DataGridProps> = ({
       const normalized = String(columnName || '').trim();
       return normalized !== GONAVI_ROW_KEY && isWritableResultColumn(normalized, effectiveEditLocator);
   }, [effectiveEditLocator]);
-  const canModifyData = !readOnly && !!tableName && !!effectiveEditLocator && !effectiveEditLocator.readOnly && effectiveEditLocator.strategy !== 'none';
+  const canModifyData = !readOnly && !!tableName && !!effectiveEditLocator && !effectiveEditLocator.readOnly && (
+    effectiveEditLocator.strategy !== 'none' || effectiveEditLocator.fallbackMode === 'count-where'
+  );
   const showColumnComment = queryOptions?.showColumnComment ?? true;
   const showColumnType = queryOptions?.showColumnType ?? true;
 
@@ -2692,6 +2695,16 @@ const DataGrid: React.FC<DataGridProps> = ({
       setSelectedRowKeys([]);
   };
 
+  useEffect(() => {
+      if (!surfaceActive) {
+          return;
+      }
+      const raf = requestAnimationFrame(() => {
+          rootRef.current?.focus?.();
+      });
+      return () => cancelAnimationFrame(raf);
+  }, [surfaceActive, surfaceKey]);
+
   const handleUndoDeleteSelected = () => {
       setDeletedRowKeys(prev => {
           const newDeleted = new Set(prev);
@@ -2738,6 +2751,8 @@ const DataGrid: React.FC<DataGridProps> = ({
               updates: changes.updates,
               deletes: changes.deletes,
               locatorStrategy: effectiveEditLocator?.strategy || '',
+              fallbackLocateEnabled: effectiveEditLocator?.fallbackMode === 'count-where',
+              fallbackFieldMaxLen: 255,
           } as any);
           if (res.success) {
               const d = res.data as { deletes: string[]; updates: string[]; inserts: string[] };
@@ -2800,14 +2815,34 @@ const DataGrid: React.FC<DataGridProps> = ({
       };
       
       const startTime = Date.now();
-      const res = await ApplyChanges(buildRpcConnectionConfig(config) as any, dbName || '', tableName, { inserts, updates, deletes, locatorStrategy: effectiveEditLocator?.strategy } as any);
+      const countFallback = effectiveEditLocator?.fallbackMode === 'count-where';
+      const res = await ApplyChanges(buildRpcConnectionConfig(config) as any, dbName || '', tableName, {
+          inserts,
+          updates,
+          deletes,
+          locatorStrategy: effectiveEditLocator?.strategy || '',
+          fallbackLocateEnabled: countFallback,
+          fallbackFieldMaxLen: 255,
+      } as any);
       const duration = Date.now() - startTime;
+      const applyResult = (res?.data && typeof res.data === 'object')
+          ? res.data as {
+              rollback?: boolean;
+              successCount?: number;
+              zeroHitCount?: number;
+              details?: Array<{ message?: string; affectedRows?: number; reasonType?: string }>;
+              sqlLogs?: string[];
+          }
+          : undefined;
       
       // Construct a pseudo-SQL representation for the log
       let logSql = `/* Batch Apply on ${tableName} */\n`;
       if (inserts.length > 0) logSql += `INSERT ${inserts.length} rows;\n`;
       if (updates.length > 0) logSql += `UPDATE ${updates.length} rows;\n`;
       if (deletes.length > 0) logSql += `DELETE ${deletes.length} rows;\n`;
+      if (Array.isArray(applyResult?.sqlLogs) && applyResult.sqlLogs.length > 0) {
+          logSql += `${applyResult.sqlLogs.join('\n')}\n`;
+      }
       
       if (res.success) {
           autoCommitFailedTokenRef.current = -1;
@@ -2820,9 +2855,22 @@ const DataGrid: React.FC<DataGridProps> = ({
               message: res.message,
               dbName
           });
-          void message.success(source === 'auto'
-              ? translateDataGrid('data_grid.message.auto_commit_success')
-              : translateDataGrid('data_grid.message.transaction_committed'));
+          const zeroHitCount = Number(applyResult?.zeroHitCount || 0);
+          const successCount = Number(applyResult?.successCount || 0);
+          if (zeroHitCount > 0) {
+              void message.warning({
+                  content: translateDataGrid('data_grid.message.commit_partial_success', {
+                      success: successCount,
+                      zeroHit: zeroHitCount,
+                  }),
+                  duration: 8,
+                  onClick: () => { if (onReload) onReload(); },
+              });
+          } else {
+              void message.success(source === 'auto'
+                  ? translateDataGrid('data_grid.message.auto_commit_success')
+                  : translateDataGrid('data_grid.message.transaction_committed'));
+          }
           setAddedRows([]);
           setModifiedRows({});
           setDeletedRowKeys(new Set());
@@ -2841,9 +2889,14 @@ const DataGrid: React.FC<DataGridProps> = ({
           if (source === 'auto') {
               autoCommitFailedTokenRef.current = autoCommitChangeTokenRef.current;
           }
+          const multiHitDetail = applyResult?.details?.find((d) => d.reasonType === 'non_unique');
+          const affected = multiHitDetail?.affectedRows;
+          const failMessage = (typeof affected === 'number' && affected > 1)
+              ? translateDataGrid('data_grid.message.commit_multi_hit_rollback', { count: affected })
+              : (res.message || multiHitDetail?.message || '');
           void message.error(source === 'auto'
-              ? translateDataGrid('data_grid.message.auto_commit_failed', { detail: res.message })
-              : translateDataGrid('data_grid.message.commit_failed', { detail: res.message }));
+              ? translateDataGrid('data_grid.message.auto_commit_failed', { detail: failMessage })
+              : translateDataGrid('data_grid.message.commit_failed', { detail: failMessage }));
       }
   }, [
       clearAutoCommitTimer,
@@ -4331,6 +4384,8 @@ const DataGrid: React.FC<DataGridProps> = ({
         resolveContextMenuFieldName,
         resolveWhereConditionSelectedValue,
         rootRef,
+        surfaceActive,
+        surfaceKey,
         rowClassName,
         rowEditorDisplayRef,
         rowEditorForm,

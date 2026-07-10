@@ -330,6 +330,18 @@ describe('shortcut defaults', () => {
     });
   });
 
+  it('registers delete current line as a query editor shortcut', () => {
+    expect(DEFAULT_SHORTCUT_OPTIONS.deleteSelectedRows).toEqual({
+      mac: { combo: 'Ctrl+Y', enabled: true },
+      windows: { combo: 'Ctrl+Y', enabled: true },
+    });
+    expect(SHORTCUT_ACTION_META.deleteSelectedRows).toMatchObject({
+      label: '删除当前行',
+      scope: 'queryEditor',
+      allowInEditable: true,
+    });
+  });
+
   it('registers query results panel toggle as a query editor shortcut', () => {
     expect(DEFAULT_SHORTCUT_OPTIONS.toggleQueryResultsPanel).toEqual({
       mac: { combo: 'Meta+Shift+M', enabled: true },

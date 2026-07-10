@@ -73,10 +73,48 @@ describe('resolveEditRowLocator', () => {
       dbType: 'mysql',
       resultColumns: ['NAME'],
       indexes: [normalIndex('idx_name', 'NAME')],
+      allowMysqlCountFallback: false,
     })).toMatchObject({
       strategy: 'none',
       readOnly: true,
       reason: 'No primary key or usable unique index was found, so changes cannot be submitted safely.',
+    });
+  });
+
+  it('allows MySQL COUNT fallback when enabled and no safe locator exists', () => {
+    expect(resolveEditRowLocator({
+      dbType: 'mysql',
+      resultColumns: ['NAME', 'CODE'],
+      indexes: [normalIndex('idx_name', 'NAME')],
+      allowMysqlCountFallback: true,
+    })).toMatchObject({
+      strategy: 'none',
+      readOnly: false,
+      fallbackMode: 'count-where',
+    });
+  });
+
+  it('allows PostgreSQL COUNT fallback when enabled and no safe locator exists', () => {
+    expect(resolveEditRowLocator({
+      dbType: 'postgres',
+      resultColumns: ['NAME', 'CODE'],
+      indexes: [normalIndex('idx_name', 'NAME')],
+      allowCountFallback: true,
+    })).toMatchObject({
+      strategy: 'none',
+      readOnly: false,
+      fallbackMode: 'count-where',
+    });
+  });
+
+  it('does not enable COUNT fallback for unsupported dialects', () => {
+    expect(resolveEditRowLocator({
+      dbType: 'sqlserver',
+      resultColumns: ['NAME'],
+      allowCountFallback: true,
+    })).toMatchObject({
+      strategy: 'none',
+      readOnly: true,
     });
   });
 
@@ -198,6 +236,19 @@ describe('resolveRowLocatorValues', () => {
     })).toEqual({
       ok: false,
       error: 'No safe row locator is available for this result set.',
+    });
+  });
+
+  it('allows empty keys for MySQL COUNT fallback locators', () => {
+    expect(resolveRowLocatorValues({
+      strategy: 'none',
+      columns: [],
+      valueColumns: [],
+      readOnly: false,
+      fallbackMode: 'count-where',
+    }, { NAME: 'A' })).toEqual({
+      ok: true,
+      values: {},
     });
   });
 

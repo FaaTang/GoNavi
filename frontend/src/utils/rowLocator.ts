@@ -8,6 +8,8 @@ export const DUCKDB_ROWID_LOCATOR_COLUMN = '__gonavi_duckdb_rowid__';
 
 export type RowLocatorStrategy = 'primary-key' | 'unique-key' | 'oracle-rowid' | 'duckdb-rowid' | 'none';
 
+export type RowLocatorFallbackMode = 'count-where';
+
 export type EditRowLocator = {
   strategy: RowLocatorStrategy;
   columns: string[];
@@ -16,6 +18,8 @@ export type EditRowLocator = {
   writableColumns?: Record<string, string>;
   readOnly: boolean;
   reason?: string;
+  /** MySQL：无安全定位器时用 COUNT(*) 二次唯一定位 */
+  fallbackMode?: RowLocatorFallbackMode;
 };
 
 export type ResolveEditRowLocatorParams = {
@@ -25,7 +29,20 @@ export type ResolveEditRowLocatorParams = {
   indexes?: IndexDefinition[];
   allowOracleRowID?: boolean;
   allowDuckDBRowID?: boolean;
+  /** MySQL / PostgreSQL：无 PK/UK 时启用 COUNT 二次定位（默认 true） */
+  allowCountFallback?: boolean;
+  /** @deprecated 使用 allowCountFallback */
+  allowMysqlCountFallback?: boolean;
   translate?: RowLocatorTranslator;
+};
+
+export const isMysqlCountFallbackLocator = (locator?: EditRowLocator | null): boolean => (
+  !!locator && !locator.readOnly && locator.fallbackMode === 'count-where'
+);
+
+export const supportsCountFallbackLocate = (dbType: string): boolean => {
+  const dialect = String(dbType || '').trim().toLowerCase();
+  return dialect === 'mysql' || dialect === 'postgres' || dialect === 'postgresql';
 };
 
 export type ResolveRowLocatorValuesResult =
@@ -83,10 +100,18 @@ export const resolveEditRowLocator = ({
   indexes,
   allowOracleRowID = false,
   allowDuckDBRowID = false,
+  allowCountFallback,
+  allowMysqlCountFallback,
   translate,
 }: ResolveEditRowLocatorParams): EditRowLocator => {
   const columns = (resultColumns || []).map(normalizeColumnName).filter(Boolean);
   const primaryKeyColumns = (primaryKeys || []).map(normalizeColumnName).filter(Boolean);
+  const dbTypeLower = String(dbType || '').trim().toLowerCase();
+  const countFallbackEnabled = allowCountFallback !== undefined
+    ? allowCountFallback !== false
+    : allowMysqlCountFallback !== undefined
+      ? allowMysqlCountFallback !== false
+      : true;
 
   if (primaryKeyColumns.length > 0) {
     const missing = primaryKeyColumns.filter((column) => !hasColumn(columns, column));
@@ -127,7 +152,7 @@ export const resolveEditRowLocator = ({
     };
   }
 
-  if (allowDuckDBRowID && String(dbType || '').trim().toLowerCase() === 'duckdb' && hasColumn(columns, DUCKDB_ROWID_LOCATOR_COLUMN)) {
+  if (allowDuckDBRowID && dbTypeLower === 'duckdb' && hasColumn(columns, DUCKDB_ROWID_LOCATOR_COLUMN)) {
     const rowIDColumn = findColumn(columns, DUCKDB_ROWID_LOCATOR_COLUMN);
     return {
       strategy: 'duckdb-rowid',
@@ -142,11 +167,23 @@ export const resolveEditRowLocator = ({
     return buildReadOnlyLocator(translateReason(translate, ROW_LOCATOR_REASON_KEYS.oracleRowIDMissing));
   }
 
-  if (allowDuckDBRowID && String(dbType || '').trim().toLowerCase() === 'duckdb') {
+  if (allowDuckDBRowID && dbTypeLower === 'duckdb') {
     return buildReadOnlyLocator(translateReason(translate, ROW_LOCATOR_REASON_KEYS.duckDBRowIDMissing));
   }
 
-  return buildReadOnlyLocator(translateReason(translate, ROW_LOCATOR_REASON_KEYS.noSafeLocator));
+  const noSafeReason = translateReason(translate, ROW_LOCATOR_REASON_KEYS.noSafeLocator);
+  if (countFallbackEnabled && supportsCountFallbackLocate(dbTypeLower)) {
+    return {
+      strategy: 'none',
+      columns: [],
+      valueColumns: [],
+      readOnly: false,
+      fallbackMode: 'count-where',
+      reason: noSafeReason,
+    };
+  }
+
+  return buildReadOnlyLocator(noSafeReason);
 };
 
 export const resolveRowLocatorValues = (
@@ -154,7 +191,13 @@ export const resolveRowLocatorValues = (
   row: Record<string, any>,
   messages?: RowLocatorMessages,
 ): ResolveRowLocatorValuesResult => {
-  if (!locator || locator.readOnly || locator.strategy === 'none') {
+  if (!locator || locator.readOnly) {
+    return { ok: false, error: messages?.noSafeLocator?.() || 'No safe row locator is available for this result set.' };
+  }
+  if (locator.strategy === 'none') {
+    if (locator.fallbackMode === 'count-where') {
+      return { ok: true, values: {} };
+    }
     return { ok: false, error: messages?.noSafeLocator?.() || 'No safe row locator is available for this result set.' };
   }
 

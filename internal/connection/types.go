@@ -202,17 +202,42 @@ type ColumnDefinitionWithTable struct {
 }
 
 // UpdateRow 表示一行更新操作，Keys 为 WHERE 条件，Values 为 SET 值。
+// Original 为修改前整行快照，供 MySQL COUNT 二次定位使用。
 type UpdateRow struct {
-	Keys   map[string]interface{} `json:"keys"`
-	Values map[string]interface{} `json:"values"`
+	Keys     map[string]interface{} `json:"keys"`
+	Values   map[string]interface{} `json:"values"`
+	Original map[string]interface{} `json:"original,omitempty"`
 }
 
 // ChangeSet 表示一组批量变更，包含新增、修改和删除操作。
 type ChangeSet struct {
-	Inserts         []map[string]interface{} `json:"inserts"`
-	Updates         []UpdateRow              `json:"updates"`
-	Deletes         []map[string]interface{} `json:"deletes"`
-	LocatorStrategy string                   `json:"locatorStrategy,omitempty"`
+	Inserts               []map[string]interface{} `json:"inserts"`
+	Updates               []UpdateRow              `json:"updates"`
+	Deletes               []map[string]interface{} `json:"deletes"`
+	LocatorStrategy       string                   `json:"locatorStrategy,omitempty"`
+	FallbackLocateEnabled bool                     `json:"fallbackLocateEnabled,omitempty"`
+	FallbackFieldMaxLen   int                      `json:"fallbackFieldMaxLen,omitempty"`
+}
+
+// ApplyChangesDetail 描述单行提交结果（含 COUNT 二次定位）。
+type ApplyChangesDetail struct {
+	RowHint        string   `json:"rowHint"`
+	Action         string   `json:"action"`
+	UsedLocator    string   `json:"usedLocator,omitempty"`
+	WhereColumns   []string `json:"whereColumns,omitempty"`
+	CountBeforeDml *int64   `json:"countBeforeDml,omitempty"`
+	AffectedRows   *int64   `json:"affectedRows,omitempty"`
+	ReasonType     string   `json:"reasonType,omitempty"`
+	Message        string   `json:"message"`
+}
+
+// ApplyChangesResult 是批量提交汇总（支持部分成功）。
+type ApplyChangesResult struct {
+	Rollback     bool                 `json:"rollback"`
+	SuccessCount int                  `json:"successCount"`
+	ZeroHitCount int                  `json:"zeroHitCount"`
+	Details      []ApplyChangesDetail `json:"details,omitempty"`
+	SQLLogs      []string             `json:"sqlLogs,omitempty"`
 }
 
 // MongoMemberInfo 描述 MongoDB 副本集成员的信息。

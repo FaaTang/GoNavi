@@ -65,6 +65,12 @@ const storeState = vi.hoisted(() => ({
     autoCommitDelayMs: 0,
   },
   setSqlEditorTransactionOptions: vi.fn(),
+  dataEditTransactionOptions: {
+    commitMode: 'manual' as 'manual' | 'auto',
+    autoCommitDelayMs: 5000,
+    mysqlCountFallbackLocateEnabled: true,
+  },
+  setDataEditTransactionOptions: vi.fn(),
   sqlEditorPendingTransactions: {} as Record<string, unknown>,
   setSqlEditorPendingTransaction: vi.fn(),
   shortcutOptions: {
@@ -610,6 +616,11 @@ describe('QueryEditor external SQL save', () => {
       cancelAnimationFrame: vi.fn(),
       innerHeight: 900,
     });
+    vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    }));
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
     vi.stubGlobal('document', {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -640,6 +651,11 @@ describe('QueryEditor external SQL save', () => {
     storeState.sqlEditorTransactionOptions = {
       commitMode: 'manual',
       autoCommitDelayMs: 0,
+    };
+    storeState.dataEditTransactionOptions = {
+      commitMode: 'manual',
+      autoCommitDelayMs: 5000,
+      mysqlCountFallbackLocateEnabled: true,
     };
     storeState.shortcutOptions = {
       runQuery: {
@@ -6187,6 +6203,10 @@ backendApp.DBQueryMulti.mockResolvedValueOnce({
 
   it('localizes the non-Oracle no-safe-locator read-only warning in English while preserving the raw table name', async () => {
     storeState.languagePreference = 'en-US';
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     setCurrentLanguage('en-US');
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
@@ -6228,6 +6248,10 @@ backendApp.DBQueryMulti.mockResolvedValueOnce({
 
   it('localizes the non-Oracle index-metadata-unavailable read-only warning in English while preserving the raw table name', async () => {
     storeState.languagePreference = 'en-US';
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     setCurrentLanguage('en-US');
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,

@@ -566,6 +566,11 @@ type BatchApplier interface {
 	ApplyChanges(tableName string, changes connection.ChangeSet) error
 }
 
+// DetailedBatchApplier 可选接口：返回结构化提交汇总（含部分成功 / COUNT 定位详情）。
+type DetailedBatchApplier interface {
+	ApplyChangesDetailed(tableName string, changes connection.ChangeSet) (*connection.ApplyChangesResult, error)
+}
+
 // ChangePreviewer 是可选的变更预览接口。
 // 驱动可实现此接口提供自定义 SQL 预览格式；若未实现，调用方回退到 GenerateChangePreview。
 type ChangePreviewer interface {

@@ -361,6 +361,9 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
   const clearTabResultsClearedFlag = useStore(state => state.clearTabResultsClearedFlag);
   const appearance = useStore(state => state.appearance);
   const languagePreference = useStore(state => state.languagePreference);
+  const countFallbackLocateEnabled = useStore(
+    (state) => state.dataEditTransactionOptions?.mysqlCountFallbackLocateEnabled !== false,
+  );
   const language = resolveLanguage(languagePreference);
   const tr = useCallback((key: string, params?: I18nParams) => translate(key, params, language), [language]);
   const fetchSeqRef = useRef(0);
@@ -704,6 +707,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
                         indexes,
                         allowOracleRowID: true,
                         allowDuckDBRowID: String(dbType || '').trim().toLowerCase() === 'duckdb',
+                        allowCountFallback: countFallbackLocateEnabled !== false,
                         translate: tr,
                     }), tr);
 
@@ -1154,7 +1158,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
         });
     }
     if (fetchSeqRef.current === seq) setLoading(false);
-  }, [connections, tab, clearTabResultsClearedFlag, sortInfo, filterConditions, quickWhereCondition, pkColumns, editLocator, forceReadOnly, pagination.total, pagination.totalKnown, pagination.totalApprox, pagination.approximateTotal, preferManualTotalCount, supportsApproximateTableCount, supportsApproximateTotalPages, tr]);
+  }, [connections, tab, clearTabResultsClearedFlag, sortInfo, filterConditions, quickWhereCondition, pkColumns, editLocator, forceReadOnly, pagination.total, pagination.totalKnown, pagination.totalApprox, pagination.approximateTotal, preferManualTotalCount, supportsApproximateTableCount, supportsApproximateTotalPages, countFallbackLocateEnabled, tr]);
   // 依赖定位列：在无手动排序时可回退到安全定位列稳定排序。
   // 定位信息只会在表上下文变化后重新加载，避免循环查询。
 
@@ -1255,6 +1259,8 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
           quickWhereCondition={quickWhereCondition}
           onApplyQuickWhereCondition={handleApplyQuickWhereCondition}
           readOnly={forceReadOnly || !editLocator || editLocator.readOnly}
+          surfaceActive={isActive}
+          surfaceKey={tab.id}
           sortInfoExternal={sortInfo}
           exportSqlWithFilter={exportSqlWithFilter || undefined}
           scrollSnapshot={scrollSnapshotRef.current}

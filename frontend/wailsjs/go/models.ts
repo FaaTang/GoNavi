@@ -682,6 +682,7 @@ export namespace connection {
 	export class UpdateRow {
 	    keys: Record<string, any>;
 	    values: Record<string, any>;
+	    original?: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new UpdateRow(source);
@@ -691,6 +692,7 @@ export namespace connection {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.keys = source["keys"];
 	        this.values = source["values"];
+	        this.original = source["original"];
 	    }
 	}
 	export class ChangeSet {
@@ -698,6 +700,8 @@ export namespace connection {
 	    updates: UpdateRow[];
 	    deletes: any[];
 	    locatorStrategy?: string;
+	    fallbackLocateEnabled?: boolean;
+	    fallbackFieldMaxLen?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ChangeSet(source);
@@ -709,6 +713,8 @@ export namespace connection {
 	        this.updates = this.convertValues(source["updates"], UpdateRow);
 	        this.deletes = source["deletes"];
 	        this.locatorStrategy = source["locatorStrategy"];
+	        this.fallbackLocateEnabled = source["fallbackLocateEnabled"];
+	        this.fallbackFieldMaxLen = source["fallbackFieldMaxLen"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

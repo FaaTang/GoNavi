@@ -9,6 +9,7 @@ export type ShortcutAction =
   | 'saveQuery'
   | 'toggleQueryResultsPanel'
   | 'duplicateSelectionOrLine'
+  | 'deleteSelectedRows'
   | 'sendAIChatMessage'
   | 'focusSidebarSearch'
   | 'sidebarNewQuery'
@@ -43,7 +44,7 @@ export interface ShortcutActionMeta {
   description: string;
   allowInEditable?: boolean;
   allowWithoutModifier?: boolean;
-  scope?: 'global' | 'aiComposer' | 'queryEditor' | 'sidebar';
+  scope?: 'global' | 'aiComposer' | 'queryEditor' | 'sidebar' | 'dataGrid';
   requiredKey?: string;
   disallowShift?: boolean;
   platformOnly?: 'mac';
@@ -111,6 +112,7 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'saveQuery',
   'toggleQueryResultsPanel',
   'duplicateSelectionOrLine',
+  'deleteSelectedRows',
   'sendAIChatMessage',
   'focusSidebarSearch',
   'sidebarNewQuery',
@@ -180,6 +182,12 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
   duplicateSelectionOrLine: {
     labelKey: 'app.shortcuts.action.duplicateSelectionOrLine.label',
     descriptionKey: 'app.shortcuts.action.duplicateSelectionOrLine.description',
+    scope: 'queryEditor',
+    allowInEditable: true,
+  },
+  deleteSelectedRows: {
+    labelKey: 'app.shortcuts.action.deleteSelectedRows.label',
+    descriptionKey: 'app.shortcuts.action.deleteSelectedRows.description',
     scope: 'queryEditor',
     allowInEditable: true,
   },
@@ -304,6 +312,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
   duplicateSelectionOrLine: {
     mac: { combo: 'Meta+D', enabled: true },
     windows: { combo: 'Ctrl+D', enabled: true },
+  },
+  deleteSelectedRows: {
+    mac: { combo: 'Ctrl+Y', enabled: true },
+    windows: { combo: 'Ctrl+Y', enabled: true },
   },
   sendAIChatMessage: {
     mac: { combo: 'Enter', enabled: true },

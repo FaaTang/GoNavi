@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, message } from 'antd';
+import { Alert, Button, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
+import { isMysqlCountFallbackLocator } from '../utils/rowLocator';
 import { createPortal } from 'react-dom';
 
 import Modal from './common/ResizableDraggableModal';
@@ -200,7 +201,8 @@ const DataGridShell: React.FC<DataGridShellProps> = (props) => {
     isListOp,
     isNoValueOp,
     isQueryResultExport,
-    isTableSurfaceActive,    isWritableResultColumn,
+    isTableSurfaceActive,
+    isWritableResultColumn,
     jsonEditorOpen,
     jsonEditorValue,
     jsonViewText,
@@ -255,6 +257,8 @@ const DataGridShell: React.FC<DataGridShellProps> = (props) => {
     resolveContextMenuFieldName,
     resolveWhereConditionSelectedValue,
     rootRef,
+    surfaceActive,
+    surfaceKey,
     rowClassName,
     rowEditorDisplayRef,
     rowEditorForm,
@@ -537,8 +541,41 @@ const renderDataTableView = () => (
       onRequestTotalCount();
   }, [onCancelTotalCount, onRequestTotalCount, pagination?.totalCountLoading]);
 
+  const showCountFallbackRiskBanner = isMysqlCountFallbackLocator(effectiveEditLocator);
+
   return (
-    <div ref={rootRef} className={`${gridId}${cellEditMode ? ' cell-edit-mode' : ''} data-grid-root gn-v2-data-grid`} style={{ '--gonavi-header-min-height': `${headerCellMinHeight}px`, flex: '1 1 auto', height: '100%', overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'transparent' } as React.CSSProperties}>
+    <div
+      ref={rootRef}
+      tabIndex={-1}
+      data-gonavi-data-grid-surface={surfaceKey || undefined}
+      className={`${gridId}${cellEditMode ? ' cell-edit-mode' : ''} data-grid-root gn-v2-data-grid${surfaceActive ? ' is-surface-active' : ''}`}
+      style={{ '--gonavi-header-min-height': `${headerCellMinHeight}px`, flex: '1 1 auto', height: '100%', overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'transparent', outline: 'none' } as React.CSSProperties}
+    >
+        {showCountFallbackRiskBanner && (
+          <Alert
+            type="warning"
+            showIcon
+            banner
+            style={{ flex: '0 0 auto', borderRadius: 0 }}
+            message={translateDataGrid('data_grid.risk.count_fallback.title')}
+            description={(
+              <span>
+                {translateDataGrid('data_grid.risk.count_fallback.description')}
+                {' '}
+                <Button
+                  type="link"
+                  size="small"
+                  style={{ padding: 0, height: 'auto', fontSize: 'inherit', lineHeight: 'inherit' }}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('gonavi:open-advanced-settings'));
+                  }}
+                >
+                  {translateDataGrid('data_grid.risk.count_fallback.open_advanced')}
+                </Button>
+              </span>
+            )}
+          />
+        )}
         <DataGridToolbarFrame
             tableName={tableName}
             dbName={dbName}

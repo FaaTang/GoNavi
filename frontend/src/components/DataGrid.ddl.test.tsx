@@ -710,6 +710,44 @@ describe('DataGrid commit change set', () => {
     expect(result).toEqual({ ok: false, error: 'No safe row locator is available for this result set.' });
   });
 
+  it('builds original snapshots for MySQL COUNT fallback updates and deletes', () => {
+    const result = buildDataGridCommitChangeSet({
+      addedRows: [],
+      modifiedRows: {
+        'row-1': { [GONAVI_ROW_KEY]: 'row-1', CODE: 'u1', NAME: 'new-name' },
+      },
+      deletedRowKeys: new Set(['row-2']),
+      data: [
+        { [GONAVI_ROW_KEY]: 'row-1', CODE: 'u1', NAME: 'old-name' },
+        { [GONAVI_ROW_KEY]: 'row-2', CODE: 'u2', NAME: 'gone' },
+      ],
+      editLocator: {
+        strategy: 'none',
+        columns: [],
+        valueColumns: [],
+        readOnly: false,
+        fallbackMode: 'count-where',
+      },
+      visibleColumnNames: ['CODE', 'NAME'],
+      rowKeyToString,
+      normalizeCommitCellValue: normalizeValue,
+      shouldCommitColumn: commitColumnGuard,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      changes: {
+        inserts: [],
+        updates: [{
+          keys: {},
+          values: { NAME: 'new-name' },
+          original: { CODE: 'u1', NAME: 'old-name' },
+        }],
+        deletes: [{ CODE: 'u2', NAME: 'gone' }],
+      },
+    });
+  });
+
   it('rejects delete rows when unique locator value is null', () => {
     const result = buildDataGridCommitChangeSet({
       addedRows: [],

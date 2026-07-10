@@ -1332,6 +1332,8 @@ interface DataGridProps {
     scrollSnapshot?: { top: number; left: number };
     onScrollSnapshotChange?: (snapshot: { top: number; left: number }) => void;
     toolbarExtraActions?: React.ReactNode;
+    surfaceActive?: boolean;
+    surfaceKey?: string;
 }
 
 type GridFilterCondition = FilterCondition & {
@@ -1515,7 +1517,8 @@ export const buildDataGridCommitChangeSet = ({
     shouldCommitColumn: (columnName: string) => boolean;
     rowLocatorMessages?: RowLocatorMessages;
 }): { ok: true; changes: DataGridCommitChangeSet } | { ok: false; error: string } => {
-    if (!editLocator || editLocator.readOnly || editLocator.strategy === 'none') {
+    const countFallback = !!editLocator && !editLocator.readOnly && editLocator.fallbackMode === 'count-where';
+    if (!editLocator || editLocator.readOnly || (editLocator.strategy === 'none' && !countFallback)) {
         return { ok: false, error: editLocator?.reason || rowLocatorMessages?.noSafeLocator?.() || 'No safe row locator is available for this result set.' };
     }
 
@@ -1531,6 +1534,22 @@ export const buildDataGridCommitChangeSet = ({
             }
         });
         return normalizedValues;
+    };
+
+    const snapshotOriginalRow = (row: Record<string, any>) => {
+        const snapshot: Record<string, any> = {};
+        visibleColumnNames.forEach((col) => {
+            if (!shouldCommitColumn(col)) return;
+            const commitColumnName = resolveWritableColumnName(col, editLocator);
+            if (!commitColumnName) return;
+            const normalizedVal = normalizeCommitCellValue(col, row?.[col], 'update');
+            if (normalizedVal !== undefined) {
+                snapshot[commitColumnName] = normalizedVal;
+            } else if (Object.prototype.hasOwnProperty.call(row || {}, col)) {
+                snapshot[commitColumnName] = row[col];
+            }
+        });
+        return snapshot;
     };
 
     const originalRowsByKey = new Map<string, any>();
@@ -1555,7 +1574,11 @@ export const buildDataGridCommitChangeSet = ({
         if (!originalRow) continue;
         const locatorValues = resolveRowLocatorValues(editLocator, originalRow, rowLocatorMessages);
         if (!locatorValues.ok) return { ok: false, error: locatorValues.error };
-        deletes.push(locatorValues.values);
+        if (countFallback) {
+            deletes.push(snapshotOriginalRow(originalRow));
+        } else {
+            deletes.push(locatorValues.values);
+        }
     }
 
     for (const [keyStr, newRow] of Object.entries(modifiedRows)) {
@@ -1580,7 +1603,15 @@ export const buildDataGridCommitChangeSet = ({
 
         const normalizedValues = normalizeValues(values, 'update');
         if (Object.keys(normalizedValues).length === 0) continue;
-        updates.push({ keys: locatorValues.values, values: normalizedValues });
+        if (countFallback) {
+            updates.push({
+                keys: {},
+                values: normalizedValues,
+                original: snapshotOriginalRow(originalRow),
+            });
+        } else {
+            updates.push({ keys: locatorValues.values, values: normalizedValues });
+        }
     }
 
     return { ok: true, changes: { inserts, updates, deletes } };

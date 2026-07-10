@@ -211,6 +211,10 @@ function App() {
   const appearance = useStore(state => state.appearance);
   const setAppearance = useStore(state => state.setAppearance);
   const memorySettings = useStore(state => state.memorySettings);
+  const countFallbackLocateEnabled = useStore(
+    (state) => state.dataEditTransactionOptions?.mysqlCountFallbackLocateEnabled !== false,
+  );
+  const setDataEditTransactionOptions = useStore((state) => state.setDataEditTransactionOptions);
   const uiScale = useStore(state => state.uiScale);
   const setUiScale = useStore(state => state.setUiScale);
   const fontSize = useStore(state => state.fontSize);
@@ -2488,6 +2492,17 @@ function App() {
   }, []);
 
   useEffect(() => {
+      const handleOpenAdvancedSettingsEvent = () => {
+          setIsSettingsModalOpen(false);
+          setIsPerformanceModalOpen(true);
+      };
+      window.addEventListener('gonavi:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+      return () => {
+          window.removeEventListener('gonavi:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+      };
+  }, []);
+
+  useEffect(() => {
       const handleCreateQueryTabEvent = () => {
           handleNewQuery();
       };
@@ -3619,10 +3634,10 @@ function App() {
                   },
                 },
                 {
-                  key: 'performance',
+                  key: 'advanced',
                   icon: <ThunderboltOutlined />,
-                  title: t('app.settings.entry.performance.title'),
-                  description: t('app.settings.entry.performance.description'),
+                  title: t('app.settings.entry.advanced.title'),
+                  description: t('app.settings.entry.advanced.description'),
                   onClick: () => {
                     setIsSettingsModalOpen(false);
                     setIsPerformanceModalOpen(true);
@@ -3685,21 +3700,56 @@ function App() {
           )}
           {isPerformanceModalOpen && (
           <Modal
-            title={renderUtilityModalTitle(<ThunderboltOutlined />, t('app.settings.entry.performance.title'), t('app.settings.entry.performance.description'))}
+            title={renderUtilityModalTitle(<ThunderboltOutlined />, t('app.settings.entry.advanced.title'), t('app.settings.entry.advanced.description'))}
             open={isPerformanceModalOpen}
             onCancel={() => setIsPerformanceModalOpen(false)}
             footer={null}
             width={620}
             styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10 } }}
           >
-            <MemorySettingsPanel
-              mutedTextStyle={utilityMutedTextStyle}
-              onLowMemoryModeChange={(enabled) => {
-                if (enabled) {
-                  message.info(t('app.memory.low_memory.transparency_applied'));
-                }
-              }}
-            />
+            <div style={{ display: 'grid', gap: 16 }}>
+              <div style={{ display: 'grid', gap: 8, padding: '12px 14px', borderRadius: 12, border: `1px solid ${overlayTheme.divider}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: overlayTheme.titleText }}>
+                      {t('app.settings.advanced.mysql_count_fallback.title')}
+                    </span>
+                    <span style={{ fontSize: 12, color: overlayTheme.mutedText, whiteSpace: 'normal' }}>
+                      {t('app.settings.advanced.mysql_count_fallback.description')}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={countFallbackLocateEnabled}
+                    onChange={(checked) => {
+                      setDataEditTransactionOptions({
+                        mysqlCountFallbackLocateEnabled: checked,
+                      });
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: overlayTheme.mutedText, whiteSpace: 'normal', lineHeight: 1.6 }}>
+                  <div>{t('app.settings.advanced.mysql_count_fallback.hint_count')}</div>
+                  <div>{t('app.settings.advanced.mysql_count_fallback.hint_affected')}</div>
+                  <div>{t('app.settings.advanced.mysql_count_fallback.hint_cost')}</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: overlayTheme.titleText }}>
+                  {t('app.settings.entry.performance.title')}
+                </span>
+                <span style={{ fontSize: 12, color: overlayTheme.mutedText }}>
+                  {t('app.settings.entry.performance.description')}
+                </span>
+              </div>
+              <MemorySettingsPanel
+                mutedTextStyle={utilityMutedTextStyle}
+                onLowMemoryModeChange={(enabled) => {
+                  if (enabled) {
+                    message.info(t('app.memory.low_memory.transparency_applied'));
+                  }
+                }}
+              />
+            </div>
           </Modal>
           )}
           {isLanguageModalOpen && (

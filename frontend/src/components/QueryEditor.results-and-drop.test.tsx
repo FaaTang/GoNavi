@@ -63,6 +63,12 @@ const storeState = vi.hoisted(() => ({
     autoCommitDelayMs: 0,
   },
   setSqlEditorTransactionOptions: vi.fn(),
+  dataEditTransactionOptions: {
+    commitMode: 'manual' as 'manual' | 'auto',
+    autoCommitDelayMs: 5000,
+    mysqlCountFallbackLocateEnabled: true,
+  },
+  setDataEditTransactionOptions: vi.fn(),
   sqlEditorPendingTransactions: {} as Record<string, unknown>,
   setSqlEditorPendingTransaction: vi.fn(),
   shortcutOptions: {
@@ -585,6 +591,11 @@ describe('QueryEditor external SQL save', () => {
       cancelAnimationFrame: vi.fn(),
       innerHeight: 900,
     });
+    vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    }));
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
     vi.stubGlobal('document', {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -615,6 +626,11 @@ describe('QueryEditor external SQL save', () => {
     storeState.sqlEditorTransactionOptions = {
       commitMode: 'manual',
       autoCommitDelayMs: 0,
+    };
+    storeState.dataEditTransactionOptions = {
+      commitMode: 'manual',
+      autoCommitDelayMs: 5000,
+      mysqlCountFallbackLocateEnabled: true,
     };
     storeState.shortcutOptions = {
       runQuery: {
@@ -1193,6 +1209,10 @@ autoFetchState.visible = false;
 
   it('localizes the non-Oracle no-safe-locator read-only warning in English while preserving the raw table name', async () => {
     storeState.languagePreference = 'en-US';
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     setCurrentLanguage('en-US');
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
@@ -1232,8 +1252,51 @@ autoFetchState.visible = false;
     );
   });
 
+  it('enables MySQL COUNT fallback edit mode when no safe locator exists', async () => {
+    backendApp.DBQueryMulti.mockResolvedValueOnce({
+      success: true,
+      data: [{ columns: ['NAME'], rows: [{ NAME: 'old-name' }] }],
+    });
+    backendApp.DBGetColumns.mockResolvedValueOnce({
+      success: true,
+      data: [{ name: 'NAME', key: '' }],
+    });
+    backendApp.DBGetIndexes.mockResolvedValueOnce({
+      success: true,
+      data: [],
+    });
+
+    let renderer: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<QueryEditor tab={createTab({ dbName: 'main', query: 'SELECT NAME FROM users' })} />);
+    });
+
+    await act(async () => {
+      await findButton(renderer!, '运行').props.onClick();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(dataGridState.latestProps?.tableName).toBe('users');
+    expect(dataGridState.latestProps?.editLocator).toMatchObject({
+      strategy: 'none',
+      readOnly: false,
+      fallbackMode: 'count-where',
+    });
+    expect(dataGridState.latestProps?.readOnly).toBe(false);
+    expect(messageApi.warning).not.toHaveBeenCalledWith(
+      expect.stringContaining('查询结果保持只读'),
+    );
+  });
+
   it('localizes the non-Oracle index-metadata-unavailable read-only warning in English while preserving the raw table name', async () => {
     storeState.languagePreference = 'en-US';
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     setCurrentLanguage('en-US');
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,

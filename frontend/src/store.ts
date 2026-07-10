@@ -1256,6 +1256,8 @@ export interface QueryOptions {
 export interface DataEditTransactionOptions {
   commitMode: "manual" | "auto";
   autoCommitDelayMs: number;
+  /** MySQL / PostgreSQL：无主键/唯一索引时启用 COUNT(*) 二次唯一定位提交（默认开启） */
+  mysqlCountFallbackLocateEnabled: boolean;
 }
 
 export interface SqlEditorTransactionOptions {
@@ -2052,6 +2054,7 @@ const sanitizeDataEditTransactionOptions = (
     autoCommitDelayMs: DATA_EDIT_AUTO_COMMIT_DELAY_OPTIONS.has(autoCommitDelayMs)
       ? autoCommitDelayMs
       : 5000,
+    mysqlCountFallbackLocateEnabled: raw.mysqlCountFallbackLocateEnabled !== false,
   };
 };
 
@@ -2474,6 +2477,7 @@ export const useStore = create<AppState>()(
       dataEditTransactionOptions: {
         commitMode: "manual",
         autoCommitDelayMs: 5000,
+        mysqlCountFallbackLocateEnabled: true,
       },
       sqlEditorTransactionOptions: {
         commitMode: "manual",

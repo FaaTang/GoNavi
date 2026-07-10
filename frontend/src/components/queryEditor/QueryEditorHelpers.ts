@@ -11,6 +11,7 @@ import { SIDEBAR_SQL_EDITOR_DRAG_MIME, decodeSidebarSqlEditorDragPayload } from 
 import {
     DUCKDB_ROWID_LOCATOR_COLUMN,
     ORACLE_ROWID_LOCATOR_COLUMN,
+    supportsCountFallbackLocate,
     type EditRowLocator,
 } from '../../utils/rowLocator';
 import { getQueryTabDraft, hasQueryTabDraft } from '../../utils/sqlFileTabDrafts';
@@ -2157,6 +2158,8 @@ export const resolveQueryLocatorPlan = async ({
     currentDb,
     config,
     forceReadOnly,
+    allowCountFallback = true,
+    allowMysqlCountFallback,
 }: {
     statement: string;
     originalStatement?: string;
@@ -2164,7 +2167,15 @@ export const resolveQueryLocatorPlan = async ({
     currentDb: string;
     config: any;
     forceReadOnly: boolean;
+    allowCountFallback?: boolean;
+    /** @deprecated 使用 allowCountFallback */
+    allowMysqlCountFallback?: boolean;
 }): Promise<QueryStatementPlan> => {
+    const countFallbackEnabled = allowCountFallback !== undefined
+        ? allowCountFallback !== false
+        : allowMysqlCountFallback !== undefined
+            ? allowMysqlCountFallback !== false
+            : true;
     const plan: QueryStatementPlan = {
         originalSql: originalStatement || statement,
         executedSql: statement,
@@ -2295,7 +2306,20 @@ export const resolveQueryLocatorPlan = async ({
                     readOnly: false,
                 };
             } else {
-                if (!resIndexes?.success) {
+                const dbTypeLower = String(dbType || '').trim().toLowerCase();
+                // 无 PK/UK：MySQL/PostgreSQL + 开关开启时进入 COUNT 二次定位，不再第一层只读拦截。
+                if (countFallbackEnabled && supportsCountFallbackLocate(dbTypeLower)) {
+                    const reason = translate('query_editor.message.read_only_no_safe_locator');
+                    plan.editLocator = {
+                        strategy: 'none',
+                        columns: [],
+                        valueColumns: [],
+                        writableColumns,
+                        readOnly: false,
+                        fallbackMode: 'count-where',
+                        reason,
+                    };
+                } else if (!resIndexes?.success) {
                     const reason = translate('query_editor.message.read_only_index_metadata_unavailable');
                     plan.editLocator = buildQueryReadOnlyLocator(reason);
                     plan.warning = translate('query_editor.message.read_only_warning_with_detail', {

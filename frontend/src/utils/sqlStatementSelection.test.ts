@@ -406,6 +406,7 @@ describe('sqlStatementSelection', () => {
       sql: 'select 2 as b',
       source: 'statement',
     });
+    expect(resolveCurrentSqlStatementRange(sql, afterSecondSemicolon)?.text).toBe('select 2 as b');
   });
 
   it('falls back to the current line when the cursor is not inside a statement', () => {

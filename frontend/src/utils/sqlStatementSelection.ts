@@ -385,9 +385,43 @@ export const resolveCurrentSqlStatementRange = (sql: string, cursorOffset: numbe
     return containingRange;
   }
 
+  for (let i = 0; i < ranges.length; i += 1) {
+    const current = ranges[i];
+    const next = ranges[i + 1];
+    if (!next) {
+      if (offset > current.end) {
+        const tail = text.slice(current.end, offset);
+        if (tail.trim() === '') {
+          return current;
+        }
+      }
+      break;
+    }
+    if (offset > current.end && offset < next.start) {
+      const lineEndAfterCurrent = text.indexOf('\n', current.end);
+      const sameLineEnd = lineEndAfterCurrent === -1 ? text.length : lineEndAfterCurrent;
+      if (offset <= sameLineEnd) {
+        return current;
+      }
+      const gap = text.slice(current.end, next.start);
+      if (gap.includes('\n\n')) {
+        const leadingIntoNext = text.slice(offset, next.start);
+        if (leadingIntoNext.trim() === '') {
+          return next;
+        }
+        return null;
+      }
+      return current;
+    }
+  }
+
   const nextRange = ranges.find((range) => offset < range.start);
   if (nextRange) {
-    return nextRange;
+    const leading = text.slice(0, nextRange.start);
+    if (leading.trim() === '') {
+      return nextRange;
+    }
+    return null;
   }
 
   return ranges[ranges.length - 1];

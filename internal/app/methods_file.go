@@ -2348,6 +2348,27 @@ func (a *App) ApplyChanges(config connection.ConnectionConfig, dbName, tableName
 		return connection.QueryResult{Success: false, Message: err.Error()}
 	}
 
+	if detailed, ok := dbInst.(db.DetailedBatchApplier); ok {
+		result, applyErr := detailed.ApplyChangesDetailed(tableName, changes)
+		if applyErr != nil {
+			payload := result
+			if payload == nil {
+				payload = &connection.ApplyChangesResult{Rollback: true}
+			} else {
+				payload.Rollback = true
+			}
+			return connection.QueryResult{Success: false, Message: applyErr.Error(), Data: payload}
+		}
+		if result != nil && result.ZeroHitCount > 0 {
+			return connection.QueryResult{
+				Success: true,
+				Message: a.appText("file.backend.message.transaction_committed", nil),
+				Data:    result,
+			}
+		}
+		return connection.QueryResult{Success: true, Message: a.appText("file.backend.message.transaction_committed", nil), Data: result}
+	}
+
 	if applier, ok := dbInst.(db.BatchApplier); ok {
 		err := applier.ApplyChanges(tableName, changes)
 		if err != nil {

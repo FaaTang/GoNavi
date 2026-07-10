@@ -37,7 +37,8 @@ interface QueryEditorResultsPanelProps {
     loading: boolean;
     executionError: string;
     sqlLogCount: number;
-    darkMode: boolean;    currentDb: string;
+    darkMode: boolean;
+    currentDb: string;
     currentConnectionId: string;
     toggleShortcutLabel: string;
     onActiveResultKeyChange: (key: string) => void;
@@ -63,7 +64,8 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
     loading,
     executionError,
     sqlLogCount,
-    darkMode,    currentDb,
+    darkMode,
+    currentDb,
     currentConnectionId,
     toggleShortcutLabel,
     onActiveResultKeyChange,
@@ -372,6 +374,8 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
                         } : undefined}
                         onPageChange={rs.page ? ((page, size) => onResultPageChange(rs.key, page, size)) : undefined}
                         readOnly={rs.readOnly}
+                        surfaceActive={resolvedResultSetKey === rs.key}
+                        surfaceKey={rs.key}
                         toolbarExtraActions={resolvedResultSetKey === rs.key ? toolbarHideButton : null}
                     />
                 </div>
@@ -454,6 +458,14 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
             ),
         }
         : undefined;
+
+    const handleResultTabChange = (key: string) => {
+        onActiveResultKeyChange(key);
+        requestAnimationFrame(() => {
+            const surface = document.querySelector(`[data-gonavi-data-grid-surface="${key}"]`) as HTMLElement | null;
+            surface?.focus?.();
+        });
+    };
 
     return (
         <>
@@ -625,7 +637,7 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
                     <Tabs
                         className="query-result-tabs"
                         activeKey={resolvedActiveResultKey}
-                        onChange={onActiveResultKeyChange}
+                        onChange={handleResultTabChange}
                         animated={false}
                         style={{ flex: 1, minHeight: 0 }}
                         tabBarExtraContent={tabsExtraContent}

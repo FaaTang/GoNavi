@@ -31,6 +31,7 @@ body[data-ui-version="v2"][data-theme="light"] {
   --gn-bg-hover:    rgba(15, 23, 42, 0.045);
   --gn-bg-active:   rgba(15, 23, 42, 0.075);
   --gn-bg-selected: rgba(34, 197, 94, 0.10);
+  --gn-bg-selected-sidebar: rgba(34, 197, 94, 0.20);
   --gn-bg-input:    #ffffff;
 
   --gn-fg-1: #0c1322;
@@ -73,6 +74,7 @@ body[data-ui-version="v2"][data-theme="dark"] {
   --gn-bg-hover:    rgba(255, 255, 255, 0.05);
   --gn-bg-active:   rgba(255, 255, 255, 0.08);
   --gn-bg-selected: rgba(34, 197, 94, 0.14);
+  --gn-bg-selected-sidebar: rgba(34, 197, 94, 0.28);
   --gn-bg-input:    #0f1217;
 
   --gn-fg-1: #f1f3f5;
@@ -1290,6 +1292,12 @@ body[data-ui-version="v2"] .ant-divider {
    ────────────────────────────────────────────────────────── */
 
 /* Brand-tinted active row indicator in sidebar */
+body[data-ui-version="v2"] .gn-v2-object-explorer .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: var(--gn-bg-selected-sidebar) !important;
+  color: var(--gn-fg-1) !important;
+  font-weight: 500 !important;
+}
+
 body[data-ui-version="v2"] .gn-v2-object-explorer .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected::before {
   content: '';
   position: absolute;
@@ -2727,9 +2735,9 @@ body[data-ui-version="v2"] .gn-v2-explorer-tree-shell .ant-tree-node-content-wra
 }
 
 body[data-ui-version="v2"] .gn-v2-explorer-tree-shell .ant-tree-node-content-wrapper.ant-tree-node-selected {
-  background: var(--gn-bg-selected) !important;
+  background: var(--gn-bg-selected-sidebar) !important;
   color: var(--gn-fg-1) !important;
-  font-weight: 400 !important;
+  font-weight: 500 !important;
 }
 
 body[data-ui-version="v2"] .gn-v2-explorer-tree-shell .ant-tree-iconEle {

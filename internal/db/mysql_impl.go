@@ -1214,78 +1214,295 @@ func (m *MySQLDB) GetTriggers(dbName, tableName string) ([]connection.TriggerDef
 }
 
 func (m *MySQLDB) ApplyChanges(tableName string, changes connection.ChangeSet) error {
-	if m.conn == nil {
-		return fmt.Errorf("连接未打开")
-	}
-
-	columnTypeMap := m.loadColumnTypeMap(tableName)
-
-	tx, err := m.conn.Begin()
+	result, err := m.ApplyChangesDetailed(tableName, changes)
 	if err != nil {
 		return err
 	}
+	if result != nil && result.Rollback {
+		return fmt.Errorf("%s", firstApplyChangesErrorMessage(result))
+	}
+	return nil
+}
+
+func firstApplyChangesErrorMessage(result *connection.ApplyChangesResult) string {
+	if result == nil {
+		return "提交失败"
+	}
+	for _, detail := range result.Details {
+		if detail.ReasonType == "non_unique" || detail.ReasonType == "unknown" {
+			if strings.TrimSpace(detail.Message) != "" {
+				return detail.Message
+			}
+		}
+	}
+	for _, detail := range result.Details {
+		if strings.TrimSpace(detail.Message) != "" {
+			return detail.Message
+		}
+	}
+	return "提交失败，已整批回滚"
+}
+
+func (m *MySQLDB) ApplyChangesDetailed(tableName string, changes connection.ChangeSet) (*connection.ApplyChangesResult, error) {
+	if m.conn == nil {
+		return nil, fmt.Errorf("连接未打开")
+	}
+
+	columnTypeMap := m.loadColumnTypeMap(tableName)
+	fallbackEnabled := changes.FallbackLocateEnabled
+	maxLen := mysqlFallbackFieldMaxLen(changes)
+	summary := &connection.ApplyChangesResult{}
+
+	tx, err := m.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
 	defer tx.Rollback()
 
-	// 1. Deletes
-	for _, pk := range changes.Deletes {
-		var wheres []string
-		var args []interface{}
-		for k, v := range pk {
-			wheres = append(wheres, fmt.Sprintf("`%s` = ?", k))
-			args = append(args, normalizeMySQLValueForWrite(k, v, columnTypeMap))
+	tableIdent := fmt.Sprintf("`%s`", escapeMySQLBacktickIdent(tableName))
+
+	appendDetail := func(detail connection.ApplyChangesDetail) {
+		summary.Details = append(summary.Details, detail)
+	}
+	appendLogs := func(logs []string) {
+		summary.SQLLogs = append(summary.SQLLogs, logs...)
+	}
+
+	resolveWhere := func(
+		action string,
+		index int,
+		keys map[string]interface{},
+		original map[string]interface{},
+		changed map[string]struct{},
+	) (where *mysqlWhereClause, usedLocator string, countBefore *int64, hardFail bool, zeroHit bool) {
+		rowHint := mysqlRowHint(action, index, original)
+		if len(keys) > 0 {
+			wheres := make([]string, 0, len(keys))
+			args := make([]interface{}, 0, len(keys))
+			cols := make([]string, 0, len(keys))
+			for k, v := range keys {
+				wheres = append(wheres, fmt.Sprintf("`%s` = ?", escapeMySQLBacktickIdent(k)))
+				args = append(args, normalizeMySQLValueForWrite(k, v, columnTypeMap))
+				cols = append(cols, k)
+			}
+			return &mysqlWhereClause{SQL: strings.Join(wheres, " AND "), Args: args, Columns: cols},
+				changes.LocatorStrategy, nil, false, false
 		}
-		if len(wheres) == 0 {
+		if !fallbackEnabled {
+			if action == "delete" && len(keys) == 0 {
+				return nil, "", nil, false, true
+			}
+			appendDetail(connection.ApplyChangesDetail{
+				RowHint:    rowHint,
+				Action:     action,
+				ReasonType: "unknown",
+				Message:    "更新/删除操作需要主键条件或启用 COUNT 二次定位",
+			})
+			return nil, "", nil, true, false
+		}
+		locate := m.resolveUniqueWhereByCount(tx, tableName, original, changed, columnTypeMap, maxLen, rowHint)
+		appendLogs(locate.SQLLogs)
+		if locate.Where != nil {
+			c := locate.Count
+			return locate.Where, "count-where", &c, false, false
+		}
+		if locate.ReasonType == "not_found" {
+			appendDetail(connection.ApplyChangesDetail{
+				RowHint:        rowHint,
+				Action:         action,
+				UsedLocator:    "count-where",
+				WhereColumns:   locate.CandidateTried,
+				CountBeforeDml: int64Ptr(locate.Count),
+				ReasonType:     "not_found",
+				Message:        fmt.Sprintf("定位未命中（COUNT=%d），已跳过", locate.Count),
+			})
+			summary.ZeroHitCount++
+			return nil, "count-where", int64Ptr(locate.Count), false, true
+		}
+		msg := fmt.Sprintf("定位条件命中多行（COUNT=%d），为避免误更新已回滚", locate.Count)
+		if locate.ReasonType == "unknown" {
+			msg = "COUNT 二次定位失败，已回滚"
+		}
+		appendDetail(connection.ApplyChangesDetail{
+			RowHint:        rowHint,
+			Action:         action,
+			UsedLocator:    "count-where",
+			WhereColumns:   locate.CandidateTried,
+			CountBeforeDml: int64Ptr(locate.Count),
+			ReasonType:     "non_unique",
+			Message:        msg,
+		})
+		summary.Rollback = true
+		return nil, "count-where", int64Ptr(locate.Count), true, false
+	}
+
+	handleAffected := func(
+		action string,
+		index int,
+		snapshot map[string]interface{},
+		usedLocator string,
+		whereCols []string,
+		countBefore *int64,
+		res sql.Result,
+		query string,
+		args []interface{},
+	) error {
+		rowHint := mysqlRowHint(action, index, snapshot)
+		affected, err := res.RowsAffected()
+		logLine := fmt.Sprintf("/* %s %s */ %s /* args=%v => affected=%d */", action, rowHint, query, args, affected)
+		if err != nil {
+			appendLogs([]string{logLine + " /* rowsAffected error: " + err.Error() + " */"})
+			return err
+		}
+		appendLogs([]string{logLine})
+		if usedLocator == "count-where" {
+			if affected > 1 {
+				summary.Rollback = true
+				appendDetail(connection.ApplyChangesDetail{
+					RowHint:        rowHint,
+					Action:         action,
+					UsedLocator:    usedLocator,
+					WhereColumns:   whereCols,
+					CountBeforeDml: countBefore,
+					AffectedRows:   int64Ptr(affected),
+					ReasonType:     "non_unique",
+					Message:        fmt.Sprintf("提交失败，已整批回滚。定位条件命中多行（affected_rows=%d），为避免误更新已回滚。", affected),
+				})
+				return fmt.Errorf("%s", summary.Details[len(summary.Details)-1].Message)
+			}
+			if affected == 0 {
+				summary.ZeroHitCount++
+				appendDetail(connection.ApplyChangesDetail{
+					RowHint:        rowHint,
+					Action:         action,
+					UsedLocator:    usedLocator,
+					WhereColumns:   whereCols,
+					CountBeforeDml: countBefore,
+					AffectedRows:   int64Ptr(affected),
+					ReasonType:     "concurrency",
+					Message:        "未命中（affected_rows=0），已跳过",
+				})
+				return nil
+			}
+			summary.SuccessCount++
+			appendDetail(connection.ApplyChangesDetail{
+				RowHint:        rowHint,
+				Action:         action,
+				UsedLocator:    usedLocator,
+				WhereColumns:   whereCols,
+				CountBeforeDml: countBefore,
+				AffectedRows:   int64Ptr(affected),
+				Message:        "success",
+			})
+			return nil
+		}
+		if err := requireSingleRowAffected(res, rowMutationAction(action)); err != nil {
+			return err
+		}
+		summary.SuccessCount++
+		appendDetail(connection.ApplyChangesDetail{
+			RowHint:      rowHint,
+			Action:       action,
+			UsedLocator:  usedLocator,
+			WhereColumns: whereCols,
+			AffectedRows: int64Ptr(affected),
+			Message:      "success",
+		})
+		return nil
+	}
+
+	// 1. Deletes
+	for i, pk := range changes.Deletes {
+		original := pk
+		keys := pk
+		if fallbackEnabled && (changes.LocatorStrategy == "none" || len(keys) == 0) {
+			// fallback 删除：整行快照在 deletes 中，无独立 keys
+			keys = nil
+		} else if fallbackEnabled && len(pk) > 0 && changes.LocatorStrategy != "none" {
+			original = pk
+		}
+		where, usedLocator, countBefore, hardFail, zeroHit := resolveWhere("delete", i, keys, original, nil)
+		if hardFail {
+			return summary, fmt.Errorf("%s", firstApplyChangesErrorMessage(summary))
+		}
+		if zeroHit || where == nil {
 			continue
 		}
-		query := fmt.Sprintf("DELETE FROM `%s` WHERE %s", tableName, strings.Join(wheres, " AND "))
-		res, err := tx.Exec(query, args...)
+		query := fmt.Sprintf("DELETE FROM %s WHERE %s", tableIdent, where.SQL)
+		res, err := tx.Exec(query, where.Args...)
 		if err != nil {
-			return fmt.Errorf("删除失败：%v", err)
+			return summary, fmt.Errorf("删除失败：%v", err)
 		}
-		if err := requireSingleRowAffected(res, rowMutationActionDelete); err != nil {
-			return err
+		if err := handleAffected("delete", i, original, usedLocator, where.Columns, countBefore, res, query, where.Args); err != nil {
+			return summary, err
+		}
+		if summary.Rollback {
+			return summary, fmt.Errorf("%s", firstApplyChangesErrorMessage(summary))
 		}
 	}
 
 	// 2. Updates
-	for _, update := range changes.Updates {
+	for i, update := range changes.Updates {
 		var sets []string
-		var args []interface{}
-
+		var setArgs []interface{}
 		for k, v := range update.Values {
-			sets = append(sets, fmt.Sprintf("`%s` = ?", k))
-			args = append(args, normalizeMySQLValueForWrite(k, v, columnTypeMap))
+			sets = append(sets, fmt.Sprintf("`%s` = ?", escapeMySQLBacktickIdent(k)))
+			setArgs = append(setArgs, normalizeMySQLValueForWrite(k, v, columnTypeMap))
 		}
-
 		if len(sets) == 0 {
 			continue
 		}
 
-		var wheres []string
-		for k, v := range update.Keys {
-			wheres = append(wheres, fmt.Sprintf("`%s` = ?", k))
-			args = append(args, normalizeMySQLValueForWrite(k, v, columnTypeMap))
+		original := update.Original
+		if original == nil {
+			original = update.Keys
+		}
+		keys := update.Keys
+		if fallbackEnabled && (changes.LocatorStrategy == "none" || len(keys) == 0) {
+			keys = nil
+		}
+		where, usedLocator, countBefore, hardFail, zeroHit := resolveWhere(
+			"update", i, keys, original, mysqlChangedColumnSet(update.Values),
+		)
+		if hardFail {
+			return summary, fmt.Errorf("%s", firstApplyChangesErrorMessage(summary))
+		}
+		if zeroHit || where == nil {
+			continue
 		}
 
-		if len(wheres) == 0 {
-			return fmt.Errorf("更新操作需要主键条件")
-		}
-
-		query := fmt.Sprintf("UPDATE `%s` SET %s WHERE %s", tableName, strings.Join(sets, ", "), strings.Join(wheres, " AND "))
+		args := append(append([]interface{}{}, setArgs...), where.Args...)
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableIdent, strings.Join(sets, ", "), where.SQL)
 		res, err := tx.Exec(query, args...)
 		if err != nil {
-			return fmt.Errorf("更新失败：%v", err)
+			return summary, fmt.Errorf("更新失败：%v", err)
 		}
-		if err := requireSingleRowAffected(res, rowMutationActionUpdate); err != nil {
-			return err
+		if err := handleAffected("update", i, original, usedLocator, where.Columns, countBefore, res, query, args); err != nil {
+			return summary, err
+		}
+		if summary.Rollback {
+			return summary, fmt.Errorf("%s", firstApplyChangesErrorMessage(summary))
 		}
 	}
 
+	insertCountBefore := summary.SuccessCount
 	if err := m.applyInsertChanges(tx, tableName, changes.Inserts, columnTypeMap); err != nil {
-		return err
+		return summary, err
+	}
+	summary.SuccessCount = insertCountBefore + len(changes.Inserts)
+	for i := range changes.Inserts {
+		appendDetail(connection.ApplyChangesDetail{
+			RowHint:     fmt.Sprintf("insert#%d", i+1),
+			Action:      "insert",
+			UsedLocator: "insert",
+			Message:     "success",
+		})
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return summary, err
+	}
+	return summary, nil
 }
 
 func (m *MySQLDB) applyInsertChanges(tx *sql.Tx, tableName string, rows []map[string]interface{}, columnTypeMap map[string]string) error {
