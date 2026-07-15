@@ -262,8 +262,8 @@ export const isSidebarTreeMultiSelectMouseEvent = (
 
 /**
  * resolveSidebarTreeSelectState 规范化树节点选择：
- * - 普通单击：仅保留当前节点
- * - Ctrl/Cmd + 单击：沿用 antd 多选结果
+ * - 普通单击：仅保留当前节点；再次点击同一节点时不取消选中
+ * - Ctrl/Cmd + 单击：沿用 antd 多选结果（允许取消选中）
  */
 export const resolveSidebarTreeSelectState = (input: {
   keys: SidebarTreeSelectKey[];
@@ -271,13 +271,17 @@ export const resolveSidebarTreeSelectState = (input: {
   selectedNodes: SidebarNodeLike[];
   nativeEvent?: Pick<MouseEvent, 'ctrlKey' | 'metaKey'> | null;
 }): { keys: SidebarTreeSelectKey[]; nodes: SidebarNodeLike[] } => {
-  if (input.keys.length === 0) {
-    return { keys: [], nodes: [] };
-  }
   if (isSidebarTreeMultiSelectMouseEvent(input.nativeEvent)) {
     return { keys: input.keys, nodes: input.selectedNodes };
   }
   const nodeKey = input.node?.key;
+  // antd Tree 再次点击已选节点会传空 keys；普通单击时保持该节点选中。
+  if (input.keys.length === 0) {
+    if (nodeKey !== undefined && nodeKey !== null && input.node) {
+      return { keys: [nodeKey], nodes: [input.node] };
+    }
+    return { keys: [], nodes: [] };
+  }
   if (nodeKey === undefined || nodeKey === null) {
     return { keys: input.keys, nodes: input.selectedNodes };
   }
