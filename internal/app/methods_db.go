@@ -1692,23 +1692,26 @@ func resolveCreateStatementWithFallbackWithText(dbInst db.Database, config conne
 	if metadataTableName == "" || ddlTableName == "" {
 		return "", fmt.Errorf("%s", text("db.backend.error.table_name_required", nil))
 	}
+	finishDDL := func(ddl string) string {
+		return enrichCreateStatementWithIndexes(dbInst, dbType, metadataSchemaName, metadataTableName, ddlSchemaName, ddlTableName, ddl)
+	}
 
 	sqlStr, sourceErr := dbInst.GetCreateStatement(metadataSchemaName, metadataTableName)
 	if sourceErr == nil && !shouldFallbackCreateStatement(dbType, sqlStr) {
 		if strings.TrimSpace(sqlStr) != "" {
-			return sqlStr, nil
+			return finishDDL(sqlStr), nil
 		}
 		if isOceanBaseOracleProtocol(config) {
 			if showDDL, ok := tryGetOceanBaseOracleShowCreateStatement(dbInst, metadataSchemaName, metadataTableName); ok {
-				return showDDL, nil
+				return finishDDL(showDDL), nil
 			}
 		}
-		return sqlStr, nil
+		return finishDDL(sqlStr), nil
 	}
 
 	if isOceanBaseOracleProtocol(config) {
 		if showDDL, ok := tryGetOceanBaseOracleShowCreateStatement(dbInst, metadataSchemaName, metadataTableName); ok {
-			return showDDL, nil
+			return finishDDL(showDDL), nil
 		}
 	}
 
@@ -1722,7 +1725,7 @@ func resolveCreateStatementWithFallbackWithText(dbInst db.Database, config conne
 		if sourceErr != nil {
 			return "", sourceErr
 		}
-		return sqlStr, nil
+		return finishDDL(sqlStr), nil
 	}
 
 	columns, colErr := dbInst.GetColumns(metadataSchemaName, metadataTableName)
@@ -1740,7 +1743,7 @@ func resolveCreateStatementWithFallbackWithText(dbInst db.Database, config conne
 		}
 		return "", buildErr
 	}
-	return fallbackDDL, nil
+	return finishDDL(fallbackDDL), nil
 }
 
 func tryGetOceanBaseOracleShowCreateStatement(dbInst db.Database, schemaName string, tableName string) (string, bool) {

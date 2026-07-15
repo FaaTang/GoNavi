@@ -2640,7 +2640,7 @@
   "app.shortcuts.action.newConnection.label": "新建数据源",
   "app.shortcuts.action.sidebarNewQuery.description": "选中侧边栏中的数据库或表时，新建 SQL 查询标签页（与右键「新建查询」一致）",
   "app.shortcuts.action.sidebarNewQuery.label": "从侧边栏新建查询",
-  "app.shortcuts.action.sidebarViewTableDdl.description": "选中侧边栏中的表时，在弹窗中查看 CREATE TABLE DDL",
+  "app.shortcuts.action.sidebarViewTableDdl.description": "选中侧边栏中的表时，在弹窗中查看包含索引的 CREATE TABLE DDL",
   "app.shortcuts.action.sidebarViewTableDdl.label": "查看表 DDL",
   "app.shortcuts.action.openShortcutManager.description": "打开快捷键设置面板",
   "app.shortcuts.action.openShortcutManager.label": "打开快捷键管理",

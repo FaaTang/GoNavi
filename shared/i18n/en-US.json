@@ -2640,7 +2640,7 @@
   "app.shortcuts.action.newConnection.label": "New Data Source",
   "app.shortcuts.action.sidebarNewQuery.description": "Create a SQL query tab from the selected database or table in the sidebar tree (same as the context menu action)",
   "app.shortcuts.action.sidebarNewQuery.label": "New Query from Sidebar",
-  "app.shortcuts.action.sidebarViewTableDdl.description": "Show CREATE TABLE DDL in a read-only dialog when a table is selected in the sidebar tree",
+  "app.shortcuts.action.sidebarViewTableDdl.description": "Show CREATE TABLE DDL with indexes in a read-only dialog when a table is selected in the sidebar tree",
   "app.shortcuts.action.sidebarViewTableDdl.label": "View Table DDL",
   "app.shortcuts.action.openShortcutManager.description": "Open the shortcut settings panel",
   "app.shortcuts.action.openShortcutManager.label": "Open Shortcut Manager",

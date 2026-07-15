@@ -13,6 +13,8 @@ type fakeCreateStatementDB struct {
 	createErr  error
 	columns    []connection.ColumnDefinition
 	columnsErr error
+	indexes    []connection.IndexDefinition
+	indexesErr error
 	queryRows  []map[string]interface{}
 	queryErr   error
 
@@ -49,7 +51,7 @@ func (f *fakeCreateStatementDB) GetAllColumns(dbName string) ([]connection.Colum
 	return nil, nil
 }
 func (f *fakeCreateStatementDB) GetIndexes(dbName, tableName string) ([]connection.IndexDefinition, error) {
-	return nil, nil
+	return f.indexes, f.indexesErr
 }
 func (f *fakeCreateStatementDB) GetForeignKeys(dbName, tableName string) ([]connection.ForeignKeyDefinition, error) {
 	return nil, nil
