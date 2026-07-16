@@ -37,6 +37,9 @@ const storeState = vi.hoisted(() => ({
     sql: string;
     status: 'success' | 'error';
     duration: number;
+    message?: string;
+    affectedRows?: number;
+    dbName?: string;
   }>,
   clearSqlLogs: vi.fn(),
   addSqlLog: vi.fn(),
@@ -369,7 +372,13 @@ vi.mock('./DataGrid', () => ({
 vi.mock('./LogPanel', () => ({
   default: ({ executionError }: any) => (
     <div data-log-panel="true">
-      {executionError || 'log-panel'}
+      {executionError || (storeState.sqlLogs.length === 0 ? 'log-panel' : null)}
+      {storeState.sqlLogs.map((log) => (
+        <div key={log.id}>
+          {log.message ? <div data-log-message="true">{log.message}</div> : null}
+          {log.affectedRows !== undefined ? <div>{`影响行数：${log.affectedRows}`}</div> : null}
+        </div>
+      ))}
     </div>
   ),
 }));
@@ -689,6 +698,10 @@ describe('QueryEditor external SQL save', () => {
     storeState.connections = createDefaultConnections();
     storeState.sqlLogs = [];
     storeState.clearSqlLogs.mockReset();
+    storeState.addSqlLog.mockReset();
+    storeState.addSqlLog.mockImplementation((log: any) => {
+      storeState.sqlLogs = [...storeState.sqlLogs, log];
+    });
     storeState.connections[0].config.type = 'mysql';
     storeState.connections[0].config.database = 'main';
 autoFetchState.visible = false;
@@ -797,7 +810,7 @@ autoFetchState.visible = false;
     expect(dataGridState.latestProps?.data?.[0]).toMatchObject({ SPID: 52, STATUS: 'RUNNABLE' });
   });
 
-  it('renders standalone message result for sqlserver statistics statements', async () => {
+  it('renders standalone message result for sqlserver statistics statements in the SQL log tab', async () => {
     storeState.connections[0].config.type = 'sqlserver';
     storeState.connections[0].config.database = 'master';
     backendApp.DBQueryMulti.mockResolvedValueOnce({
@@ -822,8 +835,14 @@ autoFetchState.visible = false;
       await Promise.resolve();
     });
 
-    expect(textContent(renderer!.toJSON())).toContain('消息 1');
-    expect(findResultMessageTextarea(renderer!).props.value).toBe("Table 'users'. Scan count 1, logical reads 3.");
+    const rendered = textContent(renderer!.toJSON());
+    expect(rendered).toContain('日志');
+    expect(rendered).not.toContain('消息 1');
+    expect(rendered).toContain("Table 'users'. Scan count 1, logical reads 3.");
+    expect(storeState.addSqlLog).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      message: "Table 'users'. Scan count 1, logical reads 3.",
+    }));
     expect(dataGridState.latestProps).toBeNull();
   });
 
@@ -984,7 +1003,7 @@ autoFetchState.visible = false;
     expect(textContent(renderer!.toJSON())).not.toContain('影响行数：0');
   });
 
-  it('prefers sqlserver print output messages over affected-row status results', async () => {
+  it('prefers sqlserver print output messages over affected-row status results in the SQL log tab', async () => {
     storeState.connections[0].config.type = 'sqlserver';
     storeState.connections[0].config.database = 'hydee';
     backendApp.DBQueryMulti.mockResolvedValueOnce({
@@ -1016,16 +1035,26 @@ autoFetchState.visible = false;
       await Promise.resolve();
     });
 
-    expect(textContent(renderer!.toJSON())).toContain('消息 1');
-    expect(findResultMessageTextarea(renderer!).props.value).toBe([
+    const rendered = textContent(renderer!.toJSON());
+    expect(rendered).toContain('日志');
+    expect(rendered).not.toContain('消息 1');
+    expect(rendered).toContain([
       "insert into c_dyscript(projectid,name) values (1,'demo')",
       "insert into c_dyscript(projectid,name) values (2,'next')",
     ].join('\n'));
-    expect(textContent(renderer!.toJSON())).not.toContain('影响行数：0');
+    expect(rendered).not.toContain('影响行数：0');
+    expect(storeState.addSqlLog).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      message: [
+        "insert into c_dyscript(projectid,name) values (1,'demo')",
+        "insert into c_dyscript(projectid,name) values (2,'next')",
+      ].join('\n'),
+    }));
+    expect(storeState.addSqlLog.mock.calls.at(-1)?.[0]).not.toHaveProperty('affectedRows');
     expect(dataGridState.latestProps).toBeNull();
   });
 
-  it('preserves sqlserver message indentation in the rendered result message textarea', async () => {
+  it('preserves sqlserver message indentation in the SQL log tab', async () => {
     storeState.connections[0].config.type = 'sqlserver';
     storeState.connections[0].config.database = 'hydee';
     backendApp.DBQueryMulti.mockResolvedValueOnce({
@@ -1059,18 +1088,23 @@ autoFetchState.visible = false;
     });
 
     const rendered = textContent(renderer!.toJSON());
-    const messageTextarea = findResultMessageTextarea(renderer!);
-    expect(rendered).toContain('消息 1');
-    expect(messageTextarea.props.value).toBe([
+    const expectedMessage = [
       "    select c.queryno,'' ,left(dbo.f_vendor_class(''' + b.groupid + ''',' + colname + '),",
       "        'char','',''),'自动生成',0,isdefault,defaultoperator,defaultvalue,defaultvalue2,ishaving",
       '',
       "        where funcno = @funcno and tabname = '$vendorclass'",
-    ].join('\n'));
-    expect(messageTextarea.props.value).not.toContain('mssql:');
+    ].join('\n');
+    expect(rendered).toContain('日志');
+    expect(rendered).not.toContain('消息 1');
+    expect(rendered).toContain(expectedMessage);
+    expect(rendered).not.toContain('mssql:');
+    expect(storeState.addSqlLog).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      message: expectedMessage,
+    }));
   });
 
-  it('renders top-level sqlserver print messages when result sets contain only status rows', async () => {
+  it('renders top-level sqlserver print messages in the SQL log tab when result sets contain only status rows', async () => {
     storeState.connections[0].config.type = 'sqlserver';
     storeState.connections[0].config.database = 'hydee';
     backendApp.DBQueryMulti.mockResolvedValueOnce({
@@ -1096,9 +1130,16 @@ autoFetchState.visible = false;
       await Promise.resolve();
     });
 
-    expect(textContent(renderer!.toJSON())).toContain('消息 1');
-    expect(findResultMessageTextarea(renderer!).props.value).toBe("insert into c_dyscript(projectid,name) values (1,'demo')");
-    expect(textContent(renderer!.toJSON())).not.toContain('影响行数：0');
+    const rendered = textContent(renderer!.toJSON());
+    expect(rendered).toContain('日志');
+    expect(rendered).not.toContain('消息 1');
+    expect(rendered).toContain("insert into c_dyscript(projectid,name) values (1,'demo')");
+    expect(rendered).not.toContain('影响行数：0');
+    expect(storeState.addSqlLog).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      message: "insert into c_dyscript(projectid,name) values (1,'demo')",
+    }));
+    expect(storeState.addSqlLog.mock.calls.at(-1)?.[0]).not.toHaveProperty('affectedRows');
     expect(dataGridState.latestProps).toBeNull();
   });
 
@@ -1146,7 +1187,8 @@ autoFetchState.visible = false;
       const className = String(node.props?.className || '');
       return className.includes('query-result-tab-label');
     });
-    expect(tabLabels).toHaveLength(2);
+    expect(tabLabels.some((node) => textContent(node).includes('日志'))).toBe(true);
+    expect(tabLabels.filter((node) => textContent(node).includes('结果'))).toHaveLength(2);
     expect(dataGridState.latestProps?.columnNames).toEqual(['name']);
     expect(dataGridState.latestProps?.data?.[0]).toMatchObject({ name: 'tempdb' });
   });
@@ -1183,7 +1225,11 @@ autoFetchState.visible = false;
       await Promise.resolve();
     });
 
-    const resultTabButtons = renderer!.root.findAll((node) => node.type === 'button' && node.props['data-tab-key']);
+    const resultTabButtons = renderer!.root.findAll((node) => (
+      node.type === 'button'
+      && node.props['data-tab-key']
+      && node.props['data-tab-key'] !== '__gonavi_sql_execution_log__'
+    ));
     expect(resultTabButtons).toHaveLength(2);
 
     await act(async () => {
@@ -1341,6 +1387,10 @@ autoFetchState.visible = false;
 
   it('localizes the table-locator-metadata-unavailable read-only warning in English while preserving the raw table name', async () => {
     storeState.languagePreference = 'en-US';
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     setCurrentLanguage('en-US');
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
@@ -1379,13 +1429,20 @@ autoFetchState.visible = false;
     );
   });
 
-  it('falls back to read-only results when query locator metadata stalls', async () => {
+  it('continues query execution when unique-index metadata stalls after columns resolve', async () => {
     vi.useFakeTimers();
+    storeState.dataEditTransactionOptions = {
+      ...storeState.dataEditTransactionOptions,
+      mysqlCountFallbackLocateEnabled: false,
+    };
     backendApp.DBQueryMulti.mockResolvedValueOnce({
       success: true,
       data: [{ columns: ['NAME'], rows: [{ NAME: 'alpha' }] }],
     });
-    backendApp.DBGetColumns.mockReturnValueOnce(new Promise(() => {}));
+    backendApp.DBGetColumns.mockResolvedValueOnce({
+      success: true,
+      data: [{ name: 'NAME', key: '' }],
+    });
     backendApp.DBGetIndexes.mockReturnValueOnce(new Promise(() => {}));
 
     try {
@@ -1396,16 +1453,18 @@ autoFetchState.visible = false;
 
       await act(async () => {
         findButton(renderer!, '运行').props.onClick();
-        await Promise.resolve();
+        for (let i = 0; i < 30; i += 1) {
+          await Promise.resolve();
+        }
       });
 
       expect(backendApp.DBQueryMulti).not.toHaveBeenCalled();
 
       await act(async () => {
-        vi.advanceTimersByTime(2000);
-        await Promise.resolve();
-        await Promise.resolve();
-        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(2000);
+        for (let i = 0; i < 30; i += 1) {
+          await Promise.resolve();
+        }
       });
 
       expect(backendApp.DBQueryMulti).toHaveBeenCalledWith(
@@ -2314,7 +2373,7 @@ storeState.languagePreference = 'en-US';
     expect(textContent(renderer!.toJSON())).not.toContain('结果 4');
     expect(renderer!.root.findAll((node) => {
       const className = String(node.props?.className || '');
-      return className.includes('query-result-tab-label');
+      return className.includes('query-result-tab-label') && textContent(node).includes('结果');
     })).toHaveLength(2);
   });
 
@@ -2348,7 +2407,7 @@ storeState.languagePreference = 'en-US';
 
     expect(renderer!.root.findAll((node) => {
       const className = String(node.props?.className || '');
-      return className.includes('query-result-tab-label');
+      return className.includes('query-result-tab-label') && textContent(node).includes('结果');
     })).toHaveLength(3);
 
     await act(async () => {
@@ -2356,7 +2415,7 @@ storeState.languagePreference = 'en-US';
     });
     expect(renderer!.root.findAll((node) => {
       const className = String(node.props?.className || '');
-      return className.includes('query-result-tab-label');
+      return className.includes('query-result-tab-label') && textContent(node).includes('结果');
     })).toHaveLength(2);
     expect(textContent(renderer!.toJSON())).not.toContain('结果 3');
 
@@ -2365,7 +2424,7 @@ storeState.languagePreference = 'en-US';
     });
     expect(renderer!.root.findAll((node) => {
       const className = String(node.props?.className || '');
-      return className.includes('query-result-tab-label');
+      return className.includes('query-result-tab-label') && textContent(node).includes('结果');
     })).toHaveLength(1);
     expect(dataGridState.latestProps?.data).toEqual(expect.arrayContaining([expect.objectContaining({ b: 2 })]));
     expect(dataGridState.latestProps?.data).not.toEqual(expect.arrayContaining([expect.objectContaining({ a: 1 })]));
@@ -2376,7 +2435,7 @@ storeState.languagePreference = 'en-US';
     });
     expect(renderer!.root.findAll((node) => {
       const className = String(node.props?.className || '');
-      return className.includes('query-result-tab-label');
+      return className.includes('query-result-tab-label') && textContent(node).includes('结果');
     })).toHaveLength(0);
   });
 
@@ -2546,9 +2605,9 @@ storeState.languagePreference = 'en-US';
       return className.includes('query-result-tab-text');
     });
 
-    expect(tabLabels).toHaveLength(2);
-    expect(titles.map((node) => textContent(node))).toEqual(['结果 1', '结果 2']);
-    expect(counts.map((node) => textContent(node))).toEqual(['2', '1']);
+    expect(tabLabels).toHaveLength(3);
+    expect(titles.map((node) => textContent(node))).toEqual(['日志', '结果 1', '结果 2']);
+    expect(counts.map((node) => textContent(node))).toEqual(['1', '2', '1']);
     expect(textContent(renderer!.toJSON())).not.toContain('结果 1 (2)');
   });
 

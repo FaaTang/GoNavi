@@ -5,7 +5,6 @@ import {
   TableOutlined,
   DatabaseOutlined,
   FileAddOutlined,
-  AimOutlined,
   RobotOutlined,
   ToolOutlined,
   SettingOutlined,
@@ -31,8 +30,6 @@ export interface SidebarConnectionRailProps {
     batchTables: string;
     batchDatabases: string;
     openExternalSqlFile: string;
-    locateCurrentTable: string;
-    locateCurrentTableUnavailable: string;
     aiAssistant: string;
     tools: string;
     settings: string;
@@ -45,13 +42,11 @@ export interface SidebarConnectionRailProps {
     openBatchTableExport: () => void;
     openBatchDatabaseExport: () => void;
     openExternalSqlFile: () => void;
-    locateActiveTab: () => void;
     toggleAI: () => void;
     openTools: () => void;
     openSettings: () => void;
     toggleShowLabels: () => void;
   };
-  canLocateActiveTab: boolean;
 }
 
 type RailActionButtonProps = {
@@ -104,7 +99,6 @@ const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
   showLabels,
   labels,
   handlers,
-  canLocateActiveTab,
 }) => {
   const toggleLabel = showLabels ? labels.collapseButtonLabels : labels.expandButtonLabels;
 
@@ -146,17 +140,6 @@ const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
           className="gn-v2-rail-tool gn-v2-rail-action"
           dataAttributes={{ 'data-sidebar-open-external-sql-file-action': true }}
         />
-        <span className="gn-v2-rail-action-wrap">
-          <RailActionButton
-            label={canLocateActiveTab ? labels.locateCurrentTable : labels.locateCurrentTableUnavailable}
-            icon={<AimOutlined />}
-            onClick={handlers.locateActiveTab}
-            showLabels={showLabels}
-            disabled={!canLocateActiveTab}
-            className="gn-v2-rail-tool gn-v2-rail-action"
-            dataAttributes={{ 'data-sidebar-locate-current-tab-action': true }}
-          />
-        </span>
       </div>
       <div className="gn-v2-rail-secondary-actions" aria-label={labels.railSystemActions}>
         <RailActionButton

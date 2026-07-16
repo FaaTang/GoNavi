@@ -22,6 +22,11 @@ describe('QueryEditorMaxRowsSelect source guards', () => {
     expect(source).not.toContain('query_editor.max_rows.option_unlimited');
   });
 
+  it('closes the hover tooltip while the select dropdown is open', () => {
+    expect(source).toContain('onOpenChange={handleSelectOpenChange}');
+    expect(source).toContain('open={isTooltipOpen && !isSelectOpen}');
+  });
+
   it('is wired through QueryEditorToolbar', () => {
     expect(toolbarSource).toContain('QueryEditorMaxRowsSelect');
     expect(toolbarSource).not.toContain('query_editor.max_rows.option_5000');

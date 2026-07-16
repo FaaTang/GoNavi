@@ -1,10 +1,19 @@
 import {
+  findSqlJoinTableSources,
   findSqlStatementRanges,
+  findSqlSubqueryRanges,
   resolveCurrentSqlStatementRange,
+  resolveEnclosingSqlSubqueryRange,
   resolveExecutableSql,
+  resolveSqlTableSourceHighlightRange,
+  type SqlStatementRange,
 } from './sqlStatementSelection';
 
-export type SqlExecutionChooserOptionId = 'current' | 'all';
+export type SqlExecutionChooserOptionId =
+  | 'all'
+  | `statement-${number}`
+  | `subquery-${number}`
+  | `table-${number}`;
 
 export type SqlExecutionChooserOption = {
   id: SqlExecutionChooserOptionId;
@@ -13,6 +22,7 @@ export type SqlExecutionChooserOption = {
   highlightStart: number;
   highlightEnd: number;
   statementCount: number;
+  tableName?: string;
 };
 
 export type SqlExecutionIntent =
@@ -24,6 +34,30 @@ export type SqlExecutionIntent =
     }
   | { kind: 'use-auto' }
   | { kind: 'empty' };
+
+export const isSqlExecutionSubqueryOptionId = (
+  id: string,
+): id is `subquery-${number}` => /^subquery-\d+$/.test(id);
+
+export const isSqlExecutionStatementOptionId = (
+  id: string,
+): id is `statement-${number}` => /^statement-\d+$/.test(id);
+
+export const isSqlExecutionTableOptionId = (
+  id: string,
+): id is `table-${number}` => /^table-\d+$/.test(id);
+
+export const buildSqlExecutionSubqueryOptionId = (index: number): `subquery-${number}` => (
+  `subquery-${Math.max(0, Math.floor(index))}`
+);
+
+export const buildSqlExecutionStatementOptionId = (index: number): `statement-${number}` => (
+  `statement-${Math.max(0, Math.floor(index))}`
+);
+
+export const buildSqlExecutionTableOptionId = (index: number): `table-${number}` => (
+  `table-${Math.max(0, Math.floor(index))}`
+);
 
 export function truncateSqlPreview(sql: string, maxLength = 80): string {
   const singleLine = String(sql || '').replace(/\s+/g, ' ').trim();
@@ -49,43 +83,78 @@ export function buildAllStatementsSql(fullSql: string): string {
   return merged;
 }
 
+type ExecutableStatementRange = SqlStatementRange & { executableText: string };
+
+const collectExecutableStatementRanges = (fullSql: string): ExecutableStatementRange[] => (
+  findSqlStatementRanges(fullSql)
+    .map((range) => ({
+      ...range,
+      executableText: stripLeadingSqlNoise(range.text),
+    }))
+    .filter((range) => range.executableText.trim() && hasExecutableSqlContent(range.executableText))
+);
+
 export function buildSqlExecutionChooserOptions(
   fullSql: string,
-  cursorOffset: number,
+  _cursorOffset: number,
+  dialect = '',
 ): SqlExecutionChooserOption[] {
   const text = String(fullSql || '').replace(/\r\n/g, '\n');
-  const ranges = findSqlStatementRanges(text);
-  const currentRange = resolveCurrentSqlStatementRange(text, cursorOffset);
-  const executableStatementCount = ranges
-    .map((range) => stripLeadingSqlNoise(range.text))
-    .filter((sql) => sql.trim() && hasExecutableSqlContent(sql))
-    .length;
-  const fallbackSelection = resolveExecutableSql(text, cursorOffset, '');
-  const currentSqlCandidate = fallbackSelection?.sql?.trim()
-    ? fallbackSelection.sql
-    : (currentRange?.text || '');
-  const currentSql = stripLeadingSqlNoise(currentSqlCandidate);
+  const statementRanges = collectExecutableStatementRanges(text);
+  const tableSources = findSqlJoinTableSources(text, dialect);
+  const subqueryRanges = findSqlSubqueryRanges(text, dialect)
+    .filter((range) => range.text.trim() && hasExecutableSqlContent(range.text));
   const allSql = buildAllStatementsSql(text);
 
   const options: SqlExecutionChooserOption[] = [];
-  if (currentSql.trim() && hasExecutableSqlContent(currentSql)) {
+  statementRanges.forEach((range, index) => {
     options.push({
-      id: 'current',
-      sql: currentSql,
-      preview: truncateSqlPreview(currentSql),
-      highlightStart: currentRange?.start ?? 0,
-      highlightEnd: currentRange?.end ?? text.length,
+      id: buildSqlExecutionStatementOptionId(index),
+      sql: range.executableText,
+      preview: truncateSqlPreview(range.executableText),
+      highlightStart: range.start,
+      highlightEnd: range.end,
       statementCount: 1,
     });
+  });
+  // Only surface per-table probes for real multi-table (join / comma-join) queries.
+  if (tableSources.length >= 2) {
+    tableSources.forEach((source, index) => {
+      const highlight = resolveSqlTableSourceHighlightRange(
+        text,
+        source.start,
+        source.end,
+        dialect,
+      );
+      options.push({
+        id: buildSqlExecutionTableOptionId(index),
+        sql: source.executableSql,
+        preview: truncateSqlPreview(source.executableSql),
+        highlightStart: highlight.start,
+        highlightEnd: highlight.end,
+        statementCount: 1,
+        tableName: source.tableRef,
+      });
+    });
   }
-  if (allSql.trim()) {
+  subqueryRanges.forEach((range, index) => {
+    options.push({
+      id: buildSqlExecutionSubqueryOptionId(index),
+      sql: range.text,
+      preview: truncateSqlPreview(range.text),
+      highlightStart: range.start,
+      highlightEnd: range.end,
+      statementCount: 1,
+    });
+  });
+  if (allSql.trim() && statementRanges.length > 1) {
     options.push({
       id: 'all',
       sql: allSql,
       preview: truncateSqlPreview(allSql),
       highlightStart: 0,
       highlightEnd: text.length,
-      statementCount: executableStatementCount,
+      statementCount: statementRanges.length,
     });
   }
   return options;
@@ -182,11 +251,75 @@ const cursorLineHasExecutableSql = (fullSql: string, cursorOffset: number): bool
   return hasExecutableSqlContent(line);
 };
 
+const findOptionByHighlightRange = (
+  options: SqlExecutionChooserOption[],
+  range: Pick<SqlStatementRange, 'start' | 'end'> | null | undefined,
+  predicate: (option: SqlExecutionChooserOption) => boolean,
+): SqlExecutionChooserOption | undefined => {
+  if (!range) return undefined;
+  return options.find((option) => (
+    predicate(option)
+    && option.highlightStart === range.start
+    && option.highlightEnd === range.end
+  ));
+};
+
+const resolveDefaultChooserOptionId = (
+  options: SqlExecutionChooserOption[],
+  fullSql: string,
+  cursorOffset: number,
+  dialect = '',
+): SqlExecutionChooserOptionId => {
+  const enclosing = resolveEnclosingSqlSubqueryRange(fullSql, cursorOffset, dialect);
+  const matchedSubquery = findOptionByHighlightRange(
+    options,
+    enclosing,
+    (option) => isSqlExecutionSubqueryOptionId(option.id),
+  );
+  if (matchedSubquery) {
+    return matchedSubquery.id;
+  }
+
+  const currentRange = resolveCurrentSqlStatementRange(fullSql, cursorOffset);
+  const matchedStatement = findOptionByHighlightRange(
+    options,
+    currentRange,
+    (option) => isSqlExecutionStatementOptionId(option.id),
+  );
+  if (matchedStatement) {
+    return matchedStatement.id;
+  }
+
+  const matchedTableSource = findSqlJoinTableSources(fullSql, dialect).find((source) => (
+    cursorOffset >= source.start && cursorOffset <= source.end
+  ));
+  if (matchedTableSource) {
+    const matchedTable = options.find((option) => (
+      isSqlExecutionTableOptionId(option.id)
+      && option.tableName === matchedTableSource.tableRef
+    ));
+    if (matchedTable) {
+      return matchedTable.id;
+    }
+  }
+
+  const firstStatement = options.find((option) => isSqlExecutionStatementOptionId(option.id));
+  if (firstStatement) {
+    return firstStatement.id;
+  }
+  const firstSubquery = options.find((option) => isSqlExecutionSubqueryOptionId(option.id));
+  if (firstSubquery) {
+    return firstSubquery.id;
+  }
+  return options[0]?.id || 'all';
+};
+
 export function resolveSqlExecutionIntent(input: {
   fullSql: string;
   selectedSql: string;
   cursorOffset: number;
   askWhatToExecute: boolean;
+  dialect?: string;
 }): SqlExecutionIntent {
   const selected = String(input.selectedSql || '').trim();
   if (selected) {
@@ -198,15 +331,15 @@ export function resolveSqlExecutionIntent(input: {
   }
 
   const text = String(input.fullSql || '').replace(/\r\n/g, '\n');
-  const executableRanges = findSqlStatementRanges(text)
-    .map((range) => ({
-      ...range,
-      text: stripLeadingSqlNoise(range.text),
-    }))
+  const dialect = input.dialect || '';
+  const tableSources = findSqlJoinTableSources(text, dialect);
+  const subqueryRanges = findSqlSubqueryRanges(text, dialect)
     .filter((range) => range.text.trim() && hasExecutableSqlContent(range.text));
-  if (executableRanges.length < 2) {
+  const executableRanges = collectExecutableStatementRanges(text);
+  const hasJoinTableChoices = tableSources.length >= 2;
+  if (executableRanges.length < 2 && subqueryRanges.length === 0 && !hasJoinTableChoices) {
     if (executableRanges.length === 1) {
-      return { kind: 'execute', sql: executableRanges[0].text };
+      return { kind: 'execute', sql: executableRanges[0].executableText };
     }
 
     // Spec expects "current statement" semantics even when cursor is outside of it (e.g. leading comments).
@@ -235,11 +368,15 @@ export function resolveSqlExecutionIntent(input: {
     return { kind: 'empty' };
   }
 
-  if (!cursorLineHasExecutableSql(text, input.cursorOffset)) {
+  if (
+    subqueryRanges.length === 0
+    && !hasJoinTableChoices
+    && !cursorLineHasExecutableSql(text, input.cursorOffset)
+  ) {
     return { kind: 'empty' };
   }
 
-  const options = buildSqlExecutionChooserOptions(text, input.cursorOffset);
+  const options = buildSqlExecutionChooserOptions(text, input.cursorOffset, dialect);
   if (options.length === 0) {
     return { kind: 'empty' };
   }
@@ -247,6 +384,6 @@ export function resolveSqlExecutionIntent(input: {
   return {
     kind: 'chooser',
     options,
-    defaultOptionId: options.some((option) => option.id === 'current') ? 'current' : 'all',
+    defaultOptionId: resolveDefaultChooserOptionId(options, text, input.cursorOffset, dialect),
   };
 }

@@ -4,6 +4,8 @@ export interface SqlStatementRange {
   text: string;
 }
 
+export type SqlSubqueryDialect = 'mysql' | 'postgres' | string;
+
 export type SqlExecutionSelectionSource = 'selection' | 'statement' | 'line';
 
 export interface SqlExecutionSelection {
@@ -34,6 +36,11 @@ const skipSqlWhitespaceAndComments = (text: string, position: number): number =>
     }
     if (ch === '-' && next === '-') {
       index += 2;
+      while (index < text.length && text[index] !== '\n') index += 1;
+      continue;
+    }
+    if (ch === '#') {
+      index += 1;
       while (index < text.length && text[index] !== '\n') index += 1;
       continue;
     }
@@ -425,6 +432,705 @@ export const resolveCurrentSqlStatementRange = (sql: string, cursorOffset: numbe
   }
 
   return ranges[ranges.length - 1];
+};
+
+const isMysqlSubqueryDialect = (dialect: SqlSubqueryDialect): boolean => (
+  ['mysql', 'mariadb', 'oceanbase', 'diros', 'starrocks', 'sphinx', 'tidb']
+    .includes(String(dialect || '').trim().toLowerCase())
+);
+
+const isPostgresSubqueryDialect = (dialect: SqlSubqueryDialect): boolean => (
+  ['postgres', 'postgresql', 'kingbase', 'highgo', 'vastbase', 'opengauss', 'gaussdb']
+    .includes(String(dialect || '').trim().toLowerCase())
+);
+
+export interface SqlJoinTableSourceRange extends SqlStatementRange {
+  /** Qualified table reference as written in SQL (quotes preserved). */
+  tableRef: string;
+  /** Executable probe query for this table. */
+  executableSql: string;
+}
+
+const FROM_CLAUSE_TERMINATORS = new Set([
+  'where', 'group', 'order', 'having', 'limit', 'offset', 'fetch', 'window',
+  'union', 'except', 'intersect', 'minus', 'for', 'into', 'returning', 'start',
+  'connect', 'qualify', 'settings',
+]);
+
+const JOIN_PREFIX_KEYWORDS = new Set([
+  'inner', 'left', 'right', 'full', 'cross', 'outer', 'natural', 'lateral', 'straight_join',
+]);
+
+const skipSqlTrivia = (
+  text: string,
+  position: number,
+  options: { mysqlLike: boolean; postgresLike: boolean },
+): number => {
+  let index = position;
+  while (index < text.length) {
+    const ch = text[index];
+    const next = index + 1 < text.length ? text[index + 1] : '';
+    if (isWhitespace(ch)) {
+      index += 1;
+      continue;
+    }
+    if (ch === '-' && next === '-' && (
+      options.postgresLike || index + 2 >= text.length || isWhitespace(text[index + 2])
+    )) {
+      index += 2;
+      while (index < text.length && text[index] !== '\n') index += 1;
+      continue;
+    }
+    if (options.mysqlLike && ch === '#') {
+      index += 1;
+      while (index < text.length && text[index] !== '\n') index += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      index += 2;
+      while (index + 1 < text.length && !(text[index] === '*' && text[index + 1] === '/')) {
+        index += 1;
+      }
+      if (index + 1 < text.length) index += 2;
+      continue;
+    }
+    break;
+  }
+  return index;
+};
+
+const readSqlQuotedIdentifier = (
+  text: string,
+  position: number,
+  quote: "'" | '"' | '`',
+): { end: number; value: string } | null => {
+  if (text[position] !== quote) return null;
+  let index = position + 1;
+  while (index < text.length) {
+    const ch = text[index];
+    if (ch === quote) {
+      if (text[index + 1] === quote) {
+        index += 2;
+        continue;
+      }
+      return { end: index + 1, value: text.slice(position, index + 1) };
+    }
+    if (ch === '\\') {
+      index += 2;
+      continue;
+    }
+    index += 1;
+  }
+  return null;
+};
+
+const readSqlIdentifierPart = (
+  text: string,
+  position: number,
+  options: { mysqlLike: boolean; postgresLike: boolean },
+): { end: number; value: string } | null => {
+  const index = skipSqlTrivia(text, position, options);
+  if (index >= text.length) return null;
+  const ch = text[index];
+  if (options.mysqlLike && ch === '`') {
+    return readSqlQuotedIdentifier(text, index, '`');
+  }
+  if ((options.postgresLike || !options.mysqlLike) && ch === '"') {
+    return readSqlQuotedIdentifier(text, index, '"');
+  }
+  if (!isSqlIdentifierStart(ch)) return null;
+  let end = index + 1;
+  while (end < text.length && isSqlIdentifierPart(text[end])) end += 1;
+  return { end, value: text.slice(index, end) };
+};
+
+const readSqlQualifiedTableRef = (
+  text: string,
+  position: number,
+  options: { mysqlLike: boolean; postgresLike: boolean },
+): SqlJoinTableSourceRange | null => {
+  const first = readSqlIdentifierPart(text, position, options);
+  if (!first) return null;
+  const token = first.value.replace(/^[`"]|[`"]$/g, '').toLowerCase();
+  if ([
+    'select', 'with', 'values', 'lateral', 'unnest', 'jsonb_each', 'json_each',
+    'generate_series', 'table', 'only', 'rows', 'xmltable',
+  ].includes(token)) {
+    return null;
+  }
+
+  let end = first.end;
+  const parts = [first.value];
+  while (true) {
+    const dotPos = skipSqlTrivia(text, end, options);
+    if (text[dotPos] !== '.') break;
+    const next = readSqlIdentifierPart(text, dotPos + 1, options);
+    if (!next) break;
+    parts.push(next.value);
+    end = next.end;
+  }
+
+  const tableRef = parts.join('.');
+  const start = skipSqlTrivia(text, position, options);
+  return {
+    start,
+    end,
+    text: tableRef,
+    tableRef,
+    executableSql: `SELECT * FROM ${tableRef}`,
+  };
+};
+
+const readPreviousSqlToken = (
+  text: string,
+  position: number,
+  options: { mysqlLike: boolean; postgresLike: boolean },
+): { start: number; end: number; token: string } | null => {
+  let index = position;
+  while (index > 0) {
+    const ch = text[index - 1];
+    if (isWhitespace(ch)) {
+      index -= 1;
+      continue;
+    }
+    if (ch === '/' && index >= 2 && text[index - 2] === '*') {
+      index -= 2;
+      while (index >= 2 && !(text[index - 2] === '/' && text[index - 1] === '*')) {
+        index -= 1;
+      }
+      if (index >= 2) index -= 2;
+      continue;
+    }
+    if (ch === '-' && index >= 2 && text[index - 2] === '-') {
+      // line comment: walk to line start (conservative)
+      let probe = index - 2;
+      while (probe > 0 && text[probe - 1] !== '\n') probe -= 1;
+      index = probe;
+      continue;
+    }
+    if (options.mysqlLike && ch === '#') {
+      let probe = index - 1;
+      while (probe > 0 && text[probe - 1] !== '\n') probe -= 1;
+      index = probe;
+      continue;
+    }
+    break;
+  }
+  if (index <= 0) return null;
+
+  const prev = text[index - 1];
+  if (prev === '`' || prev === '"') {
+    const quote = prev;
+    let start = index - 2;
+    while (start >= 0) {
+      if (text[start] === quote && text[start + 1] === quote) {
+        start -= 1;
+        continue;
+      }
+      if (text[start] === quote) {
+        return { start, end: index, token: text.slice(start, index) };
+      }
+      start -= 1;
+    }
+    return null;
+  }
+  if (!isSqlIdentifierPart(prev)) {
+    return { start: index - 1, end: index, token: prev };
+  }
+  let start = index - 1;
+  while (start > 0 && isSqlIdentifierPart(text[start - 1])) {
+    start -= 1;
+  }
+  return {
+    start,
+    end: index,
+    token: text.slice(start, index).toLowerCase(),
+  };
+};
+
+/**
+ * Expands a table-name range to the surrounding executable fragment for highlight,
+ * e.g. `SELECT * FROM users` or `LEFT JOIN orders`.
+ */
+export const resolveSqlTableSourceHighlightRange = (
+  sql: string,
+  tableStart: number,
+  tableEnd: number,
+  dialect: SqlSubqueryDialect,
+): { start: number; end: number } => {
+  const mysqlLike = isMysqlSubqueryDialect(dialect);
+  const postgresLike = isPostgresSubqueryDialect(dialect);
+  const text = String(sql || '').replace(/\r\n/g, '\n');
+  const options = { mysqlLike, postgresLike };
+  const safeStart = Math.max(0, Math.min(text.length, tableStart));
+  const safeEnd = Math.max(safeStart, Math.min(text.length, tableEnd));
+  if (!mysqlLike && !postgresLike) {
+    return { start: safeStart, end: safeEnd };
+  }
+
+  let cursor = safeStart;
+  let fromOrJoinStart: number | null = null;
+  let introducedByJoin = false;
+
+  // Skip optional ONLY, then expect FROM / JOIN behind the table.
+  let guard = 0;
+  while (guard < 8) {
+    guard += 1;
+    const prev = readPreviousSqlToken(text, cursor, options);
+    if (!prev) break;
+    if (prev.token === 'only') {
+      cursor = prev.start;
+      continue;
+    }
+    if (prev.token === 'from') {
+      fromOrJoinStart = prev.start;
+      break;
+    }
+    if (prev.token === 'join' || prev.token === 'straight_join') {
+      fromOrJoinStart = prev.start;
+      introducedByJoin = true;
+      cursor = prev.start;
+      break;
+    }
+    break;
+  }
+
+  if (fromOrJoinStart === null) {
+    return { start: safeStart, end: safeEnd };
+  }
+
+  if (introducedByJoin) {
+    let leadStart = fromOrJoinStart;
+    cursor = fromOrJoinStart;
+    guard = 0;
+    while (guard < 6) {
+      guard += 1;
+      const prev = readPreviousSqlToken(text, cursor, options);
+      if (!prev) break;
+      if (!JOIN_PREFIX_KEYWORDS.has(prev.token) || prev.token === 'straight_join') break;
+      leadStart = prev.start;
+      cursor = prev.start;
+    }
+    return { start: leadStart, end: safeEnd };
+  }
+
+  // FROM-introduced: expand left to the owning SELECT/WITH.
+  cursor = fromOrJoinStart;
+  guard = 0;
+  while (guard < 64) {
+    guard += 1;
+    const prev = readPreviousSqlToken(text, cursor, options);
+    if (!prev) break;
+    if (prev.token === 'select' || prev.token === 'with') {
+      return { start: prev.start, end: safeEnd };
+    }
+    if (
+      prev.token === ';'
+      || prev.token === '；'
+      || prev.token === ')'
+      || FROM_CLAUSE_TERMINATORS.has(prev.token)
+      || prev.token === 'join'
+      || prev.token === 'straight_join'
+    ) {
+      break;
+    }
+    cursor = prev.start;
+  }
+
+  return { start: fromOrJoinStart, end: safeEnd };
+};
+
+/**
+ * Finds physical table sources from top-level FROM / JOIN / comma-join lists.
+ * Derived tables `(SELECT ...)` are ignored here; use findSqlSubqueryRanges for those.
+ */
+export const findSqlJoinTableSources = (
+  sql: string,
+  dialect: SqlSubqueryDialect,
+): SqlJoinTableSourceRange[] => {
+  const mysqlLike = isMysqlSubqueryDialect(dialect);
+  const postgresLike = isPostgresSubqueryDialect(dialect);
+  if (!mysqlLike && !postgresLike) {
+    return [];
+  }
+
+  const text = String(sql || '').replace(/\r\n/g, '\n');
+  const options = { mysqlLike, postgresLike };
+  const sources: SqlJoinTableSourceRange[] = [];
+  const seen = new Set<string>();
+
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  let escaped = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let dollarTag: string | null = null;
+  let parenDepth = 0;
+  let inFromClause = false;
+  let expectTable = false;
+
+  const pushSource = (source: SqlJoinTableSourceRange | null) => {
+    if (!source) return;
+    const key = source.tableRef.replace(/[`"]/g, '').toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    sources.push(source);
+  };
+
+  const tryConsumeTable = (fromIndex: number): number => {
+    const start = skipSqlTrivia(text, fromIndex, options);
+    if (start >= text.length) return fromIndex;
+    if (text[start] === '(') {
+      return fromIndex;
+    }
+    const onlyToken = nextSqlSignificantToken(text, start);
+    let tableStart = start;
+    if (onlyToken === 'only') {
+      const onlySpan = nextSqlSignificantTokenSpan(text, start);
+      tableStart = onlySpan.end;
+    }
+    const source = readSqlQualifiedTableRef(text, tableStart, options);
+    if (!source) return fromIndex;
+    pushSource(source);
+    return source.end;
+  };
+
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text[index];
+    const next = index + 1 < text.length ? text[index + 1] : '';
+
+    if (dollarTag) {
+      if (text.startsWith(dollarTag, index)) {
+        index += dollarTag.length - 1;
+        dollarTag = null;
+      }
+      continue;
+    }
+    if (inLineComment) {
+      if (ch === '\n') inLineComment = false;
+      continue;
+    }
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        index += 1;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick) {
+      if (ch === '/' && next === '*') {
+        index += 1;
+        inBlockComment = true;
+        continue;
+      }
+      if (ch === '-' && next === '-' && (
+        postgresLike || index + 2 >= text.length || isWhitespace(text[index + 2])
+      )) {
+        index += 1;
+        inLineComment = true;
+        continue;
+      }
+      if (mysqlLike && ch === '#') {
+        inLineComment = true;
+        continue;
+      }
+      if (postgresLike && ch === '$') {
+        const match = text.slice(index).match(/^\$[A-Za-z0-9_]*\$/);
+        if (match?.[0]) {
+          dollarTag = match[0];
+          index += dollarTag.length - 1;
+          continue;
+        }
+      }
+    }
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if ((inSingle || inDouble || inBacktick) && ch === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (
+      expectTable
+      && inFromClause
+      && parenDepth === 0
+      && !inSingle
+      && !inDouble
+      && !inBacktick
+      && (ch === '`' || ch === '"' || isSqlIdentifierStart(ch))
+    ) {
+      const onlyToken = nextSqlSignificantToken(text, index);
+      if (!(JOIN_PREFIX_KEYWORDS.has(onlyToken) && onlyToken !== 'straight_join')) {
+        const consumedEnd = tryConsumeTable(index);
+        expectTable = false;
+        if (consumedEnd > index) {
+          index = consumedEnd - 1;
+          continue;
+        }
+      }
+    }
+
+    if (!inDouble && !inBacktick && ch === "'") {
+      if (inSingle && next === "'") {
+        index += 1;
+      } else {
+        inSingle = !inSingle;
+      }
+      continue;
+    }
+    if (!inSingle && !inBacktick && ch === '"') {
+      if (inDouble && next === '"') {
+        index += 1;
+      } else {
+        inDouble = !inDouble;
+      }
+      continue;
+    }
+    if (mysqlLike && !inSingle && !inDouble && ch === '`') {
+      if (inBacktick && next === '`') {
+        index += 1;
+      } else {
+        inBacktick = !inBacktick;
+      }
+      continue;
+    }
+    if (inSingle || inDouble || inBacktick) {
+      continue;
+    }
+
+    if (ch === '(') {
+      if (expectTable && parenDepth === 0) {
+        expectTable = false;
+      }
+      parenDepth += 1;
+      continue;
+    }
+    if (ch === ')') {
+      if (parenDepth > 0) parenDepth -= 1;
+      continue;
+    }
+
+    if (parenDepth !== 0) {
+      continue;
+    }
+
+    if ((ch === ';' || ch === '；')) {
+      inFromClause = false;
+      expectTable = false;
+      continue;
+    }
+
+    if (inFromClause && ch === ',') {
+      expectTable = true;
+      continue;
+    }
+
+    if (!isSqlIdentifierStart(ch)) {
+      continue;
+    }
+
+    let tokenEnd = index + 1;
+    while (tokenEnd < text.length && isSqlIdentifierPart(text[tokenEnd])) {
+      tokenEnd += 1;
+    }
+    const token = text.slice(index, tokenEnd).toLowerCase();
+
+    if (token === 'from') {
+      inFromClause = true;
+      expectTable = true;
+      index = tokenEnd - 1;
+      continue;
+    }
+
+    if (token === 'join' || token === 'straight_join') {
+      inFromClause = true;
+      expectTable = true;
+      index = tokenEnd - 1;
+      continue;
+    }
+
+    if (inFromClause && FROM_CLAUSE_TERMINATORS.has(token)) {
+      inFromClause = false;
+      expectTable = false;
+      index = tokenEnd - 1;
+      continue;
+    }
+
+    if (inFromClause && expectTable && JOIN_PREFIX_KEYWORDS.has(token) && token !== 'straight_join') {
+      index = tokenEnd - 1;
+      continue;
+    }
+
+    index = tokenEnd - 1;
+  }
+
+  if (expectTable) {
+    tryConsumeTable(text.length);
+  }
+
+  return sources;
+};
+
+/**
+ * Finds every parenthesized SELECT/WITH subquery in document order.
+ * Ranges exclude the surrounding parentheses so they can be executed directly.
+ */
+export const findSqlSubqueryRanges = (
+  sql: string,
+  dialect: SqlSubqueryDialect,
+): SqlStatementRange[] => {
+  const mysqlLike = isMysqlSubqueryDialect(dialect);
+  const postgresLike = isPostgresSubqueryDialect(dialect);
+  if (!mysqlLike && !postgresLike) {
+    return [];
+  }
+
+  const text = String(sql || '').replace(/\r\n/g, '\n');
+  const openParentheses: number[] = [];
+  const ranges: SqlStatementRange[] = [];
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  let escaped = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let dollarTag: string | null = null;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text[index];
+    const next = index + 1 < text.length ? text[index + 1] : '';
+
+    if (dollarTag) {
+      if (text.startsWith(dollarTag, index)) {
+        index += dollarTag.length - 1;
+        dollarTag = null;
+      }
+      continue;
+    }
+    if (inLineComment) {
+      if (ch === '\n') inLineComment = false;
+      continue;
+    }
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        index += 1;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick) {
+      if (ch === '/' && next === '*') {
+        index += 1;
+        inBlockComment = true;
+        continue;
+      }
+      if (ch === '-' && next === '-' && (
+        postgresLike || index + 2 >= text.length || isWhitespace(text[index + 2])
+      )) {
+        index += 1;
+        inLineComment = true;
+        continue;
+      }
+      if (mysqlLike && ch === '#') {
+        inLineComment = true;
+        continue;
+      }
+      if (postgresLike && ch === '$') {
+        const match = text.slice(index).match(/^\$[A-Za-z0-9_]*\$/);
+        if (match?.[0]) {
+          dollarTag = match[0];
+          index += dollarTag.length - 1;
+          continue;
+        }
+      }
+    }
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if ((inSingle || inDouble || inBacktick) && ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (!inDouble && !inBacktick && ch === "'") {
+      if (inSingle && next === "'") {
+        index += 1;
+      } else {
+        inSingle = !inSingle;
+      }
+      continue;
+    }
+    if (!inSingle && !inBacktick && ch === '"') {
+      if (inDouble && next === '"') {
+        index += 1;
+      } else {
+        inDouble = !inDouble;
+      }
+      continue;
+    }
+    if (mysqlLike && !inSingle && !inDouble && ch === '`') {
+      if (inBacktick && next === '`') {
+        index += 1;
+      } else {
+        inBacktick = !inBacktick;
+      }
+      continue;
+    }
+    if (inSingle || inDouble || inBacktick) {
+      continue;
+    }
+
+    if (ch === '(') {
+      openParentheses.push(index);
+      continue;
+    }
+    if (ch !== ')' || openParentheses.length === 0) {
+      continue;
+    }
+
+    const open = openParentheses.pop()!;
+    const range = trimStatementRange(text, open + 1, index);
+    if (!range) {
+      continue;
+    }
+    const firstToken = nextSqlSignificantToken(range.text, 0);
+    if (firstToken === 'select' || firstToken === 'with') {
+      ranges.push(range);
+    }
+  }
+
+  return ranges.sort((left, right) => (
+    left.start - right.start || left.end - right.end
+  ));
+};
+
+/**
+ * Resolves the innermost parenthesized SELECT/WITH query containing the cursor
+ * from the full subquery catalog produced by findSqlSubqueryRanges.
+ */
+export const resolveEnclosingSqlSubqueryRange = (
+  sql: string,
+  cursorOffset: number,
+  dialect: SqlSubqueryDialect,
+): SqlStatementRange | null => {
+  const text = String(sql || '').replace(/\r\n/g, '\n');
+  const offset = Math.max(0, Math.min(text.length, Number.isFinite(cursorOffset) ? cursorOffset : 0));
+  return findSqlSubqueryRanges(text, dialect).reduce<SqlStatementRange | null>((innermost, candidate) => {
+    if (offset < candidate.start || offset > candidate.end) {
+      return innermost;
+    }
+    if (!innermost || candidate.end - candidate.start < innermost.end - innermost.start) {
+      return candidate;
+    }
+    return innermost;
+  }, null);
 };
 
 export const resolveExecutableSql = (

@@ -242,6 +242,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const selectCurrentStatementActionRef = useRef<any>(null);
   const saveQueryActionRef = useRef<any>(null);
   const duplicateSelectionOrLineActionRef = useRef<any>(null);
+  const insertLineBelowActionRef = useRef<any>(null);
   const sqlExecutionChooserDisposeRef = useRef<(() => void) | null>(null);
   const sqlExecutionChooserOpenRef = useRef(false);
   const sqlExecutionChooserCursorSnapshotRef = useRef<{ lineNumber: number; column: number } | null>(null);
@@ -2072,6 +2073,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           setQueryEditorMouseCursor(editor, '');
           objectHoverActionRef.current?.dispose?.();
           objectHoverActionRef.current = null;
+          insertLineBelowActionRef.current?.dispose?.();
+          insertLineBelowActionRef.current = null;
           disposeQueryEditorAiContextMenuActions();
           window.removeEventListener('keydown', syncModifierState);
           window.removeEventListener('keyup', syncModifierState);
@@ -2169,6 +2172,17 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   run: handleDuplicateSelectionOrLine,
               });
           }
+      }
+
+      if (monaco.KeyMod?.Shift != null && monaco.KeyCode?.Enter != null) {
+          insertLineBelowActionRef.current = editor.addAction({
+              id: 'gonavi.insertLineBelow',
+              label: buildQueryEditorMonacoActionLabel('app.shortcuts.reserved.editor_insert_line_after'),
+              keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.Enter],
+              run: (ed: any) => {
+                  ed?.trigger?.('gonavi', 'editor.action.insertLineAfter', null);
+              },
+          });
       }
 
       // HMR 重载或测试重置时，以全局状态为准，避免本地闭包状态和 provider 列表不同步。
@@ -3593,6 +3607,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             const maxRows = effectiveMaxRows;
             const wantsLimitProbe = Number.isFinite(maxRows) && maxRows > 0;
             let anyTruncated = false;
+            let activatedNonQueryLog = false;
 
             for (let idx = 0; idx < statements.length; idx++) {
                 const rawStatement = statements[idx];
@@ -3632,14 +3647,28 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                 const res = await DBQueryWithCancel(buildRpcConnectionConfig(config) as any, currentDb, executedSql, queryId);
                 const legacyResultMessages = normalizeQueryResultMessages(res?.messages);
                 const duration = Date.now() - startTime;
+                let logAffectedRows: number | undefined;
+                let logMessage = res.success ? '' : String(res.message || '');
+                if (res.success) {
+                    if (Array.isArray(res.data)) {
+                        logAffectedRows = res.data.length;
+                    } else if (legacyResultMessages.length > 0) {
+                        logMessage = legacyResultMessages.join('\n');
+                    } else {
+                        const affected = Number((res.data as any)?.affectedRows);
+                        if (Number.isFinite(affected)) {
+                            logAffectedRows = affected;
+                        }
+                    }
+                }
                 addSqlLog({
                     id: `log-${Date.now()}-query-${idx + 1}`,
                     timestamp: Date.now(),
                     sql: executedSql,
                     status: res.success ? 'success' : 'error',
                     duration,
-                    message: res.success ? '' : res.message,
-                    affectedRows: (res.success && !Array.isArray(res.data)) ? (res.data as any).affectedRows : (Array.isArray(res.data) ? res.data.length : undefined),
+                    message: logMessage || undefined,
+                    affectedRows: logAffectedRows,
                     dbName: currentDb
                 });
                 if (!res.success) {
@@ -3679,47 +3708,24 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                         readOnly: true,
                         truncated
                     });
-                } else if (legacyResultMessages.length > 0) {
-                    nextResultSets.push({
-                        key: `result-${idx + 1}`,
-                        sql: rawStatement,
-                        exportSql: rawStatement,
-                        sourceStatementIndex: idx + 1,
-                        statementResultIndex: 1,
-                        rows: [],
-                        columns: [],
-                        messages: legacyResultMessages,
-                        resultType: 'message',
-                        pkColumns: [],
-                        readOnly: true,
-                    });
                 } else {
-                    const affected = Number((res.data as any)?.affectedRows);
-                    if (Number.isFinite(affected)) {
-                        const row = { affectedRows: affected };
-                        (row as any)[GONAVI_ROW_KEY] = 0;
-                        nextResultSets.push({
-                            key: `result-${idx + 1}`,
-                            sql: rawStatement,
-                            exportSql: rawStatement,
-                            sourceStatementIndex: idx + 1,
-                            statementResultIndex: 1,
-                            rows: [row],
-                            columns: ['affectedRows'],
-                            messages: legacyResultMessages,
-                            pkColumns: [],
-                            readOnly: true
-                        });
-                    }
+                    // DDL/DML/消息类结果统一进入 SQL 日志 tab，不再单独开结果 tab。
+                    activatedNonQueryLog = true;
                 }
             }
-            if (nextResultSets.length > 0) {
+            if (nextResultSets.length > 0 || activatedNonQueryLog) {
                 updateResultPanelVisibility(true);
             }
             const shouldReplaceAllResults = didExecuteWholeEditor;
             setResultSets(prev => {
                 const merged = mergeResultSets(prev, nextResultSets, shouldReplaceAllResults);
-                setActiveResultKey(resolveActiveResultKeyAfterMerge(merged, nextResultSets));
+                if (nextResultSets.length > 0) {
+                    setActiveResultKey(resolveActiveResultKeyAfterMerge(merged, nextResultSets));
+                } else if (activatedNonQueryLog) {
+                    setActiveResultKey(QUERY_EDITOR_SQL_LOG_TAB_KEY);
+                } else {
+                    setActiveResultKey('');
+                }
                 return merged;
             });
             if (didExecuteAppendedSql || didExecuteWholeEditor) {
@@ -3893,17 +3899,16 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                 );
             const duration = Date.now() - startTime;
 
-            addSqlLog({
-                id: `log-${Date.now()}-query-multi`,
-                timestamp: Date.now(),
-                sql: sourceStatements.join(';\n'),
-                status: res.success ? 'success' : 'error',
-                duration,
-                message: res.success ? '' : res.message,
-                dbName: currentDb
-            });
-
             if (!res.success) {
+                addSqlLog({
+                    id: `log-${Date.now()}-query-multi`,
+                    timestamp: Date.now(),
+                    sql: sourceStatements.join(';\n'),
+                    status: 'error',
+                    duration,
+                    message: res.message,
+                    dbName: currentDb
+                });
                 const errorMsg = res.message.toLowerCase();
                 const isCancelledError = errorMsg.includes('context canceled') ||
                                          errorMsg.includes('查询已取消') ||
@@ -3946,6 +3951,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             const resultSetDataArray = Array.isArray(res.data) ? (res.data as any[]) : [];
             const topLevelMessages = normalizeQueryResultMessages(res.messages);
             const nextResultSets: ResultSet[] = [];
+            const nonQueryMessages: string[] = [];
+            let nonQueryAffectedRowsTotal = 0;
+            let hasNonQueryAffectedRows = false;
+            let hasNonQueryOutcome = false;
             const maxRows = effectiveMaxRows;
             let anyTruncated = false;
             const statementResultCounts = new Map<number, number>();
@@ -3998,104 +4007,100 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
                 if (isAffectedResult) {
                     const affected = Number(rsData.rows[0]?.affectedRows);
-                    const row = { affectedRows: Number.isFinite(affected) ? affected : 0 };
-                    (row as any)[GONAVI_ROW_KEY] = 0;
-                    nextResultSets.push({
-                        key: `result-${nextResultSets.length + 1}`,
-                        sql: executedSql,
-                        exportSql: originalSql,
-                        sourceStatementIndex,
-                        statementResultIndex,
-                        rows: [row],
-                        columns: ['affectedRows'],
-                        messages: resultMessages,
-                        pkColumns: [],
-                        readOnly: true
-                    });
-                } else if ((!Array.isArray(rsData.rows) || rsData.rows.length === 0) && (!Array.isArray(rsData.columns) || rsData.columns.length === 0) && resultMessages.length > 0) {
-                    nextResultSets.push({
-                        key: `result-${nextResultSets.length + 1}`,
-                        sql: executedSql,
-                        exportSql: originalSql,
-                        sourceStatementIndex,
-                        statementResultIndex,
-                        rows: [],
-                        columns: [],
-                        messages: resultMessages,
-                        resultType: 'message',
-                        pkColumns: [],
-                        readOnly: true,
-                    });
-                } else {
-                    let rows = Array.isArray(rsData.rows) ? rsData.rows : [];
-                    let truncated = false;
-                    // 仅当前端自动注入了 LIMIT 时才做兜底截断；用户手写 LIMIT 时尊重原始结果
-                    if (anyLimitApplied && Number.isFinite(maxRows) && maxRows > 0 && rows.length > maxRows) {
-                        truncated = true;
-                        anyTruncated = true;
-                        rows = rows.slice(0, maxRows);
+                    const safeAffected = Number.isFinite(affected) ? affected : 0;
+                    hasNonQueryOutcome = true;
+                    hasNonQueryAffectedRows = true;
+                    nonQueryAffectedRowsTotal += safeAffected;
+                    if (resultMessages.length > 0) {
+                        nonQueryMessages.push(...resultMessages);
                     }
-                    const cols = (rsData.columns && rsData.columns.length > 0)
-                        ? rsData.columns
-                        : (rows.length > 0 ? Object.keys(rows[0]) : []);
-
-                    rows.forEach((row: any, i: number) => {
-                        if (row && typeof row === 'object') row[GONAVI_ROW_KEY] = i;
-                    });
-
-                    const tableRef = plan?.tableRef;
-                    const editLocator = plan?.editLocator;
-                    const page = createInitialQueryResultPagination({
-                        executedSql,
-                        exportSql: originalSql,
-                        dbType: normalizedDbType,
-                        driver,
-                        returnedRowCount: rows.length,
-                        fallbackPageSize: maxRows,
-                    });
-                    nextResultSets.push({
-                        key: `result-${nextResultSets.length + 1}`,
-                        sql: executedSql,
-                        exportSql: originalSql,
-                        sourceStatementIndex,
-                        statementResultIndex,
-                        rows,
-                        columns: cols,
-                        messages: resultMessages,
-                        tableName: tableRef?.tableName,
-                        pkColumns: plan?.pkColumns || [],
-                        editLocator,
-                        readOnly: forceReadOnlyResult || !editLocator || editLocator.readOnly,
-                        showRowNumberColumn,
-                        truncated,
-                        page,
-                    });
+                    continue;
                 }
-            }
 
-            if (topLevelMessages.length > 0 && !nextResultSets.some((result) => Array.isArray(result.messages) && result.messages.length > 0)) {
+                if ((!Array.isArray(rsData.rows) || rsData.rows.length === 0) && (!Array.isArray(rsData.columns) || rsData.columns.length === 0) && resultMessages.length > 0) {
+                    hasNonQueryOutcome = true;
+                    nonQueryMessages.push(...resultMessages);
+                    continue;
+                }
+
+                let rows = Array.isArray(rsData.rows) ? rsData.rows : [];
+                let truncated = false;
+                // 仅当前端自动注入了 LIMIT 时才做兜底截断；用户手写 LIMIT 时尊重原始结果
+                if (anyLimitApplied && Number.isFinite(maxRows) && maxRows > 0 && rows.length > maxRows) {
+                    truncated = true;
+                    anyTruncated = true;
+                    rows = rows.slice(0, maxRows);
+                }
+                const cols = (rsData.columns && rsData.columns.length > 0)
+                    ? rsData.columns
+                    : (rows.length > 0 ? Object.keys(rows[0]) : []);
+
+                rows.forEach((row: any, i: number) => {
+                    if (row && typeof row === 'object') row[GONAVI_ROW_KEY] = i;
+                });
+
+                const tableRef = plan?.tableRef;
+                const editLocator = plan?.editLocator;
+                const page = createInitialQueryResultPagination({
+                    executedSql,
+                    exportSql: originalSql,
+                    dbType: normalizedDbType,
+                    driver,
+                    returnedRowCount: rows.length,
+                    fallbackPageSize: maxRows,
+                });
                 nextResultSets.push({
                     key: `result-${nextResultSets.length + 1}`,
-                    sql: fullSQL,
-                    exportSql: sourceStatements.join(';\n'),
-                    sourceStatementIndex: 1,
-                    statementResultIndex: (statementResultCounts.get(1) || 0) + 1,
-                    rows: [],
-                    columns: [],
-                    messages: topLevelMessages,
-                    resultType: 'message',
-                    pkColumns: [],
-                    readOnly: true,
+                    sql: executedSql,
+                    exportSql: originalSql,
+                    sourceStatementIndex,
+                    statementResultIndex,
+                    rows,
+                    columns: cols,
+                    messages: resultMessages,
+                    tableName: tableRef?.tableName,
+                    pkColumns: plan?.pkColumns || [],
+                    editLocator,
+                    readOnly: forceReadOnlyResult || !editLocator || editLocator.readOnly,
+                    showRowNumberColumn,
+                    truncated,
+                    page,
                 });
             }
 
-            if (nextResultSets.length > 0) {
+            if (topLevelMessages.length > 0) {
+                const alreadyCaptured = nextResultSets.some((result) => Array.isArray(result.messages) && result.messages.length > 0)
+                    || nonQueryMessages.length > 0;
+                if (!alreadyCaptured || shouldUseTopLevelSqlServerMessages) {
+                    hasNonQueryOutcome = true;
+                    nonQueryMessages.push(...topLevelMessages);
+                }
+            }
+
+            addSqlLog({
+                id: `log-${Date.now()}-query-multi`,
+                timestamp: Date.now(),
+                sql: sourceStatements.join(';\n'),
+                status: 'success',
+                duration,
+                message: nonQueryMessages.length > 0 ? nonQueryMessages.join('\n') : undefined,
+                ...(hasNonQueryAffectedRows ? { affectedRows: nonQueryAffectedRowsTotal } : {}),
+                dbName: currentDb
+            });
+
+            if (nextResultSets.length > 0 || hasNonQueryOutcome) {
                 updateResultPanelVisibility(true);
             }
             const shouldReplaceAllResults = didExecuteWholeEditor;
             setResultSets(prev => {
                 const merged = mergeResultSets(prev, nextResultSets, shouldReplaceAllResults);
-                setActiveResultKey(resolveActiveResultKeyAfterMerge(merged, nextResultSets));
+                if (nextResultSets.length > 0) {
+                    setActiveResultKey(resolveActiveResultKeyAfterMerge(merged, nextResultSets));
+                } else if (hasNonQueryOutcome) {
+                    setActiveResultKey(QUERY_EDITOR_SQL_LOG_TAB_KEY);
+                } else {
+                    setActiveResultKey(merged[0]?.key || '');
+                }
                 return merged;
             });
             if (didExecuteAppendedSql || didExecuteWholeEditor) {
@@ -4112,7 +4117,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             }
             if (resultSetDataArray.length > 1) {
                 message.success(translate('query_editor.message.execution_result_sets_success', {
-                    results: nextResultSets.length,
+                    results: Math.max(nextResultSets.length, 1),
                 }));
             } else if (nextResultSets.length === 0) {
                 message.success(translate('query_editor.message.execution_success'));
@@ -4181,11 +4186,18 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const selectedSql = getSelectedSQL();
       const position = normalizeEditorPosition(editorRef.current?.getPosition?.());
       const cursorOffset = position ? getNormalizedOffsetAtPosition(fullSql, position) : 0;
+      const activeConnection = connections.find(connection => connection.id === currentConnectionId);
+      const dialect = resolveSqlDialect(
+          String(activeConnection?.config?.type || ''),
+          String(activeConnection?.config?.driver || ''),
+          { oceanBaseProtocol: activeConnection?.config?.oceanBaseProtocol },
+      );
       const intent = resolveSqlExecutionIntent({
           fullSql,
           selectedSql,
           cursorOffset,
           askWhatToExecute: Boolean(queryOptions?.askWhatToExecute),
+          dialect,
       });
 
       if (intent.kind === 'use-auto') {
@@ -4247,6 +4259,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       sqlExecutionChooserDisposeRef.current = dispose;
   }, [
       closeSqlExecutionChooser,
+      connections,
+      currentConnectionId,
       disposeSqlExecutionChooser,
       getCurrentQuery,
       handleRunWithSql,

@@ -34,6 +34,8 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState<number | null>(maxRows);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const effectiveMaxRowsCap = Number.isFinite(maxRowsCap) && (maxRowsCap as number) > 0
     ? Math.trunc(maxRowsCap as number)
     : MAX_MAX_ROWS;
@@ -108,9 +110,20 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
     setCustomModalOpen(true);
   };
 
+  const handleSelectOpenChange = (open: boolean) => {
+    setIsSelectOpen(open);
+    if (open) {
+      setIsTooltipOpen(false);
+    }
+  };
+
   return (
     <>
-      <Tooltip title={t('query_editor.max_rows.tooltip')}>
+      <Tooltip
+        title={t('query_editor.max_rows.tooltip')}
+        open={isTooltipOpen && !isSelectOpen}
+        onOpenChange={setIsTooltipOpen}
+      >
         <Select
           className={
             variant === 'settings'
@@ -119,6 +132,7 @@ const QueryEditorMaxRowsSelect: React.FC<QueryEditorMaxRowsSelectProps> = ({
           }
           style={undefined}
           value={maxRows}
+          onOpenChange={handleSelectOpenChange}
           onChange={(val) => {
             if (String(val) === CUSTOM_OPTION_VALUE) {
               openCustomModal();

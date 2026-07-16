@@ -75,6 +75,34 @@ describe('sidebarLocate', () => {
     });
   });
 
+  it('builds locate requests from design and table-overview tabs', () => {
+    expect(normalizeSidebarLocateObjectRequestFromTab({
+      id: 'design-conn-1-main-users',
+      type: 'design',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      tableName: 'users',
+    })).toMatchObject({
+      connectionId: 'conn-1',
+      dbName: 'main',
+      tableName: 'users',
+      objectGroup: 'tables',
+    });
+
+    expect(normalizeSidebarLocateObjectRequestFromTab({
+      id: 'overview-conn-1-main-users',
+      type: 'table-overview',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      tableName: 'users',
+    })).toMatchObject({
+      connectionId: 'conn-1',
+      dbName: 'main',
+      tableName: 'users',
+      objectGroup: 'tables',
+    });
+  });
+
   it('builds a view locate request from view tabs and rejects non-object tabs', () => {
     expect(normalizeSidebarLocateObjectRequestFromTab({
       id: 'view-def-conn-1-main-public.orders_view',
@@ -92,8 +120,37 @@ describe('sidebarLocate', () => {
       id: 'query-1',
       type: 'query',
       connectionId: 'conn-1',
-      dbName: 'main',
     })).toBeNull();
+  });
+
+  it('builds database locate requests from query tabs with selected connection and database', () => {
+    expect(normalizeSidebarLocateObjectRequestFromTab({
+      id: 'query-1',
+      type: 'query',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      query: 'select 1',
+    })).toMatchObject({
+      connectionId: 'conn-1',
+      dbName: 'main',
+      objectGroup: 'database',
+      tableName: '',
+    });
+  });
+
+  it('builds table locate requests from query tabs when SQL references a single table', () => {
+    expect(normalizeSidebarLocateObjectRequestFromTab({
+      id: 'query-1',
+      type: 'query',
+      connectionId: 'conn-1',
+      dbName: 'main',
+      query: 'SELECT id FROM users',
+    }, { dbType: 'mysql' })).toMatchObject({
+      connectionId: 'conn-1',
+      dbName: 'main',
+      tableName: 'users',
+      objectGroup: 'tables',
+    });
   });
 
   it('keeps table-style view tabs on the views branch', () => {

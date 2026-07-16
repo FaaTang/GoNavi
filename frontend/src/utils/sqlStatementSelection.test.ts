@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { findSqlStatementRanges, resolveCurrentSqlStatementRange, resolveExecutableSql } from './sqlStatementSelection';
+import {
+  findSqlJoinTableSources,
+  findSqlStatementRanges,
+  findSqlSubqueryRanges,
+  resolveCurrentSqlStatementRange,
+  resolveEnclosingSqlSubqueryRange,
+  resolveExecutableSql,
+} from './sqlStatementSelection';
 
 describe('sqlStatementSelection', () => {
   it('resolves the statement containing the cursor', () => {
@@ -423,5 +430,116 @@ describe('sqlStatementSelection', () => {
     const sql = 'select 1;\n\nselect 2;';
 
     expect(resolveExecutableSql(sql, sql.indexOf('\n\n') + 1)).toBeNull();
+  });
+
+  it('resolves the innermost MySQL subquery containing the cursor', () => {
+    const sql = [
+      'SELECT *',
+      'FROM (',
+      '  SELECT `order`, customer_id',
+      '  FROM orders',
+      '  WHERE customer_id IN (SELECT id FROM customers WHERE active = 1)',
+      ') recent_orders',
+    ].join('\n');
+    const cursor = sql.indexOf('active = 1');
+
+    expect(findSqlSubqueryRanges(sql, 'mysql').map((range) => range.text)).toEqual([
+      [
+        'SELECT `order`, customer_id',
+        '  FROM orders',
+        '  WHERE customer_id IN (SELECT id FROM customers WHERE active = 1)',
+      ].join('\n'),
+      'SELECT id FROM customers WHERE active = 1',
+    ]);
+    expect(resolveEnclosingSqlSubqueryRange(sql, cursor, 'mysql')?.text)
+      .toBe('SELECT id FROM customers WHERE active = 1');
+  });
+
+  it('recognizes a MySQL subquery after a hash comment', () => {
+    const sql = [
+      'SELECT * FROM (',
+      '  # keep active users only',
+      '  SELECT id FROM users WHERE active = 1',
+      ') active_users',
+    ].join('\n');
+
+    expect(findSqlSubqueryRanges(sql, 'mysql').map((range) => range.text)).toEqual([[
+      '# keep active users only',
+      '  SELECT id FROM users WHERE active = 1',
+    ].join('\n')]);
+    expect(resolveEnclosingSqlSubqueryRange(sql, sql.indexOf('active = 1'), 'mysql')?.text).toBe([
+      '# keep active users only',
+      '  SELECT id FROM users WHERE active = 1',
+    ].join('\n'));
+  });
+
+  it('resolves PostgreSQL WITH subqueries and ignores dollar-quoted parentheses', () => {
+    const sql = [
+      'SELECT * FROM (',
+      '  WITH source AS (',
+      "    SELECT $tag$(SELECT ignored)$tag$ AS payload, id FROM events",
+      '  )',
+      '  SELECT * FROM source',
+      ') result',
+    ].join('\n');
+    const cursor = sql.indexOf('SELECT * FROM source');
+
+    expect(findSqlSubqueryRanges(sql, 'postgres').map((range) => range.text)).toEqual([
+      [
+        'WITH source AS (',
+        "    SELECT $tag$(SELECT ignored)$tag$ AS payload, id FROM events",
+        '  )',
+        '  SELECT * FROM source',
+      ].join('\n'),
+      "SELECT $tag$(SELECT ignored)$tag$ AS payload, id FROM events",
+    ]);
+    expect(resolveEnclosingSqlSubqueryRange(sql, cursor, 'postgres')?.text).toBe([
+      'WITH source AS (',
+      "    SELECT $tag$(SELECT ignored)$tag$ AS payload, id FROM events",
+      '  )',
+      '  SELECT * FROM source',
+    ].join('\n'));
+  });
+
+  it('does not resolve function calls or subqueries for unsupported dialects', () => {
+    const sql = 'SELECT COALESCE((SELECT name FROM users LIMIT 1), \'none\')';
+
+    expect(findSqlSubqueryRanges(sql, 'mysql').map((range) => range.text)).toEqual([
+      'SELECT name FROM users LIMIT 1',
+    ]);
+    expect(resolveEnclosingSqlSubqueryRange(sql, sql.indexOf('COALESCE'), 'mysql')).toBeNull();
+    expect(findSqlSubqueryRanges(sql, 'oracle')).toEqual([]);
+    expect(resolveEnclosingSqlSubqueryRange(sql, sql.indexOf('name'), 'oracle')).toBeNull();
+  });
+
+  it('finds join and comma-join table sources while skipping derived tables', () => {
+    const sql = [
+      'SELECT u.id, o.amount, s.c',
+      'FROM users u',
+      'INNER JOIN `orders` o ON u.id = o.user_id',
+      'LEFT JOIN (SELECT user_id, COUNT(*) c FROM orders GROUP BY user_id) s ON u.id = s.user_id',
+      'WHERE u.active = 1',
+    ].join('\n');
+
+    expect(findSqlJoinTableSources(sql, 'mysql').map((source) => ({
+      tableRef: source.tableRef,
+      executableSql: source.executableSql,
+    }))).toEqual([
+      { tableRef: 'users', executableSql: 'SELECT * FROM users' },
+      { tableRef: '`orders`', executableSql: 'SELECT * FROM `orders`' },
+    ]);
+  });
+
+  it('finds PostgreSQL schema-qualified join tables', () => {
+    const sql = [
+      'SELECT *',
+      'FROM public.users u',
+      'JOIN "Order".items i ON u.id = i.user_id',
+    ].join('\n');
+
+    expect(findSqlJoinTableSources(sql, 'postgres').map((source) => source.tableRef)).toEqual([
+      'public.users',
+      '"Order".items',
+    ]);
   });
 });

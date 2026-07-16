@@ -462,7 +462,9 @@ const QueryEditorResultsPanel: React.FC<QueryEditorResultsPanelProps> = ({
     const handleResultTabChange = (key: string) => {
         onActiveResultKeyChange(key);
         requestAnimationFrame(() => {
-            const surface = document.querySelector(`[data-gonavi-data-grid-surface="${key}"]`) as HTMLElement | null;
+            const surface = typeof document?.querySelector === 'function'
+                ? document.querySelector(`[data-gonavi-data-grid-surface="${key}"]`) as HTMLElement | null
+                : null;
             surface?.focus?.();
         });
     };

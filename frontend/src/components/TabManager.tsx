@@ -1,7 +1,7 @@
 import Modal from './common/ResizableDraggableModal';
 import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, message, Tabs, Tooltip } from 'antd';
-import { AppstoreOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, AimOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import type { MenuProps, TabsProps } from 'antd';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragStartEvent, DragEndEvent, DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
@@ -53,6 +53,7 @@ import {
   isClosableQueryTab,
   resolveQueryTabSavedQueryId,
 } from '../utils/queryTabDirty';
+import { normalizeSidebarLocateObjectRequestFromTab } from '../utils/sidebarLocate';
 
 const LazyTableDesigner = lazy(() => import('./TableDesigner'));
 const LazySqlAnalysisWorkbench = lazy(() => import('./explain/SqlAnalysisWorkbench'));
@@ -374,7 +375,12 @@ type SortableTabLabelProps = {
   displayTitle: string;
   menuItems: MenuProps['items'];
   connectionLabel?: string;
-  hostSummary?: string;  onClose?: () => void;
+  hostSummary?: string;
+  isActive?: boolean;
+  canLocate?: boolean;
+  locateTooltip?: string;
+  onLocate?: () => void;
+  onClose?: () => void;
 };
 
 const renderV2TabDisplayPart = (part: TabDisplayPart) => {
@@ -398,7 +404,12 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
   displayTitle,
   menuItems,
   connectionLabel,
-  hostSummary,  onClose,
+  hostSummary,
+  isActive = false,
+  canLocate = false,
+  locateTooltip = '',
+  onLocate,
+  onClose,
 }) => {
   const [isHoverInfoOpen, setIsHoverInfoOpen] = useState(false);
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
@@ -448,6 +459,28 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
     onClose?.();
   };
 
+  const handleTabLocatePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    stopTabClosePointerActivation(event);
+    onLocate?.();
+  };
+
+  const tabLocateButton = isActive ? (
+    <Tooltip title={locateTooltip}>
+      <button
+        type="button"
+        className="gn-v2-tab-locate"
+        data-tab-locate-current-action="true"
+        aria-label={locateTooltip}
+        disabled={!canLocate}
+        onPointerDown={handleTabLocatePointerDown}
+        onMouseDown={stopTabClosePointerActivation}
+        onClick={stopTabClosePointerActivation}
+      >
+        <AimOutlined />
+      </button>
+    </Tooltip>
+  ) : null;
+
   const tabCloseButton = onClose ? (
     <button
       type="button"
@@ -491,9 +524,10 @@ const SortableTabLabel: React.FC<SortableTabLabelProps> = ({
       rootClassName={'gn-v2-tab-context-menu-popup'}
     >
       <span
-          className={`tab-dnd-label gn-v2-tab-label${showSecondaryLine ? ' gn-v2-tab-label-double' : ''}${tabDisplayPartCount >= 4 ? ' gn-v2-tab-label-rich' : ''}`}
+          className={`tab-dnd-label gn-v2-tab-label${isActive ? ' gn-v2-tab-label-active' : ''}${showSecondaryLine ? ' gn-v2-tab-label-double' : ''}${tabDisplayPartCount >= 4 ? ' gn-v2-tab-label-rich' : ''}`}
           onContextMenu={handleTabLabelContextMenu}
         >
+          {tabLocateButton}
           {wrappedTitle}
           {tabCloseButton}
         </span>
@@ -641,7 +675,8 @@ const TabManager: React.FC = React.memo(() => {
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
     })
-  );  const hasTabs = tabs.length > 0;
+  );
+  const hasTabs = tabs.length > 0;
   const memoryPolicy = useMemo(
     () => resolveMemoryPolicy(memorySettings, appearance),
     [appearance, memorySettings],
@@ -901,6 +936,27 @@ const TabManager: React.FC = React.memo(() => {
   }, [tabs, activeTabId, addTab, setActiveTab, connections]);
 
   const tabIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
+  const activeTab = useMemo(() => tabs.find((tab) => tab.id === activeTabId) || null, [tabs, activeTabId]);
+  const activeTabConnection = useMemo(
+    () => connections.find((conn) => conn.id === activeTab?.connectionId),
+    [connections, activeTab?.connectionId],
+  );
+  const activeTabLocateRequest = useMemo(
+    () => normalizeSidebarLocateObjectRequestFromTab(activeTab, {
+      dbType: activeTabConnection?.config?.type,
+    }),
+    [activeTab, activeTabConnection?.config?.type],
+  );
+  const locateActiveTabUnavailableTooltip = t('sidebar.message.locate_current_tab_unavailable');
+  const handleLocateActiveTab = useCallback(() => {
+    if (!activeTabLocateRequest) {
+      message.warning(locateActiveTabUnavailableTooltip);
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('gonavi:locate-sidebar-object', {
+      detail: activeTabLocateRequest,
+    }));
+  }, [activeTabLocateRequest, locateActiveTabUnavailableTooltip]);
   const hasDoubleLineTabLabel = useMemo(() => (
     tabs.some((tab) => {
       const connection = connections.find((conn) => conn.id === tab.connectionId);
@@ -921,6 +977,15 @@ const TabManager: React.FC = React.memo(() => {
     const displayTitle = displayModel.fullTitle;
     const hostSummary = resolveConnectionHostSummary(connection?.config);
     const tabIsActive = tab.id === activeTabId;
+    const tabLocateRequest = normalizeSidebarLocateObjectRequestFromTab(tab, {
+      dbType: connection?.config?.type,
+    });
+    const canLocateTab = Boolean(tabLocateRequest);
+    const locateTabTooltip = canLocateTab
+      ? (tabLocateRequest?.objectGroup === 'database'
+        ? t('sidebar.action.locate_current_tab')
+        : t('sidebar.action.locate_current_table'))
+      : t('sidebar.message.locate_current_tab_unavailable');
 
     const menuItems: MenuProps['items'] = [
       {
@@ -966,6 +1031,10 @@ const TabManager: React.FC = React.memo(() => {
           menuItems={menuItems}
           connectionLabel={connection?.name}
           hostSummary={hostSummary}
+          isActive={tabIsActive}
+          canLocate={canLocateTab}
+          locateTooltip={locateTabTooltip}
+          onLocate={handleLocateActiveTab}
           onClose={() => closeTabsWithQueryPrompt([tab.id], () => closeTab(tab.id))}
         />
       ),
@@ -973,7 +1042,7 @@ const TabManager: React.FC = React.memo(() => {
       closable: false,
       children: <TabContent tab={tab} isActive={tabIsActive} lazyHeavyModules={lazyHeavyModules} />,
     };
-  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithQueryPrompt, languagePreference, lazyHeavyModules]);
+  }), [tabs, connections, appearance.tabDisplay, activeTabId, closeOtherTabs, closeTabsToLeft, closeTabsToRight, closeAllTabs, closeTab, closeTabsWithQueryPrompt, handleLocateActiveTab, languagePreference, lazyHeavyModules]);
 
   const handleOpenConnectionModal = () => {
     const target = document.querySelector<HTMLButtonElement>('[data-gonavi-create-connection-action="true"]');

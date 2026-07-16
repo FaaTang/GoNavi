@@ -1,6 +1,7 @@
 import { splitQualifiedNameLast } from './qualifiedName';
+import { extractQueryResultTableRef } from './queryResultTable';
 
-export type SidebarLocateObjectGroup = 'tables' | 'views' | 'materializedViews' | 'triggers' | 'routines' | 'sequences' | 'packages' | 'externalSqlFiles';
+export type SidebarLocateObjectGroup = 'tables' | 'views' | 'materializedViews' | 'triggers' | 'routines' | 'sequences' | 'packages' | 'database' | 'externalSqlFiles';
 export type SidebarLocateDatabaseObjectGroup = Exclude<SidebarLocateObjectGroup, 'externalSqlFiles'>;
 
 export interface SidebarLocateDatabaseObjectRequest {
@@ -51,6 +52,7 @@ export interface SidebarLocateTabLike {
   type?: string;
   connectionId?: string;
   dbName?: string;
+  query?: string;
   tableName?: string;
   viewName?: string;
   viewKind?: string;
@@ -125,6 +127,20 @@ export const normalizeSidebarLocateObjectRequest = (detail: unknown): SidebarLoc
 
   const connectionId = toTrimmedString(raw.connectionId);
   const dbName = toTrimmedString(raw.dbName);
+  const explicitObjectGroup = toTrimmedString(raw.objectGroup);
+  if (explicitObjectGroup === 'database') {
+    if (!connectionId || !dbName) {
+      return null;
+    }
+    return {
+      tabId: toTrimmedString(raw.tabId) || undefined,
+      connectionId,
+      dbName,
+      tableName: '',
+      objectGroup: 'database',
+    };
+  }
+
   const tableName = toTrimmedString(raw.tableName || raw.objectName || raw.viewName || raw.triggerName || raw.routineName || raw.sequenceName || raw.packageName);
 
   if (!connectionId || !dbName || !tableName) {
@@ -144,7 +160,31 @@ export const normalizeSidebarLocateObjectRequest = (detail: unknown): SidebarLoc
   };
 };
 
-export const normalizeSidebarLocateObjectRequestFromTab = (tab: SidebarLocateTabLike | null | undefined): SidebarLocateObjectRequest | null => {
+export type SidebarLocateTabResolveOptions = {
+  dbType?: string;
+};
+
+const resolveQueryTabLocateTableName = (
+  tab: SidebarLocateTabLike,
+  dbType?: string,
+): string => {
+  const explicitTableName = toTrimmedString(tab.tableName);
+  if (explicitTableName) {
+    return explicitTableName;
+  }
+  const dbName = toTrimmedString(tab.dbName);
+  const querySql = toTrimmedString(tab.query);
+  if (!querySql || !dbName) {
+    return '';
+  }
+  const tableRef = extractQueryResultTableRef(querySql, dbType || 'mysql', dbName, toTrimmedString(tab.schemaName));
+  return toTrimmedString(tableRef?.tableName);
+};
+
+export const normalizeSidebarLocateObjectRequestFromTab = (
+  tab: SidebarLocateTabLike | null | undefined,
+  options: SidebarLocateTabResolveOptions = {},
+): SidebarLocateObjectRequest | null => {
   if (!tab) return null;
   const filePath = normalizeExternalSQLLocatePath(tab.filePath);
   if (tab.type === 'query' && filePath) {
@@ -155,6 +195,31 @@ export const normalizeSidebarLocateObjectRequestFromTab = (tab: SidebarLocateTab
       filePath,
       fileName: tab.id,
     });
+  }
+
+  if (tab.type === 'query') {
+    const connectionId = toTrimmedString(tab.connectionId);
+    const dbName = toTrimmedString(tab.dbName);
+    if (!connectionId || !dbName) {
+      return null;
+    }
+    const tableName = resolveQueryTabLocateTableName(tab, options.dbType);
+    if (tableName) {
+      return normalizeSidebarLocateObjectRequest({
+        tabId: tab.id,
+        connectionId,
+        dbName,
+        tableName,
+        schemaName: tab.schemaName,
+      });
+    }
+    return {
+      tabId: toTrimmedString(tab.id) || undefined,
+      connectionId,
+      dbName,
+      tableName: '',
+      objectGroup: 'database',
+    };
   }
 
   const objectName = tab.type === 'view-def'
@@ -168,7 +233,19 @@ export const normalizeSidebarLocateObjectRequestFromTab = (tab: SidebarLocateTab
           : tab.type === 'package-def'
             ? toTrimmedString(tab.packageName || tab.tableName)
             : toTrimmedString(tab.tableName || tab.viewName);
-  if (tab.type !== 'table' && tab.type !== 'view-def' && tab.type !== 'trigger' && tab.type !== 'routine-def' && tab.type !== 'sequence-def' && tab.type !== 'package-def') {
+  if (
+    tab.type !== 'table'
+    && tab.type !== 'design'
+    && tab.type !== 'table-overview'
+    && tab.type !== 'view-def'
+    && tab.type !== 'trigger'
+    && tab.type !== 'routine-def'
+    && tab.type !== 'sequence-def'
+    && tab.type !== 'package-def'
+  ) {
+    return null;
+  }
+  if (!objectName) {
     return null;
   }
 
@@ -215,6 +292,20 @@ export const resolveSidebarLocateTarget = (
 
   const connectionKey = request.connectionId;
   const databaseKey = `${request.connectionId}-${request.dbName}`;
+  if (request.objectGroup === 'database') {
+    return {
+      connectionKey,
+      databaseKey,
+      targetKey: databaseKey,
+      objectGroup: 'database',
+      objectGroupKey: databaseKey,
+      expectedAncestorKeys: [connectionKey],
+      connectionId: request.connectionId,
+      dbName: request.dbName,
+      tableName: '',
+      schemaName: '',
+    };
+  }
   const fallbackTargetKey = request.objectGroup === 'materializedViews'
     ? `${databaseKey}-materialized-view-${request.tableName}`
     : request.objectGroup === 'views'

@@ -123,7 +123,6 @@ import { Tree, message, Dropdown, MenuProps, Input, Button, Form, Popover, Toolt
   FilterOutlined,
   DashboardOutlined,
   WarningOutlined,
-  AimOutlined,
   MoreOutlined,
   ToolOutlined,
   SettingOutlined,
@@ -155,7 +154,6 @@ import {
     findSidebarNodePathByKey,
     findSidebarNodePathForLocate,
     normalizeSidebarLocateObjectRequest,
-    normalizeSidebarLocateObjectRequestFromTab,
     resolveSidebarLocateTarget,
     type SidebarLocateTreeNodeLike,
 } from '../utils/sidebarLocate';
@@ -479,8 +477,6 @@ const Sidebar: React.FC<{
   const sidebarDbCacheLimit = resolveSidebarDbCacheLimit(memoryPolicy);
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const activeTab = useMemo(() => tabs.find(tab => tab.id === activeTabId) || null, [tabs, activeTabId]);
-  const activeTabLocateRequest = useMemo(() => normalizeSidebarLocateObjectRequestFromTab(activeTab), [activeTab]);
-  const canLocateActiveTab = !!activeTabLocateRequest;
 
   // Background Helper (Duplicate logic for now, ideally shared)
   const getBg = (darkHex: string) => {
@@ -1352,6 +1348,51 @@ const Sidebar: React.FC<{
           return;
       }
 
+      if (request.objectGroup === 'database') {
+          const conn = connections.find(item => item.id === request.connectionId);
+          if (!conn) {
+              message.warning(t('sidebar.message.locate_connection_not_found_for_object'));
+              return;
+          }
+
+          const target = resolveSidebarLocateTarget(request, { groupBySchema: false });
+          const dbLoadKey = `dbs-${request.connectionId}`;
+          let path = findSidebarNodePathByKey(treeDataRef.current as SidebarLocateTreeNodeLike[], target.databaseKey);
+          if (!path) {
+              const connectionNode = findTreeNodeByKey(treeDataRef.current, target.connectionKey);
+              if (!connectionNode) {
+                  message.warning(t('sidebar.message.locate_connection_not_in_tree'));
+                  return;
+              }
+              if (loadingNodesRef.current.has(dbLoadKey)) {
+                  const loaded = await waitForSidebarLoadKey(dbLoadKey);
+                  if (!loaded) {
+                      message.info(t('sidebar.message.locate_database_loading', { database: request.dbName }));
+                      return;
+                  }
+              } else {
+                  await loadDatabases(connectionNode);
+              }
+          }
+
+          path = findSidebarNodePathByKey(treeDataRef.current as SidebarLocateTreeNodeLike[], target.databaseKey);
+          if (!path) {
+              message.warning(t('sidebar.message.locate_database_not_found', { database: request.dbName }));
+              return;
+          }
+
+          const targetKey = path[path.length - 1];
+          const targetNode = findTreeNodeByKey(treeDataRef.current, targetKey);
+          setSearchValue('');
+          mergeExpandedTreeKeys(path.slice(0, -1));
+          setSelectedKeys([targetKey]);
+          selectedKeysRef.current = [targetKey];
+          selectedNodesRef.current = targetNode ? [targetNode] : [];
+          setActiveContext({ connectionId: request.connectionId, dbName: request.dbName });
+          scrollSidebarTreeToKey(targetKey);
+          return;
+      }
+
       const conn = connections.find(item => item.id === request.connectionId);
       if (!conn) {
           message.warning(t('sidebar.message.locate_connection_not_found_for_object'));
@@ -1432,14 +1473,6 @@ const Sidebar: React.FC<{
       selectedNodesRef.current = targetNode ? [targetNode] : [];
       setActiveContext({ connectionId: request.connectionId, dbName: request.dbName });
       scrollSidebarTreeToKey(targetKey);
-  };
-
-  const handleLocateActiveTabInSidebar = () => {
-      if (!activeTabLocateRequest) {
-          message.warning(t('sidebar.message.locate_current_table_unavailable'));
-          return;
-      }
-      void locateObjectInSidebar(activeTabLocateRequest);
   };
 
   useEffect(() => {
@@ -2511,8 +2544,6 @@ const Sidebar: React.FC<{
   const v2BatchTablesLabel = t('sidebar.action.batch_tables');
   const v2BatchDatabasesLabel = t('sidebar.action.batch_databases');
   const v2OpenExternalSqlFileLabel = t('sidebar.sql_file_exec.title');
-  const v2LocateCurrentTableLabel = t('sidebar.action.locate_current_table');
-  const v2LocateCurrentTableUnavailableLabel = t('sidebar.message.locate_current_table_unavailable');
   const v2AiAssistantLabel = t('app.sidebar.ai_assistant');
   const v2ToolsLabel = t('app.sidebar.tools');
   const v2SettingsLabel = t('app.sidebar.settings');
@@ -2848,8 +2879,6 @@ const Sidebar: React.FC<{
       batchTables: v2BatchTablesLabel,
       batchDatabases: v2BatchDatabasesLabel,
       openExternalSqlFile: v2OpenExternalSqlFileLabel,
-      locateCurrentTable: v2LocateCurrentTableLabel,
-      locateCurrentTableUnavailable: v2LocateCurrentTableUnavailableLabel,
       aiAssistant: v2AiAssistantLabel,
       tools: v2ToolsLabel,
       settings: v2SettingsLabel,
@@ -2862,13 +2891,11 @@ const Sidebar: React.FC<{
       openBatchTableExport: () => openBatchTableExportWorkbench(),
       openBatchDatabaseExport: () => openBatchDatabaseExportWorkbench(),
       openExternalSqlFile: handleOpenSQLFileFromToolbar,
-      locateActiveTab: handleLocateActiveTabInSidebar,
       toggleAI: onToggleAI ?? (() => {}),
       openTools: onOpenTools ?? (() => {}),
       openSettings: onOpenSettings ?? (() => {}),
       toggleShowLabels: () => setAppearance({ sidebarRailShowLabels: !sidebarRailShowLabels }),
     },
-    canLocateActiveTab,
   };
 
   return (

@@ -3537,6 +3537,43 @@ body[data-ui-version="v2"] .gn-v2-tab-tooltip-target {
   overflow: hidden;
 }
 
+body[data-ui-version="v2"] .gn-v2-tab-label-active {
+  padding-left: 4px;
+}
+
+body[data-ui-version="v2"] .gn-v2-tab-locate {
+  position: relative;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--gn-fg-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+body[data-ui-version="v2"] .gn-v2-tab-locate .anticon {
+  font-size: 11px;
+}
+
+body[data-ui-version="v2"] .gn-v2-tab-locate:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--gn-bg-active);
+  color: var(--gn-fg-1);
+}
+
+body[data-ui-version="v2"] .gn-v2-tab-locate:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
 body[data-ui-version="v2"] .gn-v2-tab-close {
   position: relative;
   z-index: 2;

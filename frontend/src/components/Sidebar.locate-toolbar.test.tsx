@@ -634,14 +634,17 @@ describe('Sidebar locate toolbar', () => {
     expect(handlersSource).toContain('void disconnectConnectionNode(node)');
   });
 
-  it('renders the current table locate action in the sidebar toolbar', () => {
+  it('keeps the current table locate action out of the sidebar toolbar', () => {
     const markup = renderSidebarMarkup();
-    const externalSqlActionIndex = markup.indexOf('data-sidebar-open-external-sql-file-action="true"');
-    const locateActionIndex = markup.indexOf('data-sidebar-locate-current-tab-action="true"');
+    const tabManagerSource = readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8');
 
-    expect(markup).toContain('data-sidebar-locate-current-tab-action="true"');
-    expect(markup).toContain('aria-label="定位当前打开表"');
-    expect(locateActionIndex).toBeGreaterThan(externalSqlActionIndex);
+    expect(markup).not.toContain('data-sidebar-locate-current-tab-action="true"');
+    expect(markup).toContain('data-sidebar-open-external-sql-file-action="true"');
+    expect(tabManagerSource).toContain('data-tab-locate-current-action="true"');
+    expect(tabManagerSource).toContain('gn-v2-tab-locate');
+    expect(tabManagerSource).not.toContain('gn-v2-tab-bar-leading-actions');
+    expect(tabManagerSource).toContain('gonavi:locate-sidebar-object');
+    expect(tabManagerSource).toContain('normalizeSidebarLocateObjectRequestFromTab');
   });
 
   it('passes the exact tree key when locating a command-search object node', () => {
@@ -695,7 +698,7 @@ describe('Sidebar locate toolbar', () => {
 
     expect(markup).toContain('gn-v2-connection-rail');
     expect(markup).toContain('gn-v2-rail-primary-actions');
-    expect(markup).toContain('data-sidebar-locate-current-tab-action="true"');
+    expect(markup).not.toContain('data-sidebar-locate-current-tab-action="true"');
     expect(source).toContain('SidebarConnectionRail');
   });
 
@@ -744,7 +747,7 @@ describe('Sidebar locate toolbar', () => {
     expect(markup).toContain('data-sidebar-batch-table-action="true"');
     expect(markup).toContain('data-sidebar-batch-database-action="true"');
     expect(markup).toContain('data-sidebar-open-external-sql-file-action="true"');
-    expect(markup).toContain('data-sidebar-locate-current-tab-action="true"');
+    expect(markup).not.toContain('data-sidebar-locate-current-tab-action="true"');
     expect(markup).toContain('data-gonavi-create-connection-action="true"');
     expect(markup).toContain('aria-label="AI 助手"');
     expect(markup).toContain('data-gonavi-ai-entry-action="true"');
