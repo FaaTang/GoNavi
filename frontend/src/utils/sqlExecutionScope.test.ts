@@ -124,19 +124,19 @@ describe('sqlExecutionScope', () => {
     expect(intent.options[1]).toMatchObject({
       tableName: 'users',
       sql: 'SELECT * FROM users',
-      highlightStart: 0,
+      highlightStart: sql.indexOf('users'),
       highlightEnd: sql.indexOf('users') + 'users'.length,
     });
     expect(intent.options[2]).toMatchObject({
       tableName: 'orders',
       sql: 'SELECT * FROM orders',
-      highlightStart: sql.indexOf('JOIN orders'),
+      highlightStart: sql.indexOf('orders'),
       highlightEnd: sql.indexOf('orders') + 'orders'.length,
     });
     expect(intent.defaultOptionId).toBe('statement-0');
   });
 
-  it('highlights the select-from fragment for each joined select table', () => {
+  it('highlights only the table name for per-table probe options', () => {
     const sql = 'select * from t_channel_oppwa_auth_req JOIN SELECT * from t_channel_nuvei_auth_req';
     const options = buildSqlExecutionChooserOptions(sql, 0, 'mysql');
     const first = options.find((option) => option.id === 'table-0');
@@ -144,13 +144,13 @@ describe('sqlExecutionScope', () => {
 
     expect(first).toMatchObject({
       sql: 'SELECT * FROM t_channel_oppwa_auth_req',
-      highlightStart: 0,
-      highlightEnd: 'select * from t_channel_oppwa_auth_req'.length,
+      highlightStart: sql.indexOf('t_channel_oppwa_auth_req'),
+      highlightEnd: sql.indexOf('t_channel_oppwa_auth_req') + 't_channel_oppwa_auth_req'.length,
     });
     expect(sql.slice(first!.highlightStart, first!.highlightEnd))
-      .toBe('select * from t_channel_oppwa_auth_req');
+      .toBe('t_channel_oppwa_auth_req');
     expect(sql.slice(second!.highlightStart, second!.highlightEnd))
-      .toBe('SELECT * from t_channel_nuvei_auth_req');
+      .toBe('t_channel_nuvei_auth_req');
   });
 
   it('keeps explicit selection precedence over subquery detection', () => {

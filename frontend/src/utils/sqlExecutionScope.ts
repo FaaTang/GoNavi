@@ -5,7 +5,6 @@ import {
   resolveCurrentSqlStatementRange,
   resolveEnclosingSqlSubqueryRange,
   resolveExecutableSql,
-  resolveSqlTableSourceHighlightRange,
   type SqlStatementRange,
 } from './sqlStatementSelection';
 
@@ -120,18 +119,12 @@ export function buildSqlExecutionChooserOptions(
   // Only surface per-table probes for real multi-table (join / comma-join) queries.
   if (tableSources.length >= 2) {
     tableSources.forEach((source, index) => {
-      const highlight = resolveSqlTableSourceHighlightRange(
-        text,
-        source.start,
-        source.end,
-        dialect,
-      );
       options.push({
         id: buildSqlExecutionTableOptionId(index),
         sql: source.executableSql,
         preview: truncateSqlPreview(source.executableSql),
-        highlightStart: highlight.start,
-        highlightEnd: highlight.end,
+        highlightStart: source.start,
+        highlightEnd: source.end,
         statementCount: 1,
         tableName: source.tableRef,
       });
