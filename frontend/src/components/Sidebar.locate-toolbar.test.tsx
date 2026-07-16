@@ -631,7 +631,15 @@ describe('Sidebar locate toolbar', () => {
     const handlersSource = readSourceFile('./sidebar/useSidebarV2ActionHandlers.tsx');
     expect(handlersSource).toContain('DBReleaseConnection');
     expect(handlersSource).toContain('releaseConnectionResources');
+    expect(handlersSource).toContain('closeTabsWithSavePrompt');
     expect(handlersSource).toContain('void disconnectConnectionNode(node)');
+  });
+
+  it('prompts to save dirty query tabs before disconnecting a sidebar connection', () => {
+    const handlersSource = readSourceFile('./sidebar/useSidebarV2ActionHandlers.tsx');
+    expect(handlersSource).toContain('closeTabsWithSavePrompt(tabsToClose, () => closeTabsByConnection(connKey))');
+    expect(handlersSource).toContain('closeTabsWithSavePrompt(tabsToClose, () => closeTabsByDatabase(dbConnId, dbName))');
+    expect(handlersSource).not.toContain('closeTabsByConnection(connKey);\n    try');
   });
 
   it('keeps the current table locate action out of the sidebar toolbar', () => {

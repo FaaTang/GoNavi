@@ -338,36 +338,12 @@ describe('TabManager hover info', () => {
   it('guards closing query tabs with save confirmation', () => {
     const source = stripSourceComments(readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8'));
 
-    expect(source).toContain('ReadSQLFile(filePath)');
-    expect(source).toContain('isSQLFileMissingReadResult(res)');
-    expect(source).toContain('isSQLFileMissingErrorMessage(errorMessage)');
-    TAB_MANAGER_QUERY_CLOSE_I18N_KEYS.forEach((key) => {
-      expect(source).toContain(`t('${key}'`);
-    });
-    [
-      '读取 SQL 文件失败，已取消关闭',
-      '保存 SQL 文件修改？',
-      '有未保存修改，是否保存后再关闭？',
-      '保存并关闭',
-      '不保存',
-      '未知错误',
-      'SQL 文件已保存',
-      '关闭已丢失的 SQL 文件标签？',
-      '对应的外部 SQL 文件已不存在或已被移动',
-      '继续关闭',
-      '关闭标签',
-    ].forEach((text) => {
-      expect(source).not.toContain(text);
-    });
-    expect(source).toContain('confirmDirtyTabsOrClose();');
-    expect(source).toContain("getQueryTabDraft(tab.id, String(tab.query ?? ''))");
-    expect(source).toContain('hasQueryTabUnsavedChanges');
+    expect(source).toContain("import { requestCloseQueryTabs } from '../utils/queryTabClosePrompt'");
     expect(source).toContain('closeTabsWithQueryPrompt([id], () => closeTab(id))');
     expect(source).toContain('closeTabsWithQueryPrompt(getCloseOtherTabIds(tabs, tab.id), () => closeOtherTabs(tab.id))');
     expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id))');
     expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id))');
     expect(source).toContain('closeTabsWithQueryPrompt(tabs.map((item) => item.id), () => closeAllTabs())');
-    expect(source).toContain('flushQueryTabDrafts(targetTabs.map((tab) => tab.id))');
     expect(source).toContain("window.addEventListener('gonavi:close-active-tab', handleCloseActiveTab)");
   });
 

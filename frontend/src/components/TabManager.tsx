@@ -1,6 +1,5 @@
-import Modal from './common/ResizableDraggableModal';
 import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
-import { Button, Dropdown, Input, message, Tabs, Tooltip } from 'antd';
+import { Button, Dropdown, message, Tabs, Tooltip } from 'antd';
 import { AppstoreOutlined, AimOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import type { MenuProps, TabsProps } from 'antd';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
@@ -25,7 +24,7 @@ import JVMAuditViewer from './JVMAuditViewer';
 import JVMDiagnosticConsole from './JVMDiagnosticConsole';
 import JVMMonitoringDashboard from './JVMMonitoringDashboard';
 import SqlAnalysisWorkbench from './explain/SqlAnalysisWorkbench';
-import type { SavedQuery, TabData } from '../types';
+import type { TabData } from '../types';
 import { t } from '../i18n';
 import {
   buildTabDisplayModel,
@@ -33,26 +32,12 @@ import {
   type TabDisplayPart,
   type TabDisplayModel,
 } from '../utils/tabDisplay';
-import { ReadSQLFile, WriteSQLFile } from '../../wailsjs/go/app/App';
-import {
-  getSQLFileTabPath,
-  isSQLFileMissingErrorMessage,
-  isSQLFileMissingReadResult,
-  normalizeSQLFileReadContent,
-} from '../utils/sqlFileTabDirty';
 import {
   resolveMemoryPolicy,
   shouldDestroyInactiveTabs,
   shouldLazyLoadHeavyModules,
 } from '../utils/memoryPolicy';
-import { clearQueryTabDraft, flushQueryTabDrafts, getQueryTabDraft } from '../utils/sqlFileTabDrafts';
-import { isLocalizedUntitledQueryTitle } from '../utils/queryTabTitle';
-import {
-  getQueryTabCloseLabel,
-  hasQueryTabUnsavedChanges,
-  isClosableQueryTab,
-  resolveQueryTabSavedQueryId,
-} from '../utils/queryTabDirty';
+import { requestCloseQueryTabs } from '../utils/queryTabClosePrompt';
 import { normalizeSidebarLocateObjectRequestFromTab } from '../utils/sidebarLocate';
 
 const LazyTableDesigner = lazy(() => import('./TableDesigner'));
@@ -97,94 +82,6 @@ const getTabKindLabel = (tab: TabData): string => {
 };
 
 export const TAB_WORKBENCH_CLASS_NAME = 'tab-workbench';
-
-type DirtyQueryTabEntry = {
-  tab: TabData;
-  draft: string;
-};
-
-const promptQuerySaveName = (suggestedName: string): Promise<string | null> => (
-  new Promise((resolve) => {
-    let nextName = suggestedName;
-    const modal = Modal.confirm({
-      title: t('tab_manager.query_close.name_required_title'),
-      content: (
-        <Input
-          autoFocus
-          defaultValue={suggestedName}
-          placeholder={t('query_editor.save_modal.name')}
-          onChange={(event) => {
-            nextName = event.target.value;
-          }}
-        />
-      ),
-      okText: t('common.save'),
-      cancelText: t('common.cancel'),
-      onOk: () => {
-        const trimmed = String(nextName || '').trim();
-        if (!trimmed) {
-          void message.warning(t('tab_manager.query_close.name_empty'));
-          return Promise.reject(new Error('empty-query-name'));
-        }
-        resolve(trimmed);
-        return Promise.resolve();
-      },
-      onCancel: () => resolve(null),
-    });
-    void modal;
-  })
-);
-
-const saveDirtyQueryTab = async (
-  entry: DirtyQueryTabEntry,
-  savedQueries: SavedQuery[],
-  saveQueryFn: (query: SavedQuery) => Promise<SavedQuery>,
-): Promise<void> => {
-  const { tab, draft } = entry;
-  const filePath = getSQLFileTabPath(tab);
-  if (filePath) {
-    const res = await WriteSQLFile(filePath, draft);
-    if (!res.success) {
-      throw new Error(t('tab_manager.query_close.save_failed', {
-        title: getQueryTabCloseLabel(tab, savedQueries),
-        detail: res.message || t('tab_manager.sql_file_close.unknown_error'),
-      }));
-    }
-    return;
-  }
-
-  const savedQueryId = resolveQueryTabSavedQueryId(tab, savedQueries);
-  const existing = savedQueryId
-    ? savedQueries.find((item) => item.id === savedQueryId) || null
-    : null;
-  if (existing) {
-    await saveQueryFn({
-      ...existing,
-      sql: draft,
-      connectionId: tab.connectionId || existing.connectionId,
-      dbName: tab.dbName || existing.dbName || '',
-    });
-    return;
-  }
-
-  let name = isLocalizedUntitledQueryTitle(tab.title) ? '' : String(tab.title || '').trim();
-  if (!name) {
-    const promptedName = await promptQuerySaveName('');
-    if (!promptedName) {
-      throw new Error('cancelled-query-save');
-    }
-    name = promptedName;
-  }
-
-  await saveQueryFn({
-    id: String(tab.id || '').trim() || `query-${Date.now()}`,
-    name,
-    sql: draft,
-    connectionId: tab.connectionId,
-    dbName: tab.dbName || '',
-    createdAt: Date.now(),
-  });
-};
 
 const getTabKindTooltipLabel = (tab: TabData): string => {
   if (tab.type === 'query') return t('tab_manager.hover.kind.query');
@@ -697,139 +594,6 @@ const TabManager: React.FC = React.memo(() => {
     setActiveTab(newActiveKey);
   };
 
-  const requestCloseQueryTabs = useCallback(async (
-    targetTabs: TabData[],
-    closeConfirmedTabs: () => void,
-  ) => {
-    flushQueryTabDrafts(targetTabs.map((tab) => tab.id));
-
-    const candidateTabs = targetTabs.filter(isClosableQueryTab);
-    const savedQueriesSnapshot = useStore.getState().savedQueries;
-    const saveQueryFn = useStore.getState().saveQuery;
-
-    const closeConfirmedTabsAndClearDrafts = () => {
-      closeConfirmedTabs();
-      candidateTabs.forEach((tab) => clearQueryTabDraft(tab.id));
-    };
-
-    if (candidateTabs.length === 0) {
-      closeConfirmedTabs();
-      return;
-    }
-
-    const dirtyTabs: DirtyQueryTabEntry[] = [];
-    const missingFileTabs: Array<{ tab: TabData; filePath: string }> = [];
-    for (const tab of candidateTabs) {
-      const draft = getQueryTabDraft(tab.id, String(tab.query ?? ''));
-      const filePath = getSQLFileTabPath(tab);
-      if (filePath) {
-        try {
-          const res = await ReadSQLFile(filePath);
-          if (!res.success) {
-            if (isSQLFileMissingReadResult(res)) {
-              missingFileTabs.push({ tab, filePath });
-              continue;
-            }
-            message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: res.message || filePath }));
-            return;
-          }
-          if (hasQueryTabUnsavedChanges(tab, draft, savedQueriesSnapshot, normalizeSQLFileReadContent(res.data))) {
-            dirtyTabs.push({ tab, draft });
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          if (isSQLFileMissingErrorMessage(errorMessage)) {
-            missingFileTabs.push({ tab, filePath });
-            continue;
-          }
-          message.error(t('tab_manager.sql_file_close.read_failed_cancel_close', { detail: errorMessage }));
-          return;
-        }
-        continue;
-      }
-
-      if (hasQueryTabUnsavedChanges(tab, draft, savedQueriesSnapshot)) {
-        dirtyTabs.push({ tab, draft });
-      }
-    }
-
-    const confirmDirtyTabsOrClose = () => {
-      if (dirtyTabs.length === 0) {
-        closeConfirmedTabsAndClearDrafts();
-        return;
-      }
-
-      const firstDirtyTab = dirtyTabs[0].tab;
-      const dirtyLabel = dirtyTabs.length === 1
-        ? t('tab_manager.query_close.dirty_single_label', { title: getQueryTabCloseLabel(firstDirtyTab, savedQueriesSnapshot) })
-        : t('tab_manager.query_close.dirty_multiple_label', { count: dirtyTabs.length });
-
-      let destroyConfirm: (() => void) | null = null;
-      const confirmRef = Modal.confirm({
-        title: t('tab_manager.query_close.save_confirm_title'),
-        content: t('tab_manager.query_close.save_confirm_content', { label: dirtyLabel }),
-        okText: t('tab_manager.sql_file_close.save_and_close'),
-        cancelText: t('common.cancel'),
-        closable: true,
-        maskClosable: true,
-        okButtonProps: { type: 'primary' },
-        footer: (_, { OkBtn, CancelBtn }) => (
-          <>
-            <Button
-              onClick={() => {
-                destroyConfirm?.();
-                closeConfirmedTabsAndClearDrafts();
-              }}
-            >
-              {t('tab_manager.sql_file_close.discard')}
-            </Button>
-            <CancelBtn />
-            <OkBtn />
-          </>
-        ),
-        onOk: async () => {
-          try {
-            for (const entry of dirtyTabs) {
-              await saveDirtyQueryTab(entry, savedQueriesSnapshot, saveQueryFn);
-            }
-            message.success(t('tab_manager.query_close.saved'));
-            closeConfirmedTabsAndClearDrafts();
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            if (errorMessage === 'cancelled-query-save') {
-              throw error;
-            }
-            message.error(errorMessage);
-            throw error;
-          }
-        },
-      });
-      destroyConfirm = confirmRef.destroy;
-    };
-
-    if (missingFileTabs.length > 0) {
-      const firstMissing = missingFileTabs[0];
-      const missingLabel = missingFileTabs.length === 1
-        ? t('tab_manager.sql_file_close.missing_single_label', { title: firstMissing.tab.title || firstMissing.filePath })
-        : t('tab_manager.sql_file_close.missing_multiple_label', { count: missingFileTabs.length });
-      Modal.confirm({
-        title: t('tab_manager.sql_file_close.missing_confirm_title'),
-        content: t('tab_manager.sql_file_close.missing_confirm_content', { label: missingLabel }),
-        okText: dirtyTabs.length > 0 ? t('tab_manager.sql_file_close.continue_close') : t('tab_manager.sql_file_close.close_tabs'),
-        cancelText: t('common.cancel'),
-        closable: true,
-        maskClosable: true,
-        okButtonProps: { danger: true },
-        onOk: () => {
-          confirmDirtyTabsOrClose();
-        },
-      });
-      return;
-    }
-
-    confirmDirtyTabsOrClose();
-  }, []);
-
   const closeTabsWithQueryPrompt = useCallback((targetIds: string[], closeConfirmedTabs: () => void) => {
     const uniqueIds = Array.from(new Set(targetIds.map((id) => String(id || '').trim()).filter(Boolean)));
     if (uniqueIds.length === 0) return;
@@ -840,7 +604,7 @@ const TabManager: React.FC = React.memo(() => {
     void requestCloseQueryTabs(targetTabs, closeConfirmedTabs).finally(() => {
       pendingCloseTabIdsRef.current.delete(dedupeKey);
     });
-  }, [requestCloseQueryTabs, tabs]);
+  }, [tabs]);
 
   React.useEffect(() => {
     const handleCloseActiveTab = () => {

@@ -9,6 +9,8 @@ import { buildRpcConnectionConfig } from '../../utils/connectionRpcConfig';
 import { resolveConnectionAccentColor, resolveConnectionIconType } from '../../utils/connectionVisual';
 import { buildNewQueryTabFromSidebarNode } from './sidebarShortcutActions';
 import { DBReleaseConnection } from '../../../wailsjs/go/app/App';
+import { closeTabsWithSavePrompt } from '../../utils/queryTabClosePrompt';
+import { useStore } from '../../store';
 import { getDbIcon } from '../DatabaseIcons';
 import {
   type V2DatabaseContextMenuActionKey,
@@ -266,9 +268,19 @@ export const useSidebarV2ActionHandlers = ({
     }
   };
 
-  const closeDatabaseNode = (node: any) => {
+  const closeDatabaseNode = async (node: any) => {
     const dbConnId = String(node.dataRef?.id || '');
     const dbName = String(node.dataRef?.dbName || node.title || '').trim();
+    if (dbConnId && dbName) {
+      const tabsToClose = useStore.getState().tabs.filter((tab) => (
+        String(tab.connectionId || '').trim() === dbConnId
+        && String(tab.dbName || '').trim() === dbName
+      ));
+      const proceed = await closeTabsWithSavePrompt(tabsToClose, () => closeTabsByDatabase(dbConnId, dbName));
+      if (!proceed) {
+        return;
+      }
+    }
     loadingNodesRef.current.delete(`tables-${dbConnId}-${dbName}`);
     setConnectionStates(prev => {
       const next = { ...prev };
@@ -278,9 +290,6 @@ export const useSidebarV2ActionHandlers = ({
     setExpandedKeys(prev => prev.filter(k => k !== node.key && !k.toString().startsWith(`${node.key}-`)));
     setLoadedKeys(prev => prev.filter(k => k !== node.key && !k.toString().startsWith(`${node.key}-`)));
     replaceTreeNodeChildren(node.key, undefined);
-    if (dbConnId && dbName) {
-      closeTabsByDatabase(dbConnId, dbName);
-    }
     message.success(t('sidebar.message.database_closed'));
   };
 
@@ -320,7 +329,7 @@ export const useSidebarV2ActionHandlers = ({
         void handleExportDatabaseSQL(node, true);
         return;
       case 'disconnect-db':
-        closeDatabaseNode(node);
+        void closeDatabaseNode(node);
         return;
       case 'new-query':
         openDatabaseQuery(node);
@@ -360,6 +369,13 @@ export const useSidebarV2ActionHandlers = ({
   const disconnectConnectionNode = async (node: any) => {
     const connKey = String(node?.key || node?.dataRef?.id || '');
     if (!connKey) return;
+    const tabsToClose = useStore.getState().tabs.filter(
+      (tab) => String(tab.connectionId || '').trim() === connKey,
+    );
+    const proceed = await closeTabsWithSavePrompt(tabsToClose, () => closeTabsByConnection(connKey));
+    if (!proceed) {
+      return;
+    }
     const conn = (connections.find((item) => item.id === connKey) || node?.dataRef) as SavedConnection | undefined;
     Array.from(loadingNodesRef.current).forEach((loadingKey) => {
       if (loadingKey === `dbs-${connKey}` || loadingKey.startsWith(`tables-${connKey}-`)) {
@@ -378,7 +394,6 @@ export const useSidebarV2ActionHandlers = ({
     setExpandedKeys(prev => prev.filter(k => k !== connKey && !k.toString().startsWith(`${connKey}-`)));
     setLoadedKeys(prev => prev.filter(k => k !== connKey && !k.toString().startsWith(`${connKey}-`)));
     replaceTreeNodeChildren(connKey, undefined);
-    closeTabsByConnection(connKey);
     try {
       await releaseConnectionResources(conn);
     } catch (error: any) {
