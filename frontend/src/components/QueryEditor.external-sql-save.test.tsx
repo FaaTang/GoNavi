@@ -1782,7 +1782,8 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     expect(editorState.editor.deltaDecorations).toHaveBeenCalled();
     expect(editorState.domNode.style.cursor).toBe('pointer');
-    const lastDecorationCall = editorState.editor.deltaDecorations.mock.calls.at(-1);
+    const decorationCalls = editorState.editor.deltaDecorations.mock.calls;
+    const lastDecorationCall = decorationCalls[decorationCalls.length - 1];
     expect(lastDecorationCall?.[1]?.[0]?.options?.inlineClassName).toBe('gonavi-query-editor-link-hint');
     expect(lastDecorationCall?.[1]?.[0]?.options?.hoverMessage).toBeUndefined();
 
@@ -3596,7 +3597,8 @@ let renderer!: ReactTestRenderer;
 
     expect(editorState.editor.deltaDecorations.mock.calls.length).toBeGreaterThan(firstDecorationCallCount);
     expect(editorState.domNode.style.cursor).toBe('pointer');
-    const lastDecorationCall = editorState.editor.deltaDecorations.mock.calls.at(-1);
+    const decorationCalls = editorState.editor.deltaDecorations.mock.calls;
+    const lastDecorationCall = decorationCalls[decorationCalls.length - 1];
     expect(lastDecorationCall?.[1]?.[0]?.options?.inlineClassName).toBe('gonavi-query-editor-link-hint');
   });
 

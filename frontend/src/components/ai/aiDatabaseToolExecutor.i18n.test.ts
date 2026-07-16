@@ -329,7 +329,8 @@ describe('aiDatabaseToolExecutor i18n', () => {
       },
     });
 
-    expect(JSON.parse(databases.content).at(-1)).toBe('T:ai_chat.panel.error.truncated_suffix');
+    const databasesContent = JSON.parse(databases.content) as unknown[];
+    expect(databasesContent[databasesContent.length - 1]).toBe('T:ai_chat.panel.error.truncated_suffix');
     expect(databases.content).not.toContain('...(截断)');
 
     const toolContextMap = new Map();
@@ -350,7 +351,8 @@ describe('aiDatabaseToolExecutor i18n', () => {
       },
     });
 
-    expect(JSON.parse(tables.content).at(-1)).toBe('T:ai_chat.panel.error.truncated_suffix');
+    const tablesContent = JSON.parse(tables.content) as unknown[];
+    expect(tablesContent[tablesContent.length - 1]).toBe('T:ai_chat.panel.error.truncated_suffix');
     expect(tables.content).not.toContain('...(截断)');
     expect(toolContextMap.get('conn-1:HR')?.tables).not.toContain('T:ai_chat.panel.error.truncated_suffix');
   });

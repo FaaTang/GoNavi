@@ -1050,7 +1050,7 @@ autoFetchState.visible = false;
         "insert into c_dyscript(projectid,name) values (2,'next')",
       ].join('\n'),
     }));
-    expect(storeState.addSqlLog.mock.calls.at(-1)?.[0]).not.toHaveProperty('affectedRows');
+    expect(storeState.addSqlLog.mock.calls[storeState.addSqlLog.mock.calls.length - 1]?.[0]).not.toHaveProperty('affectedRows');
     expect(dataGridState.latestProps).toBeNull();
   });
 
@@ -1139,7 +1139,7 @@ autoFetchState.visible = false;
       status: 'success',
       message: "insert into c_dyscript(projectid,name) values (1,'demo')",
     }));
-    expect(storeState.addSqlLog.mock.calls.at(-1)?.[0]).not.toHaveProperty('affectedRows');
+    expect(storeState.addSqlLog.mock.calls[storeState.addSqlLog.mock.calls.length - 1]?.[0]).not.toHaveProperty('affectedRows');
     expect(dataGridState.latestProps).toBeNull();
   });
 
