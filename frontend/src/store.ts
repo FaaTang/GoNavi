@@ -4080,6 +4080,11 @@ export const useStore = create<AppState>()(
         nextState.aiChatSessions = Array.isArray(state.aiChatSessions)
           ? state.aiChatSessions
           : [];
+        nextState.activeContext = resolveActiveContextForTabId(
+          (nextState.tabs as TabData[]) || [],
+          nextState.activeTabId ?? null,
+          null,
+        );
         return nextState as AppState;
       },
       merge: (persistedState, currentState) => {
@@ -4116,6 +4121,7 @@ export const useStore = create<AppState>()(
           safeTabs,
           hydratedLimits.queryOptions.maxRows,
         );
+        const nextActiveTabId = sanitizeActiveTabId(state.activeTabId, tabsWithMaxRows);
         return {
           ...currentState,
           ...state,
@@ -4123,7 +4129,12 @@ export const useStore = create<AppState>()(
           connectionTags: persistedConnectionTags,
           sidebarRootOrder: persistedSidebarRootOrder,
           tabs: tabsWithMaxRows,
-          activeTabId: sanitizeActiveTabId(state.activeTabId, tabsWithMaxRows),
+          activeTabId: nextActiveTabId,
+          activeContext: resolveActiveContextForTabId(
+            tabsWithMaxRows,
+            nextActiveTabId,
+            null,
+          ),
           savedQueries: currentState.savedQueries,
           externalSQLDirectories: sanitizeExternalSQLDirectories(
             state.externalSQLDirectories,

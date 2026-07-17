@@ -1164,6 +1164,10 @@ describe('store appearance persistence', () => {
       }),
     ]);
     expect(reloaded.useStore.getState().activeTabId).toBe('query-tab-1');
+    expect(reloaded.useStore.getState().activeContext).toEqual({
+      connectionId: 'conn-2',
+      dbName: 'reporting',
+    });
 
     reloaded.useStore.getState().updateQueryTabDraft('query-tab-1', {
       formatRestoreSnapshot: undefined,

@@ -154,6 +154,7 @@ import {
     findSidebarNodePathByKey,
     findSidebarNodePathForLocate,
     normalizeSidebarLocateObjectRequest,
+    normalizeSidebarLocateObjectRequestFromTab,
     resolveSidebarLocateTarget,
     type SidebarLocateTreeNodeLike,
 } from '../utils/sidebarLocate';
@@ -1320,9 +1321,23 @@ const Sidebar: React.FC<{
   };
 
   const locateObjectInSidebar = async (detail: unknown) => {
+      const silent = typeof detail === 'object'
+          && detail !== null
+          && 'silent' in detail
+          && Boolean((detail as { silent?: boolean }).silent);
+      const notifyWarning = (content: string) => {
+          if (!silent) {
+              message.warning(content);
+          }
+      };
+      const notifyInfo = (content: string) => {
+          if (!silent) {
+              message.info(content);
+          }
+      };
       const request = normalizeSidebarLocateObjectRequest(detail);
       if (!request) {
-          message.warning(t('sidebar.message.locate_current_table_unavailable'));
+          notifyWarning(t('sidebar.message.locate_current_table_unavailable'));
           return;
       }
 
@@ -1331,7 +1346,7 @@ const Sidebar: React.FC<{
           const target = resolveSidebarLocateTarget(request, { groupBySchema: false });
           const path = findSidebarNodePathForLocate(treeDataRef.current as SidebarLocateTreeNodeLike[], target);
           if (!path) {
-              message.warning(t('sidebar.message.locate_external_sql_file_not_found', { path: request.filePath }));
+              notifyWarning(t('sidebar.message.locate_external_sql_file_not_found', { path: request.filePath }));
               return;
           }
           const targetKey = path[path.length - 1];
@@ -1353,7 +1368,7 @@ const Sidebar: React.FC<{
       if (request.objectGroup === 'database') {
           const conn = connections.find(item => item.id === request.connectionId);
           if (!conn) {
-              message.warning(t('sidebar.message.locate_connection_not_found_for_object'));
+              notifyWarning(t('sidebar.message.locate_connection_not_found_for_object'));
               return;
           }
 
@@ -1363,13 +1378,13 @@ const Sidebar: React.FC<{
           if (!path) {
               const connectionNode = findTreeNodeByKey(treeDataRef.current, target.connectionKey);
               if (!connectionNode) {
-                  message.warning(t('sidebar.message.locate_connection_not_in_tree'));
+                  notifyWarning(t('sidebar.message.locate_connection_not_in_tree'));
                   return;
               }
               if (loadingNodesRef.current.has(dbLoadKey)) {
                   const loaded = await waitForSidebarLoadKey(dbLoadKey);
                   if (!loaded) {
-                      message.info(t('sidebar.message.locate_database_loading', { database: request.dbName }));
+                      notifyInfo(t('sidebar.message.locate_database_loading', { database: request.dbName }));
                       return;
                   }
               } else {
@@ -1379,7 +1394,7 @@ const Sidebar: React.FC<{
 
           path = findSidebarNodePathByKey(treeDataRef.current as SidebarLocateTreeNodeLike[], target.databaseKey);
           if (!path) {
-              message.warning(t('sidebar.message.locate_database_not_found', { database: request.dbName }));
+              notifyWarning(t('sidebar.message.locate_database_not_found', { database: request.dbName }));
               return;
           }
 
@@ -1397,7 +1412,7 @@ const Sidebar: React.FC<{
 
       const conn = connections.find(item => item.id === request.connectionId);
       if (!conn) {
-          message.warning(t('sidebar.message.locate_connection_not_found_for_object'));
+          notifyWarning(t('sidebar.message.locate_connection_not_found_for_object'));
           return;
       }
 
@@ -1421,13 +1436,13 @@ const Sidebar: React.FC<{
       if (!path && !findSidebarNodePathByKey(treeDataRef.current as SidebarLocateTreeNodeLike[], target.databaseKey)) {
           const connectionNode = findTreeNodeByKey(treeDataRef.current, target.connectionKey);
           if (!connectionNode) {
-              message.warning(t('sidebar.message.locate_connection_not_in_tree'));
+              notifyWarning(t('sidebar.message.locate_connection_not_in_tree'));
               return;
           }
           if (loadingNodesRef.current.has(dbLoadKey)) {
               const loaded = await waitForSidebarLoadKey(dbLoadKey);
               if (!loaded) {
-                  message.info(t('sidebar.message.locate_database_loading', { database: request.dbName }));
+                  notifyInfo(t('sidebar.message.locate_database_loading', { database: request.dbName }));
                   return;
               }
           } else {
@@ -1437,7 +1452,7 @@ const Sidebar: React.FC<{
 
       const dbNode = findTreeNodeByKey(treeDataRef.current, target.databaseKey);
       if (!dbNode) {
-          message.warning(t('sidebar.message.locate_database_not_found', { database: request.dbName }));
+          notifyWarning(t('sidebar.message.locate_database_not_found', { database: request.dbName }));
           return;
       }
 
@@ -1446,7 +1461,7 @@ const Sidebar: React.FC<{
           if (loadingNodesRef.current.has(tableLoadKey)) {
               const loaded = await waitForSidebarLoadKey(tableLoadKey);
               if (!loaded) {
-                  message.info(t('sidebar.message.locate_object_loading', {
+                  notifyInfo(t('sidebar.message.locate_object_loading', {
                       object: objectLabel,
                       database: request.dbName,
                   }));
@@ -1459,7 +1474,7 @@ const Sidebar: React.FC<{
       }
 
       if (!path) {
-          message.warning(t('sidebar.message.locate_object_not_found', {
+          notifyWarning(t('sidebar.message.locate_object_not_found', {
               object: objectLabel,
               name: request.tableName,
           }));
@@ -2311,6 +2326,52 @@ const Sidebar: React.FC<{
           selectConnectionFromRail(conn);
       }
   };
+
+  const activeTabSidebarSyncKeyRef = useRef('');
+  useEffect(() => {
+      if (!activeTab || connections.length === 0) {
+          return;
+      }
+
+      const connectionId = String(activeTab.connectionId || '').trim();
+      if (!connectionId) {
+          return;
+      }
+
+      if (!findTreeNodeByKey(treeData, connectionId)) {
+          return;
+      }
+
+      const dbName = String(activeTab.dbName || '').trim();
+      const syncKey = [
+          activeTabId,
+          connectionId,
+          dbName,
+          activeTab.type,
+          activeTab.tableName || activeTab.viewName || '',
+      ].join(':');
+      if (activeTabSidebarSyncKeyRef.current === syncKey) {
+          return;
+      }
+
+      const conn = connections.find((item) => item.id === connectionId);
+      if (!conn) {
+          return;
+      }
+
+      const locateRequest = normalizeSidebarLocateObjectRequestFromTab(activeTab, {
+          dbType: conn.config?.type,
+      });
+      if (locateRequest) {
+          void locateObjectInSidebarRef.current({ ...locateRequest, silent: true }).finally(() => {
+              activeTabSidebarSyncKeyRef.current = syncKey;
+          });
+          return;
+      }
+
+      selectConnectionFromRail(conn);
+      activeTabSidebarSyncKeyRef.current = syncKey;
+  }, [activeTab, activeTabId, connections, selectConnectionFromRail, treeData]);
 
   const titleRender = useSidebarTitleRender({
       connectionStates,
