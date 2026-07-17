@@ -38,6 +38,7 @@ import {
   shouldLazyLoadHeavyModules,
 } from '../utils/memoryPolicy';
 import { requestCloseQueryTabs } from '../utils/queryTabClosePrompt';
+import { flushQueryTabDrafts } from '../utils/sqlFileTabDrafts';
 import { normalizeSidebarLocateObjectRequestFromTab } from '../utils/sidebarLocate';
 
 const LazyTableDesigner = lazy(() => import('./TableDesigner'));
