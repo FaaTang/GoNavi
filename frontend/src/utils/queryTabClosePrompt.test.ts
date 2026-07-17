@@ -15,13 +15,14 @@ const QUERY_TAB_CLOSE_PROMPT_I18N_KEYS = [
 ] as const;
 
 describe('queryTabClosePrompt', () => {
-  it('exposes four-option save confirmation for dirty query tabs', () => {
+  it('shows bulk save choices only when multiple dirty tabs remain', () => {
     const source = readFileSync(new URL('./queryTabClosePrompt.tsx', import.meta.url), 'utf8');
 
     expect(source).toContain("finish('yes')");
     expect(source).toContain("finish('no')");
     expect(source).toContain("finish('yes-all')");
     expect(source).toContain("finish('no-all')");
+    expect(source).toContain('remainingCount > 1');
     QUERY_TAB_CLOSE_PROMPT_I18N_KEYS.forEach((key) => {
       expect(source).toContain(`t('${key}'`);
     });

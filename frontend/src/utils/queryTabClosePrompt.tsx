@@ -153,12 +153,16 @@ const promptDirtyQueryTabChoice = (
           <Button onClick={() => finish('no')}>
             {t('tab_manager.query_close.action.no')}
           </Button>
-          <Button onClick={() => finish('yes-all')}>
-            {t('tab_manager.query_close.action.yes_to_all')}
-          </Button>
-          <Button onClick={() => finish('no-all')}>
-            {t('tab_manager.query_close.action.no_to_all')}
-          </Button>
+          {remainingCount > 1 ? (
+            <>
+              <Button onClick={() => finish('yes-all')}>
+                {t('tab_manager.query_close.action.yes_to_all')}
+              </Button>
+              <Button onClick={() => finish('no-all')}>
+                {t('tab_manager.query_close.action.no_to_all')}
+              </Button>
+            </>
+          ) : null}
         </>
       ),
       onCancel: () => finish('cancel'),
