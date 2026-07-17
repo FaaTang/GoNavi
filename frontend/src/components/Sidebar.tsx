@@ -173,6 +173,7 @@ import {
   resolveEffectiveAppearanceValues,
   resolveMemoryPolicy,
   resolveSidebarDbCacheLimit,
+  shouldLoadAIAssistant,
 } from '../utils/memoryPolicy';
 import MessagePublishModal from './MessagePublishModal';
 import {
@@ -474,6 +475,7 @@ const Sidebar: React.FC<{
     () => resolveMemoryPolicy(memorySettings, appearance),
     [appearance, memorySettings],
   );
+  const aiAssistantEnabled = shouldLoadAIAssistant(memoryPolicy);
   const sidebarDbCacheLimit = resolveSidebarDbCacheLimit(memoryPolicy);
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const activeTab = useMemo(() => tabs.find(tab => tab.id === activeTabId) || null, [tabs, activeTabId]);
@@ -2200,7 +2202,7 @@ const Sidebar: React.FC<{
       overlayTheme,
       darkMode,
       onCreateConnection,
-      onToggleAI,
+      onToggleAI: aiAssistantEnabled ? onToggleAI : undefined,
       onToggleLogPanel,
       setAIPanelVisible,
       extractObjectName,
@@ -2891,11 +2893,12 @@ const Sidebar: React.FC<{
       openBatchTableExport: () => openBatchTableExportWorkbench(),
       openBatchDatabaseExport: () => openBatchDatabaseExportWorkbench(),
       openExternalSqlFile: handleOpenSQLFileFromToolbar,
-      toggleAI: onToggleAI ?? (() => {}),
+      toggleAI: aiAssistantEnabled ? (onToggleAI ?? (() => {})) : undefined,
       openTools: onOpenTools ?? (() => {}),
       openSettings: onOpenSettings ?? (() => {}),
       toggleShowLabels: () => setAppearance({ sidebarRailShowLabels: !sidebarRailShowLabels }),
     },
+    showAIAssistant: aiAssistantEnabled,
   };
 
   return (

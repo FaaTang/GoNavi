@@ -1743,6 +1743,7 @@ describe('store memory settings persistence', () => {
     const { useStore } = await importStore();
     expect(useStore.getState().memorySettings).toEqual({
       lowMemoryMode: false,
+      aiAssistantEnabled: false,
       advanced: {
         destroyInactiveTabs: true,
         sidebarDbCacheLimit: 6,

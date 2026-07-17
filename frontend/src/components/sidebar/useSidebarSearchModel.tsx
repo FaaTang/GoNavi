@@ -460,15 +460,15 @@ export const useSidebarSearchModel = ({
       icon: <ThunderboltOutlined />,
       onRun: () => onCreateConnection?.(),
     },
-    {
+    ...(onToggleAI ? [{
       key: 'action-open-ai',
-      kind: 'action',
+      kind: 'action' as const,
       title: t('sidebar.command_search.action.open_ai.title'),
       meta: t('sidebar.command_search.action.open_ai.meta'),
       shortcut: resolveShortcutDisplay(shortcutOptions, 'toggleAIPanel', activeShortcutPlatform),
       icon: <RobotOutlined />,
-      onRun: () => onToggleAI?.(),
-    },
+      onRun: () => onToggleAI(),
+    }] : []),
     {
       key: 'action-open-sql-log',
       kind: 'action',

@@ -190,7 +190,7 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain('{isSettingsModalOpen && (');
     expect(appSource).toContain('{isThemeModalOpen && (');
     expect(appSource).toContain('{isShortcutModalOpen && (');
-    expect(appSource).toContain('{isAISettingsOpen && (');
+    expect(appSource).toContain('{aiAssistantEnabled && isAISettingsOpen && (');
     expect(appSource).toContain('{isDriverModalOpen && (');
     expect(appSource).toContain('{isSyncModalOpen && (');
   });
@@ -207,7 +207,7 @@ describe('tool center menu entries', () => {
   });
 
   it('loads editable AI provider details before opening the edit modal so stored api keys can be shown', () => {
-    expect(appSource).toContain('<AISettingsModal');
+    expect(appSource).toContain('<LazyAISettingsModal');
     const modalSource = readFileSync(new URL('./components/AISettingsModal.tsx', import.meta.url), 'utf8');
     expect(modalSource).toContain("typeof Service?.AIGetEditableProvider === 'function'");
     expect(modalSource).toContain('await Service.AIGetEditableProvider(p.id)');

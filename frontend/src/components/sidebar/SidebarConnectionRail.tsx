@@ -23,6 +23,7 @@ import {
 
 export interface SidebarConnectionRailProps {
   showLabels: boolean;
+  showAIAssistant?: boolean;
   labels: {
     railSystemActions: string;
     railObjectActions: string;
@@ -42,7 +43,7 @@ export interface SidebarConnectionRailProps {
     openBatchTableExport: () => void;
     openBatchDatabaseExport: () => void;
     openExternalSqlFile: () => void;
-    toggleAI: () => void;
+    toggleAI?: () => void;
     openTools: () => void;
     openSettings: () => void;
     toggleShowLabels: () => void;
@@ -97,6 +98,7 @@ const RailActionButton: React.FC<RailActionButtonProps> = ({
 
 const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
   showLabels,
+  showAIAssistant = false,
   labels,
   handlers,
 }) => {
@@ -142,6 +144,7 @@ const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
         />
       </div>
       <div className="gn-v2-rail-secondary-actions" aria-label={labels.railSystemActions}>
+        {showAIAssistant && handlers.toggleAI ? (
         <RailActionButton
           label={labels.aiAssistant}
           icon={<RobotOutlined />}
@@ -149,6 +152,7 @@ const SidebarConnectionRail: React.FC<SidebarConnectionRailProps> = ({
           showLabels={showLabels}
           dataAttributes={{ 'data-gonavi-ai-entry-action': true }}
         />
+        ) : null}
         <RailActionButton
           label={labels.tools}
           icon={<ToolOutlined />}

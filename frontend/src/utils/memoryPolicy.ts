@@ -24,6 +24,8 @@ export interface MemoryAdvancedSettings {
 
 export interface MemorySettings {
   lowMemoryMode: boolean;
+  /** When false, AI UI modules are not loaded and AI entry points are hidden. */
+  aiAssistantEnabled: boolean;
   advanced: MemoryAdvancedSettings;
   /** Stashed query max-rows state restored when low-memory mode is turned off. */
   queryMaxRowsStash: QueryMaxRowsState | null;
@@ -44,6 +46,7 @@ export const NORMAL_GO_GC_PERCENT = 50;
 
 export const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
   lowMemoryMode: false,
+  aiAssistantEnabled: false,
   advanced: {
     destroyInactiveTabs: true,
     sidebarDbCacheLimit: 6,
@@ -151,15 +154,19 @@ export const effectiveLowMemoryModeFromEnv = (): boolean => {
 };
 
 export const sanitizeMemorySettings = (value: unknown): MemorySettings => {
-  const raw = value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : {};
+  if (!value || typeof value !== "object") {
+    return { ...DEFAULT_MEMORY_SETTINGS };
+  }
+  const raw = value as Record<string, unknown>;
   const advancedRaw = raw.advanced && typeof raw.advanced === "object"
     ? (raw.advanced as Record<string, unknown>)
     : {};
 
   return {
     lowMemoryMode: raw.lowMemoryMode === true,
+    aiAssistantEnabled: typeof raw.aiAssistantEnabled === "boolean"
+      ? raw.aiAssistantEnabled
+      : true,
     advanced: {
       destroyInactiveTabs: advancedRaw.destroyInactiveTabs !== false,
       sidebarDbCacheLimit: sanitizeSidebarDbCacheLimit(advancedRaw.sidebarDbCacheLimit),
@@ -222,6 +229,10 @@ export const resolveAiMessageMemoryLimit = (policy: MemoryPolicy): number | null
 
 export const shouldLazyLoadHeavyModules = (policy: MemoryPolicy): boolean => {
   return policy.effectiveLowMemoryMode;
+};
+
+export const shouldLoadAIAssistant = (policy: MemoryPolicy): boolean => {
+  return policy.memorySettings.aiAssistantEnabled;
 };
 
 export const resolveGoGCPercent = (policy: MemoryPolicy): number => {

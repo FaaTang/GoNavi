@@ -177,6 +177,27 @@ const MemorySettingsPanel: React.FC<MemorySettingsPanelProps> = ({
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
+          <div style={{ fontWeight: 500 }}>{t("app.memory.ai_assistant.title")}</div>
+          <div style={{ ...(mutedTextStyle ?? {}), marginTop: 4 }}>
+            {t("app.memory.ai_assistant.summary")}
+          </div>
+        </div>
+        <Switch
+          checked={memorySettings.aiAssistantEnabled}
+          onChange={(checked) => setMemorySettings({ aiAssistantEnabled: checked })}
+        />
+      </div>
+
+      <div>
+        <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 6 }}>
+          <li style={{ ...(mutedTextStyle ?? {}), lineHeight: 1.6 }}>
+            {t("app.memory.ai_assistant.impact")}
+          </li>
+        </ul>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
           <div style={{ fontWeight: 500 }}>{t("app.memory.low_memory.title")}</div>
           <div style={{ ...(mutedTextStyle ?? {}), marginTop: 4 }}>
             {t("app.memory.low_memory.summary")}

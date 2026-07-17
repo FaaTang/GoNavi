@@ -1,5 +1,5 @@
 ﻿import Modal from './components/common/ResizableDraggableModal';
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Layout, Button, ConfigProvider, theme, message, Spin, Slider, Progress, Switch, Input, InputNumber, Select, Segmented, Tooltip } from 'antd';
 import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, BugOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { BrowserOpenURL, Environment, Quit, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
@@ -12,8 +12,6 @@ import DataSyncModal from './components/DataSyncModal';
 import { type DataSyncEntryMode } from './components/dataSyncEntryMode';
 import DriverManagerModal from './components/DriverManagerModal';
 import LinuxCJKFontBanner from './components/LinuxCJKFontBanner';
-import AISettingsModal from './components/AISettingsModal';
-import AIChatPanel from './components/AIChatPanel';
 import AIPanelErrorBoundary from './components/ai/AIPanelErrorBoundary';
 import SecurityUpdateBanner from './components/SecurityUpdateBanner';
 import SecurityUpdateIntroModal from './components/SecurityUpdateIntroModal';
@@ -112,10 +110,14 @@ import {
   buildMemoryPolicyPayload,
   resolveEffectiveAppearanceValues,
   resolveMemoryPolicy,
+  shouldLoadAIAssistant,
 } from './utils/memoryPolicy';
 import './App.css';
 import './v2-theme.css';
 import './styles/v2-theme-workbench.css';
+
+const LazyAIChatPanel = lazy(() => import('./components/AIChatPanel'));
+const LazyAISettingsModal = lazy(() => import('./components/AISettingsModal'));
 
 const { Sider, Content } = Layout;
 const MIN_UI_SCALE = 0.8;
@@ -393,6 +395,10 @@ function App() {
   const aiPanelVisible = useStore(state => state.aiPanelVisible);
   const toggleAIPanel = useStore(state => state.toggleAIPanel);
   const setAIPanelVisible = useStore(state => state.setAIPanelVisible);
+  const aiAssistantEnabled = useMemo(
+    () => shouldLoadAIAssistant(resolveMemoryPolicy(memorySettings, appearance)),
+    [memorySettings, appearance],
+  );
   const sqlLogCount = useStore(state => state.sqlLogs.length);
   const globalProxyInvalidHintShownRef = React.useRef(false);
   const windowDiagSequenceRef = React.useRef(0);
@@ -448,6 +454,14 @@ function App() {
     const policy = resolveMemoryPolicy(memorySettings, appearance);
     void SyncMemoryPolicy(buildMemoryPolicyPayload(policy)).catch(() => undefined);
   }, [appearance, memorySettings]);
+
+  useEffect(() => {
+    if (!aiAssistantEnabled) {
+      setAIPanelVisible(false);
+      setIsAISettingsOpen(false);
+      setFocusedAIProviderId(undefined);
+    }
+  }, [aiAssistantEnabled, setAIPanelVisible]);
 
   useEffect(() => {
       let cancelled = false;
@@ -2279,6 +2293,9 @@ function App() {
   }, [securityUpdateRepairSource]);
 
   const handleOpenAISettings = useCallback((providerId?: string) => {
+      if (!shouldLoadAIAssistant(resolveMemoryPolicy(useStore.getState().memorySettings, useStore.getState().appearance))) {
+          return;
+      }
       setSecurityUpdateRepairSource(null);
       setFocusedAIProviderId(providerId);
       setIsAISettingsOpen(true);
@@ -2966,7 +2983,7 @@ function App() {
                <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: bgContent }}>
                   <TabManager />
                </div>
-               {aiPanelVisible && (
+               {aiAssistantEnabled && aiPanelVisible && (
                   <div
                     className={aiPanelOverlayActive ? 'gn-v2-ai-panel-overlay' : undefined}
                     style={aiPanelOverlayActive
@@ -3003,10 +3020,27 @@ function App() {
                             }
                           : undefined}
                       >
-                      <AIPanelErrorBoundary
-                        key={aiPanelRenderNonce}
-                        onError={handleAIPanelRenderError}
-                        fallback={(error) => (
+                        <Suspense
+                          fallback={(
+                            <div
+                              style={{
+                                width: aiPanelRenderWidth,
+                                minWidth: 0,
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: bgContent,
+                              }}
+                            >
+                              <Spin />
+                            </div>
+                          )}
+                        >
+                          <AIPanelErrorBoundary
+                            key={aiPanelRenderNonce}
+                            onError={handleAIPanelRenderError}
+                            fallback={(error) => (
                           <div
                             style={{
                               width: aiPanelRenderWidth,
@@ -3060,10 +3094,11 @@ function App() {
                           </div>
                         )}
                       >
-                        <AIChatPanel width={aiPanelRenderWidth} darkMode={darkMode} bgColor={bgContent} onClose={() => setAIPanelVisible(false)} onOpenSettings={() => {
+                        <LazyAIChatPanel width={aiPanelRenderWidth} darkMode={darkMode} bgColor={bgContent} onClose={() => setAIPanelVisible(false)} onOpenSettings={() => {
                           handleOpenAISettings();
                         }} overlayTheme={overlayTheme} />
                       </AIPanelErrorBoundary>
+                        </Suspense>
                       </div>
                   </div>
                )}
@@ -3664,7 +3699,7 @@ function App() {
                     setIsProxyModalOpen(true);
                   },
                 },
-                {
+                ...(aiAssistantEnabled ? [{
                   key: 'ai',
                   icon: <RobotOutlined />,
                   title: t('app.settings.entry.ai.title'),
@@ -3673,7 +3708,7 @@ function App() {
                     setIsSettingsModalOpen(false);
                     handleOpenAISettings();
                   },
-                },
+                }] : []),
                 {
                   key: 'about',
                   icon: <InfoCircleOutlined />,
@@ -3912,8 +3947,9 @@ function App() {
             overlayTheme={overlayTheme}
             surfaceOpacity={effectiveOpacity}
           />
-          {isAISettingsOpen && (
-          <AISettingsModal
+          {aiAssistantEnabled && isAISettingsOpen && (
+          <Suspense fallback={null}>
+          <LazyAISettingsModal
             open={isAISettingsOpen}
             onClose={handleCloseAISettings}
             darkMode={darkMode}
@@ -3921,6 +3957,7 @@ function App() {
             focusProviderId={focusedAIProviderId}
             onBeforeExternalMCPUse={handlePrepareExternalMCPUse}
           />
+          </Suspense>
           )}
           <ConnectionPackagePasswordModal
             open={connectionPackageDialog.open && !(isToolsModalOpen && activeToolCenterPane?.key === 'connection-package')}

@@ -100,6 +100,7 @@ import {
   resolveMemoryPolicy,
   resolveRuntimeSqlLogLimit,
   sanitizeMemorySettings,
+  shouldLoadAIAssistant,
   type MemoryAdvancedOptionKey,
   type MemorySettings,
 } from "./utils/memoryPolicy";
@@ -3469,6 +3470,19 @@ export const useStore = create<AppState>()(
             };
           }
 
+          const prevAiEnabled = shouldLoadAIAssistant(
+            resolveMemoryPolicy(state.memorySettings, state.appearance),
+          );
+          const nextAiEnabled = shouldLoadAIAssistant(
+            resolveMemoryPolicy(nextMemorySettings, state.appearance),
+          );
+          if (prevAiEnabled && !nextAiEnabled) {
+            return {
+              memorySettings: nextMemorySettings,
+              aiPanelVisible: false,
+            };
+          }
+
           return { memorySettings: nextMemorySettings };
         }),
       setMemoryAdvancedOption: (key, value) =>
@@ -3714,8 +3728,19 @@ export const useStore = create<AppState>()(
 
       // AI actions
       toggleAIPanel: () =>
-        set((state) => ({ aiPanelVisible: !state.aiPanelVisible })),
-      setAIPanelVisible: (visible) => set({ aiPanelVisible: visible }),
+        set((state) => {
+          if (!shouldLoadAIAssistant(resolveMemoryPolicy(state.memorySettings, state.appearance))) {
+            return state;
+          }
+          return { aiPanelVisible: !state.aiPanelVisible };
+        }),
+      setAIPanelVisible: (visible) =>
+        set((state) => {
+          if (visible && !shouldLoadAIAssistant(resolveMemoryPolicy(state.memorySettings, state.appearance))) {
+            return state;
+          }
+          return { aiPanelVisible: visible };
+        }),
       addAIChatMessage: (sessionId, message) => {
         set((state) => {
           const history = { ...state.aiChatHistory };
