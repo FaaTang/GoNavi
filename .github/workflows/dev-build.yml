@@ -29,6 +29,13 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
+
+      - name: Warm Go modules
+        run: go mod download
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -43,8 +50,24 @@ jobs:
           path: frontend/node_modules
           key: ${{ runner.os }}-node20-frontend-${{ hashFiles('frontend/package-lock.json') }}
 
+      - name: Cache Wails CLI
+        uses: actions/cache@v5
+        id: wails-cache
+        with:
+          path: .cache/wails-bin
+          key: wails-v2.11.0-${{ runner.os }}-${{ runner.arch }}
+
       - name: Install Wails
-        run: go install -v github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+        if: steps.wails-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .cache/wails-bin
+          GOBIN="$PWD/.cache/wails-bin" go install -v github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+
+      - name: Configure Wails PATH
+        shell: bash
+        run: echo "$PWD/.cache/wails-bin" >> "$GITHUB_PATH"
 
       - name: Build frontend dist
         shell: bash
@@ -352,6 +375,13 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
+
+      - name: Warm Go modules
+        run: go mod download
 
       - name: Download frontend dist
         id: download_frontend_dist
@@ -382,8 +412,16 @@ jobs:
           tar -xf frontend-artifact/frontend-dist.tar -C frontend/dist
           test -s frontend/dist/index.html
 
-      - name: Install UPX (Windows)
+      - name: Cache UPX (Windows)
         if: matrix.platform == 'windows/amd64'
+        uses: actions/cache@v5
+        id: upx-cache
+        with:
+          path: ${{ runner.temp }}/upx
+          key: upx-4.2.4-win64
+
+      - name: Install UPX (Windows)
+        if: matrix.platform == 'windows/amd64' && steps.upx-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $UPX_VERSION = "4.2.4"
@@ -394,13 +432,29 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
           Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
           $upxDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
-          "$($upxDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          if ($null -eq $upxDir) {
+            Write-Error "❌ UPX 解压目录为空"
+            exit 1
+          }
           $upxCmd = Join-Path $upxDir.FullName "upx.exe"
           if (!(Test-Path $upxCmd)) {
             Write-Error "❌ 未检测到 upx，无法保证 Windows 产物经过压缩"
             exit 1
           }
           & $upxCmd --version
+
+      - name: Configure UPX PATH (Windows)
+        if: matrix.platform == 'windows/amd64'
+        shell: pwsh
+        run: |
+          $upxRoot = "$env:RUNNER_TEMP\upx"
+          $upxDir = Get-ChildItem -Path $upxRoot -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $upxDir) {
+            Write-Error "❌ UPX 缓存目录为空：$upxRoot"
+            exit 1
+          }
+          "$($upxDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & (Join-Path $upxDir.FullName "upx.exe") --version
 
       - name: Install Linux Dependencies
         if: contains(matrix.platform, 'linux')
@@ -441,8 +495,24 @@ jobs:
             echo "✅ AppImage 工具准备完成"
           fi
 
+      - name: Cache Wails CLI
+        uses: actions/cache@v5
+        id: wails-cache
+        with:
+          path: .cache/wails-bin
+          key: wails-v2.11.0-${{ runner.os }}-${{ runner.arch }}
+
       - name: Install Wails
-        run: go install -v github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+        if: steps.wails-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .cache/wails-bin
+          GOBIN="$PWD/.cache/wails-bin" go install -v github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+
+      - name: Configure Wails PATH
+        shell: bash
+        run: echo "$PWD/.cache/wails-bin" >> "$GITHUB_PATH"
 
       - name: Setup MSYS2 Toolchain For DuckDB (Windows AMD64)
         id: msys2_duckdb
@@ -452,6 +522,7 @@ jobs:
         with:
           msystem: UCRT64
           update: true
+          cache: true
           install: >-
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-binutils
@@ -531,6 +602,21 @@ jobs:
           echo "version=${DEV_VERSION}" >> "$GITHUB_OUTPUT"
           echo "📌 Dev 版本号: ${DEV_VERSION}"
 
+      - name: Resolve Go cache paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GOCACHE_DIR=$(go env GOCACHE)" >> "$GITHUB_ENV"
+
+      - name: Cache Go build outputs
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.GOCACHE_DIR }}
+          key: gonavi-gobuild-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('go.sum', 'internal/db/driver_agent_revisions_gen.go') }}
+          restore-keys: |
+            gonavi-gobuild-${{ runner.os }}-${{ matrix.platform }}-${{ hashFiles('go.sum') }}-
+            gonavi-gobuild-${{ runner.os }}-${{ matrix.platform }}-
+
       - name: Build
         shell: bash
         run: |
@@ -538,16 +624,6 @@ jobs:
           DEV_VERSION="${{ steps.version.outputs.version }}"
           echo "🧭 为 ${{ matrix.platform }} 全量生成 driver-agent revision 指纹，避免跨平台沿用旧 revision"
           ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}"
-          REVISION_HASH="$(python3 - <<'PY'
-          import hashlib
-          from pathlib import Path
-
-          print(hashlib.sha256(Path("internal/db/driver_agent_revisions_gen.go").read_bytes()).hexdigest())
-          PY
-          )"
-          export GOCACHE="${RUNNER_TEMP}/go-build-${{ matrix.os_name }}-${{ matrix.arch_name }}-${REVISION_HASH}"
-          mkdir -p "$GOCACHE"
-          echo "🧭 使用隔离 GOCACHE：$GOCACHE"
           if [ -n "${{ matrix.wails_tags }}" ]; then
             wails build -s -skipbindings -platform ${{ matrix.platform }} -clean -o ${{ matrix.build_name }} -tags "${{ matrix.wails_tags }}" -ldflags "-s -w -X GoNavi-Wails/internal/app.AppVersion=${DEV_VERSION}"
           else
@@ -590,6 +666,13 @@ jobs:
             echo "🧭 当前平台无需重建 driver agents"
           fi
 
+      - name: Cache DuckDB Windows library
+        if: ${{ matrix.platform == 'windows/amd64' && matrix.build_optional_agents && steps.platform_drivers.outputs.has_changes == 'true' }}
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/duckdb-windows-v1.4.4
+          key: duckdb-lib-v1.4.4
+
       - name: Build Optional Driver Agents
         if: ${{ matrix.build_optional_agents && steps.platform_drivers.outputs.has_changes == 'true' }}
         shell: bash
@@ -600,16 +683,6 @@ jobs:
           TARGET_PLATFORM="${{ matrix.platform }}"
           GOOS="${TARGET_PLATFORM%%/*}"
           GOARCH="${TARGET_PLATFORM##*/}"
-          REVISION_HASH="$(python3 - <<'PY'
-          import hashlib
-          from pathlib import Path
-
-          print(hashlib.sha256(Path("internal/db/driver_agent_revisions_gen.go").read_bytes()).hexdigest())
-          PY
-          )"
-          export GOCACHE="${RUNNER_TEMP}/go-build-${{ matrix.os_name }}-${{ matrix.arch_name }}-${REVISION_HASH}"
-          mkdir -p "$GOCACHE"
-          echo "🧭 可选驱动使用隔离 GOCACHE：$GOCACHE"
           IFS=',' read -r -a DRIVERS <<< "$CHANGED_DRIVER_AGENTS"
           OUTDIR="drivers/${{ matrix.os_name }}"
           mkdir -p "$OUTDIR"
