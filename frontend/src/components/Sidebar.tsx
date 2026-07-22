@@ -2338,6 +2338,8 @@ const Sidebar: React.FC<{
           return;
       }
 
+      // Wait until the connection node exists, but claim syncKey before locate mutates treeData.
+      // Otherwise locate → setTreeData → effect re-entry loops and antd Modal Portal blows up.
       if (!findTreeNodeByKey(treeData, connectionId)) {
           return;
       }
@@ -2359,18 +2361,17 @@ const Sidebar: React.FC<{
           return;
       }
 
+      activeTabSidebarSyncKeyRef.current = syncKey;
+
       const locateRequest = normalizeSidebarLocateObjectRequestFromTab(activeTab, {
           dbType: conn.config?.type,
       });
       if (locateRequest) {
-          void locateObjectInSidebarRef.current({ ...locateRequest, silent: true }).finally(() => {
-              activeTabSidebarSyncKeyRef.current = syncKey;
-          });
+          void locateObjectInSidebarRef.current({ ...locateRequest, silent: true });
           return;
       }
 
       selectConnectionFromRail(conn);
-      activeTabSidebarSyncKeyRef.current = syncKey;
   }, [activeTab, activeTabId, connections, selectConnectionFromRail, treeData]);
 
   const titleRender = useSidebarTitleRender({

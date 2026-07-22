@@ -655,6 +655,20 @@ describe('Sidebar locate toolbar', () => {
     expect(tabManagerSource).toContain('normalizeSidebarLocateObjectRequestFromTab');
   });
 
+  it('claims active-tab sidebar syncKey before silent locate to avoid treeData re-entry loops', () => {
+    const source = readSidebarSource();
+    const syncEffectSource = source.slice(
+      source.indexOf("const activeTabSidebarSyncKeyRef = useRef('');"),
+      source.indexOf('const titleRender = useSidebarTitleRender({'),
+    );
+
+    expect(syncEffectSource).toContain('activeTabSidebarSyncKeyRef.current = syncKey;');
+    expect(syncEffectSource).toContain("void locateObjectInSidebarRef.current({ ...locateRequest, silent: true });");
+    expect(syncEffectSource).not.toContain('.finally(() => {');
+    expect(syncEffectSource.indexOf('activeTabSidebarSyncKeyRef.current = syncKey;'))
+      .toBeLessThan(syncEffectSource.indexOf('void locateObjectInSidebarRef.current'));
+  });
+
   it('passes the exact tree key when locating a command-search object node', () => {
     const source = readSidebarSource();
     const commandSearchRunSource = source.slice(
