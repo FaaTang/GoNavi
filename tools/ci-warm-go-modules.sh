@@ -19,6 +19,13 @@ if [[ -z "$goos" || -z "$goarch" ]]; then
   exit 0
 fi
 
+# assets_prod.go 使用 //go:embed all:frontend/dist；go list 会加载该文件。
+# 预热阶段通常尚未解压真实前端产物，先放占位文件避免 "no matching files found"。
+if [[ ! -e frontend/dist/index.html ]]; then
+  mkdir -p frontend/dist
+  printf '<!doctype html><title>ci-warm-placeholder</title>\n' > frontend/dist/index.html
+fi
+
 echo "📦 按目标平台解析依赖：GOOS=${goos} GOARCH=${goarch} tags=${tags:-<none>}"
 if [[ -n "$tags" ]]; then
   GOOS="$goos" GOARCH="$goarch" go list -deps -tags "$tags" ./... >/dev/null
