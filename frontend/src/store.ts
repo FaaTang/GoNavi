@@ -2001,7 +2001,7 @@ const sanitizeQueryOptions = (value: unknown): QueryOptions => {
   const showQueryResultsPanel =
     typeof raw.showQueryResultsPanel === "boolean" ? raw.showQueryResultsPanel : false;
   const askWhatToExecute =
-    typeof raw.askWhatToExecute === "boolean" ? raw.askWhatToExecute : false;
+    typeof raw.askWhatToExecute === "boolean" ? raw.askWhatToExecute : true;
   return {
     maxRows: migrated.maxRows,
     maxRowsCustomPresets: migrated.maxRowsCustomPresets,
@@ -2471,7 +2471,7 @@ export const useStore = create<AppState>()(
         showColumnComment: true,
         showColumnType: true,
         showQueryResultsPanel: false,
-        askWhatToExecute: false,
+        askWhatToExecute: true,
       },
       updatePreferences: { ...DEFAULT_UPDATE_PREFERENCES },
       memorySettings: { ...DEFAULT_MEMORY_SETTINGS },
