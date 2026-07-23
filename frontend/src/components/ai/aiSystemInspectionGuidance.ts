@@ -12,7 +12,7 @@ const INSPECTION_GUIDANCE_FALLBACKS = {
   inspect_ai_context:
     'If the user asks about the current AI context, associated tables, or table schemas attached to the session, call inspect_ai_context first to read the mounted table-schema context instead of repeating from memory.',
   inspect_app_health:
-    'If the user reports unstable AI behavior, asks for an overall check, asks about obvious GoNavi AI issues, wants connection, MCP, and log diagnostics together, or mentions abnormal AI reply bubbles, call inspect_app_health first to get the global health overview, then decide whether to drill into inspect_ai_setup_health, inspect_app_logs, inspect_recent_connection_failures, or inspect_ai_last_render_error.',
+    'If the user reports unstable AI behavior, asks for an overall check, asks about obvious PinkHunkDB AI issues, wants connection, MCP, and log diagnostics together, or mentions abnormal AI reply bubbles, call inspect_app_health first to get the global health overview, then decide whether to drill into inspect_ai_setup_health, inspect_app_logs, inspect_recent_connection_failures, or inspect_ai_last_render_error.',
   inspect_ai_support_bundle:
     'If the user says the AI is immature or unstable, asks to export troubleshooting material, wants MCP, connection, logs, and context inspected together, or is preparing to hand the issue to development, call inspect_ai_support_bundle first to create a support bundle without secrets or database passwords, then drill down based on warnings and nextActions.',
   inspect_ai_tool_catalog:
@@ -26,7 +26,7 @@ const INSPECTION_GUIDANCE_FALLBACKS = {
   inspect_ai_providers:
     'If the user asks which providers are configured, why the model list is empty, whether an API Key is configured, or why sending is unavailable / no model is selected, call inspect_ai_providers first to read the real provider configuration instead of guessing from memory.',
   inspect_mcp_setup:
-    'If the user asks which MCP servers are configured, whether Claude / Codex is connected to the GoNavi MCP, why an external client cannot use it, or which MCP services are enabled, call inspect_mcp_setup first to read the real MCP configuration and external-client access state instead of guessing from memory.',
+    'If the user asks which MCP servers are configured, whether Claude / Codex is connected to the PinkHunkDB MCP, why an external client cannot use it, or which MCP services are enabled, call inspect_mcp_setup first to read the real MCP configuration and external-client access state instead of guessing from memory.',
   inspect_mcp_runtime_failures:
     'If the user mentions a failed new MCP test, zero discovered tools, MCP tool-call failures, stdio disconnects, Docker MCP exits, or HTTP MCP startup failures, call inspect_mcp_runtime_failures first to read real MCP runtime failure logs and current service discovery state, then decide whether to drill into inspect_mcp_draft, inspect_mcp_docker_setup, or inspect_mcp_setup.',
   inspect_mcp_authoring_guide:

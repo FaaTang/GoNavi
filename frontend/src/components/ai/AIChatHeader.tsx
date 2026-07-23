@@ -29,7 +29,7 @@ interface ExportMarkdownLabels {
 const exportToMarkdown = (messages: AIChatMessage[], title: string, labels: ExportMarkdownLabels) => {
     const lines: string[] = [`# ${title}`, '', `> ${labels.exportTime} ${new Date().toLocaleString()}`, ''];
     messages.forEach(msg => {
-        const role = msg.role === 'user' ? `👤 ${labels.userRole}` : '🤖 GoNavi AI';
+        const role = msg.role === 'user' ? `👤 ${labels.userRole}` : '🤖 PinkHunkDB AI';
         lines.push(`## ${role}`);
         lines.push('');
         lines.push(msg.content);
@@ -74,7 +74,7 @@ export const AIChatHeader: React.FC<AIChatHeaderProps> = ({
                         <RobotOutlined />
                     </div>
                     <div className="ai-title-stack">
-                        <span className="ai-title" style={{ color: textColor, fontSize: 13, fontWeight: 600 }}>GoNavi AI</span>
+                        <span className="ai-title" style={{ color: textColor, fontSize: 13, fontWeight: 600 }}>PinkHunkDB AI</span>
                         <small>{t('ai_chat.header.session.connected', { title: resolvedSessionTitle })}</small>
                     </div>
                     <span className="gn-v2-ai-provider-badge">{t('ai_chat.header.beta_badge')}</span>

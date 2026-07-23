@@ -309,7 +309,7 @@ export const AIMessageBubble: React.FC<AIMessageBubbleProps> = React.memo(({
           <div>
             {isUser
               ? <><UserOutlined /> <span>{copy('ai_chat.message.role.user')}</span></>
-              : <><RobotOutlined style={{ color: overlayTheme.iconColor }} /> <span>GoNavi AI</span></>}
+              : <><RobotOutlined style={{ color: overlayTheme.iconColor }} /> <span>PinkHunkDB AI</span></>}
           </div>
           <AIMessageActionBar
             msg={msg}

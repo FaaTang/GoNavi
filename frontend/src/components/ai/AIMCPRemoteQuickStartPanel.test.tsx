@@ -66,7 +66,7 @@ const SHELL_CHINESE_LITERALS = [
   '避免：',
   '配置到云端 Agent',
   '无 GUI / CLI 生成配置',
-  'Windows 启动 GoNavi MCP HTTP',
+  'Windows 启动 PinkHunkDB MCP HTTP',
   '独立二进制：',
   '验证顺序',
   '安全边界',
@@ -136,9 +136,9 @@ describe('AIMCPRemoteQuickStartPanel', () => {
     expect(markup).toContain('Fill:');
     expect(markup).toContain('Configure in cloud Agent');
     expect(markup).toContain('Generate config without GUI / CLI');
-    expect(markup).toContain('Start GoNavi MCP HTTP on Windows');
+    expect(markup).toContain('Start PinkHunkDB MCP HTTP on Windows');
     expect(markup).toContain('&quot;type&quot;: &quot;streamable-http&quot;');
-    expect(markup).toContain('GoNavi.exe mcp-server remote-config --client openclaw');
+    expect(markup).toContain('PinkHunkDB.exe mcp-server remote-config --client openclaw');
     expect(markup).toContain('gonavi-mcp-server http --addr 127.0.0.1:8765');
     expect(markup).toContain('--schema-only does not register execute_sql by default');
     expect(markup).not.toContain('db_password');
@@ -169,6 +169,6 @@ describe('AIMCPRemoteQuickStartPanel', () => {
     expect(markup).toContain('应填：');
     expect(markup).toContain('配置到云端 Agent');
     expect(markup).toContain('默认 --schema-only 不注册 execute_sql');
-    expect(markup).toContain('GoNavi.exe mcp-server remote-config --client openclaw');
+    expect(markup).toContain('PinkHunkDB.exe mcp-server remote-config --client openclaw');
   });
 });

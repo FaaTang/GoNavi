@@ -187,7 +187,7 @@ func TestMCPHTTPServerLifecycleUsesEnglishStatusMessages(t *testing.T) {
 	service.AISetLanguage("en-US")
 
 	initial := service.AIGetMCPHTTPServerStatus()
-	if initial.Message != "GoNavi MCP HTTP server is not running" {
+	if initial.Message != "PinkHunkDB MCP HTTP server is not running" {
 		t.Fatalf("expected English not-running message, got %q", initial.Message)
 	}
 
@@ -198,7 +198,7 @@ func TestMCPHTTPServerLifecycleUsesEnglishStatusMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AIStartMCPHTTPServer returned error: %v", err)
 	}
-	if started.Message != "GoNavi MCP HTTP server started" {
+	if started.Message != "PinkHunkDB MCP HTTP server started" {
 		t.Fatalf("expected English started message, got %q", started.Message)
 	}
 
@@ -206,7 +206,7 @@ func TestMCPHTTPServerLifecycleUsesEnglishStatusMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AIStopMCPHTTPServer returned error: %v", err)
 	}
-	if stopped.Message != "GoNavi MCP HTTP server stopped" {
+	if stopped.Message != "PinkHunkDB MCP HTTP server stopped" {
 		t.Fatalf("expected English stopped message, got %q", stopped.Message)
 	}
 }
@@ -232,7 +232,7 @@ func TestMCPHTTPServerStartFailureUsesEnglishError(t *testing.T) {
 		t.Fatal("expected start failure")
 	}
 
-	const want = "Failed to start GoNavi MCP HTTP service: listen tcp 127.0.0.1:8765: bind: permission denied"
+	const want = "Failed to start PinkHunkDB MCP HTTP service: listen tcp 127.0.0.1:8765: bind: permission denied"
 	if err.Error() != want {
 		t.Fatalf("expected localized start failure %q, got %q", want, err.Error())
 	}
@@ -273,8 +273,8 @@ func TestMCPHTTPServerUnexpectedExitUsesEnglishStatusMessage(t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		status := service.AIGetMCPHTTPServerStatus()
-		if !status.Running && strings.Contains(status.Message, "GoNavi MCP HTTP service stopped unexpectedly") {
-			const want = "GoNavi MCP HTTP service stopped unexpectedly: exit status 1"
+		if !status.Running && strings.Contains(status.Message, "PinkHunkDB MCP HTTP service stopped unexpectedly") {
+			const want = "PinkHunkDB MCP HTTP service stopped unexpectedly: exit status 1"
 			if status.Message != want {
 				t.Fatalf("expected localized unexpected-exit message %q, got %q", want, status.Message)
 			}

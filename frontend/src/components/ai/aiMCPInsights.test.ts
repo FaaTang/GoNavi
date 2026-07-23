@@ -28,7 +28,7 @@ describe('aiMCPInsights', () => {
         configPath: 'C:/Users/demo/.codex/config.toml',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
-        message: '已接入当前 GoNavi MCP',
+        message: '已接入当前 PinkHunkDB MCP',
       }],
       mcpTools: [],
       translate: (key, params) => {
@@ -42,7 +42,7 @@ describe('aiMCPInsights', () => {
     expect(snapshot.warnings).toContain('T:ai_chat.inspection.mcp.warning.config_errors count=1');
     expect(snapshot.nextActions).toContain('T:ai_chat.inspection.mcp.next_action.fix_config_errors');
     expect(snapshot.message).toBe('T:ai_chat.inspection.mcp.message.with_issues serverCount=1,enabledCount=1,issueCount=2');
-    expect(snapshot.clients[0].message).toBe('已接入当前 GoNavi MCP');
+    expect(snapshot.clients[0].message).toBe('已接入当前 PinkHunkDB MCP');
     expect(snapshot.clients[0].configPath).toBe('C:/Users/demo/.codex/config.toml');
   });
 
@@ -84,7 +84,7 @@ describe('aiMCPInsights', () => {
           configPath: 'C:/Users/demo/.claude/mcp.json',
           command: 'gonavi-mcp-server',
           args: ['stdio'],
-          message: '已写入当前 GoNavi 路径',
+          message: '已写入当前 PinkHunkDB 路径',
         },
       ],
       mcpTools: [

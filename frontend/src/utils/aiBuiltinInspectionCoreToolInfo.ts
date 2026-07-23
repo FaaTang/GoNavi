@@ -33,7 +33,7 @@ const CORE_TOOL_INFO_COPY: Record<
       "Summarizes AI configuration, provider send prerequisites, MCP access, application log ERROR/WARN signals, recent connection failures and cooldowns, AI reply bubble render errors, and current workspace tabs. Use it first when users report AI instability, ask for an overall check, or need connection and MCP issues diagnosed together.",
     paramsSummary: "keyword?, connectionKeyword?, lineLimit?(default 120), includeLogLines?(default false)",
     toolDescription:
-      "Read the GoNavi AI application health overview, including AI provider and send prerequisites, MCP access, application log ERROR/WARN signals, recent connection failures and cooldowns, AI reply bubble render errors, and current workspace tabs, then return blockers, runtime anomaly signals, and suggested next probes.",
+      "Read the PinkHunkDB AI application health overview, including AI provider and send prerequisites, MCP access, application log ERROR/WARN signals, recent connection failures and cooldowns, AI reply bubble render errors, and current workspace tabs, then return blockers, runtime anomaly signals, and suggested next probes.",
     params: {
       keyword: "Optional. Filter application logs by keyword, such as ai, mcp, mysql, or error. If omitted, the recent log window is read.",
       connectionKeyword: "Optional. Keyword used when analyzing connection failure logs by type, address, or error. If omitted, keyword is reused.",
@@ -49,7 +49,7 @@ const CORE_TOOL_INFO_COPY: Record<
     paramsSummary:
       "keyword?, sessionId?, lineLimit?(default 120), includeLogLines?(default false), includeMessageContent?(default false), publicUrl?, tokenConfigured?",
     toolDescription:
-      "Generate a GoNavi AI troubleshooting support bundle that summarizes AI application health, provider and send prerequisites, MCP configuration and remote access, application log summary, database connection failure summary, current AI message flow, context-size risk, and tool catalog index. By default it does not include database passwords, provider keys, MCP environment variable values, original log lines, or full message content.",
+      "Generate a PinkHunkDB AI troubleshooting support bundle that summarizes AI application health, provider and send prerequisites, MCP configuration and remote access, application log summary, database connection failure summary, current AI message flow, context-size risk, and tool catalog index. By default it does not include database passwords, provider keys, MCP environment variable values, original log lines, or full message content.",
     params: {
       keyword: "Optional. Filter logs and tool catalog entries by keyword, such as ai, mcp, mysql, error, or openclaw.",
       connectionKeyword: "Optional. Keyword used to analyze connection failure logs. If omitted, keyword is reused.",
@@ -58,7 +58,7 @@ const CORE_TOOL_INFO_COPY: Record<
       includeLogLines: "Optional. Whether to include original log lines. Default false; enable only when lines need to be quoted.",
       includeMessageContent: "Optional. Whether to include message content previews. Default false; enable only when troubleshooting bubble content.",
       includeDetails: "Optional. Whether to include context-size details. Default false.",
-      publicUrl: "Optional. Public or tunnel URL used by a cloud Agent to access GoNavi MCP for the remote MCP support bundle.",
+      publicUrl: "Optional. Public or tunnel URL used by a cloud Agent to access PinkHunkDB MCP for the remote MCP support bundle.",
       localAddr: "Optional. Windows local HTTP MCP listen address. Default 127.0.0.1:8765.",
       path: "Optional. Streamable HTTP MCP path. Default /mcp.",
       exposeStrategy: "Optional. Remote exposure strategy used to generate matching safety reminders.",
@@ -135,10 +135,10 @@ const CORE_TOOL_INFO_COPY: Record<
     icon: "🧭",
     desc: "Inspect AI built-in tool catalog and argument hints",
     detail:
-      "Returns GoNavi AI built-in tools, recommended probe flows, argument descriptions, and current MCP tool summaries by keyword or tool name. Use it when users ask which tool should be used, how to fill arguments, which built-in tools exist, or when AI needs to choose a probe route first.",
+      "Returns PinkHunkDB AI built-in tools, recommended probe flows, argument descriptions, and current MCP tool summaries by keyword or tool name. Use it when users ask which tool should be used, how to fill arguments, which built-in tools exist, or when AI needs to choose a probe route first.",
     paramsSummary: "keyword?, toolName?, includeMCPTools?(default true), limit?(default 12)",
     toolDescription:
-      "Read the GoNavi AI tool catalog snapshot, filterable by keyword or tool name, and return recommended tool-call flows, built-in tool descriptions, argument hints, and currently discovered MCP tool summaries.",
+      "Read the PinkHunkDB AI tool catalog snapshot, filterable by keyword or tool name, and return recommended tool-call flows, built-in tool descriptions, argument hints, and currently discovered MCP tool summaries.",
     params: {
       keyword: "Optional. Filter tools and flows by problem keyword, such as mcp, connection failure, transaction, shortcut, schema, or log.",
       toolName: "Optional. Query by exact built-in tool name, such as inspect_mcp_draft or inspect_sql_risk.",

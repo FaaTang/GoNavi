@@ -140,7 +140,7 @@ export const useAIMCPClientInstaller = ({
     if (selectedMCPClientStatus?.matchesCurrent) {
       try {
         await onBeforeInstall?.();
-        void messageApi.success(copy('ai_chat.mcp_client.install.message.already_connected', '{{label}} is already connected to current GoNavi MCP. No repeated write is needed.', { label: targetLabel }));
+        void messageApi.success(copy('ai_chat.mcp_client.install.message.already_connected', '{{label}} is already connected to current PinkHunkDB MCP. No repeated write is needed.', { label: targetLabel }));
       } catch (error: any) {
         void messageApi.error(error?.message || copy('ai_chat.mcp_client.install.message.install_failed', 'Failed to install {{label}} MCP', { label: targetLabel }));
       } finally {

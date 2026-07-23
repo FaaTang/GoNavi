@@ -136,7 +136,7 @@ func TestPostgresDSN_MergesConnectionParams(t *testing.T) {
 		User:             "user",
 		Password:         "pass",
 		Database:         "db",
-		ConnectionParams: "application_name=GoNavi-Lite&connect_timeout=9&statement_timeout=3000&allowPublicKeyRetrieval=true",
+		ConnectionParams: "application_name=PinkHunkDB&connect_timeout=9&statement_timeout=3000&allowPublicKeyRetrieval=true",
 	}
 
 	dsn := p.getDSN(cfg)
@@ -145,8 +145,8 @@ func TestPostgresDSN_MergesConnectionParams(t *testing.T) {
 		t.Fatalf("parse postgres dsn: %v", err)
 	}
 	query := parsed.Query()
-	if got := query.Get("application_name"); got != "GoNavi-Lite" {
-		t.Fatalf("application_name = %q, want GoNavi-Lite", got)
+	if got := query.Get("application_name"); got != "PinkHunkDB" {
+		t.Fatalf("application_name = %q, want PinkHunkDB", got)
 	}
 	if got := query.Get("connect_timeout"); got != "9" {
 		t.Fatalf("connect_timeout = %q, want 9", got)
@@ -204,7 +204,7 @@ func TestMySQLDSN_UsesCustomTLSConfigWhenCertificatePathsAreConfigured(t *testin
 	if strings.Contains(dsn, "tls=true") {
 		t.Fatalf("dsn 应使用自定义 TLS 配置名而不是 tls=true：%s", dsn)
 	}
-	if !strings.Contains(dsn, "tls=GoNavi-Lite-") {
+	if !strings.Contains(dsn, "tls=PinkHunkDB-") {
 		t.Fatalf("dsn 缺少自定义 TLS 配置名：%s", dsn)
 	}
 	if strings.Contains(dsn, "allowFallbackToPlaintext=true") {
@@ -232,7 +232,7 @@ func TestMySQLDSN_PreservesPreferredFallbackWithCustomTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getDSN failed: %v", err)
 	}
-	if !strings.Contains(dsn, "tls=GoNavi-Lite-") {
+	if !strings.Contains(dsn, "tls=PinkHunkDB-") {
 		t.Fatalf("dsn 缺少自定义 TLS 配置名：%s", dsn)
 	}
 	if !strings.Contains(dsn, "allowFallbackToPlaintext=true") {
@@ -379,11 +379,11 @@ func TestKingbaseDSN_MergesConnectionParams(t *testing.T) {
 		User:             "system",
 		Password:         "pass",
 		Database:         "TEST",
-		ConnectionParams: "application_name=GoNavi-Lite&connect_timeout=12&statement_timeout=3000&unknown=bad",
+		ConnectionParams: "application_name=PinkHunkDB&connect_timeout=12&statement_timeout=3000&unknown=bad",
 	}
 
 	dsn := k.getDSN(cfg)
-	if !strings.Contains(dsn, "application_name=GoNavi-Lite") {
+	if !strings.Contains(dsn, "application_name=PinkHunkDB") {
 		t.Fatalf("dsn 缺少 application_name：%s", dsn)
 	}
 	if !strings.Contains(dsn, "connect_timeout=12") {
@@ -488,7 +488,7 @@ func TestSQLServerDSN_MergesConnectionParams(t *testing.T) {
 		User:             "sa",
 		Password:         "pass",
 		Database:         "master",
-		ConnectionParams: "Application Name=GoNavi-Lite&Initial Catalog=appdb&packet size=32767&unknown=bad",
+		ConnectionParams: "Application Name=PinkHunkDB&Initial Catalog=appdb&packet size=32767&unknown=bad",
 	}
 
 	dsn := s.getDSN(cfg)
@@ -497,8 +497,8 @@ func TestSQLServerDSN_MergesConnectionParams(t *testing.T) {
 		t.Fatalf("parse sqlserver dsn: %v", err)
 	}
 	query := parsed.Query()
-	if got := query.Get("app name"); got != "GoNavi-Lite" {
-		t.Fatalf("app name = %q, want GoNavi-Lite", got)
+	if got := query.Get("app name"); got != "PinkHunkDB" {
+		t.Fatalf("app name = %q, want PinkHunkDB", got)
 	}
 	if got := query.Get("database"); got != "appdb" {
 		t.Fatalf("database = %q, want appdb", got)

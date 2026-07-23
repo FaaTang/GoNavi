@@ -16,7 +16,7 @@ const buildMCPSectionProps = (patch: Partial<AISettingsMCPSectionProps> = {}): A
       matchesCurrent: false,
       clientDetected: false,
       clientCommand: 'claude',
-      message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+      message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
     },
     {
       client: 'codex',
@@ -26,7 +26,7 @@ const buildMCPSectionProps = (patch: Partial<AISettingsMCPSectionProps> = {}): A
       clientDetected: true,
       clientCommand: 'codex',
       clientPath: 'C:/Users/mock/AppData/Roaming/npm/codex.cmd',
-      message: '未检测到 Codex 用户级 GoNavi MCP 配置',
+      message: '未检测到 Codex 用户级 PinkHunkDB MCP 配置',
     },
   ],
   selectedMCPClient: 'claude-code',
@@ -37,7 +37,7 @@ const buildMCPSectionProps = (patch: Partial<AISettingsMCPSectionProps> = {}): A
     matchesCurrent: false,
     clientDetected: false,
     clientCommand: 'claude',
-    message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+    message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
   },
   selectedMCPClientCommandText: '',
   mcpHTTPServerStatus: {
@@ -46,7 +46,7 @@ const buildMCPSectionProps = (patch: Partial<AISettingsMCPSectionProps> = {}): A
     path: '/mcp',
     url: 'http://127.0.0.1:8765/mcp',
     schemaOnly: true,
-    message: 'GoNavi MCP HTTP 服务未启动',
+    message: 'PinkHunkDB MCP HTTP 服务未启动',
   },
   mcpHTTPServerDraft: {
     addr: '127.0.0.1:8765',
@@ -113,12 +113,12 @@ describe('AISettingsMCPSection', () => {
       <AISettingsMCPSection {...buildMCPSectionProps()} />,
     );
 
-    expect(markup).toContain('GoNavi MCP HTTP service');
+    expect(markup).toContain('PinkHunkDB MCP HTTP service');
     expect(markup).toContain('customize the local listen port and Bearer Token');
     expect(markup).toContain('http://127.0.0.1:8765/mcp');
     expect(markup).toContain('Copy Authorization');
     expect(markup).toContain('Connect external client');
-    expect(markup).toContain('Current GoNavi MCP is not connected here yet');
+    expect(markup).toContain('Current PinkHunkDB MCP is not connected here yet');
     expect(markup).toContain('Quick add from one command');
     expect(markup).toContain('Choose the closest template');
     expect(markup).toContain('Parse and add draft');
@@ -207,7 +207,7 @@ describe('AISettingsMCPSection', () => {
     expect(markup).toContain('Common setup mistakes');
     expect(markup).toContain('Test says the command cannot be found');
     expect(markup).toContain('Authentication failed, 401, or 403');
-    expect(markup).toContain('the current GoNavi add flow does not directly support it');
+    expect(markup).toContain('the current PinkHunkDB add flow does not directly support it');
     expect(markup).toContain('do not put secrets into chat content');
     expect(markup).toContain('Discovered tools and parameter hints');
     expect(markup).toContain('execute_sql');

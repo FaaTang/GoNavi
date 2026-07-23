@@ -1168,7 +1168,7 @@ func fetchDriverBundleAssetSizeIndex(release *githubRelease) (map[string]int64, 
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-DriverManager")
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
@@ -1293,7 +1293,7 @@ func fetchDriverReleaseByURL(apiURL string) (*githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-DriverManager")
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)

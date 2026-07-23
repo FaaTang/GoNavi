@@ -1,4 +1,4 @@
-# GoNavi-Lite - A Modern Lightweight Database Client
+# PinkHunkDB - A Modern Lightweight Database Client
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/FaaTang/PinkHunkDB)](https://go.dev/)
 [![Wails Version](https://img.shields.io/badge/Wails-v2-red)](https://wails.io)
@@ -19,16 +19,16 @@
 > - **No guarantee of long-term maintenance**: updates, bug fixes, and feature support depend on personal availability and needs. There is no commitment to permanently track upstream or fix every issue.
 > - For the official upstream project, stable releases, or upstream contributions, please visit [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi).
 
-GoNavi-Lite is a modern, high-performance, cross-platform database client built with **Wails (Go)** and **React**.
+PinkHunkDB is a modern, high-performance, cross-platform database client built with **Wails (Go)** and **React**.
 It delivers native-like responsiveness with low resource usage.
 
-Compared with many Electron-based clients, GoNavi-Lite is typically smaller in binary size (around 10MB class), starts faster, and uses less memory.
+Compared with many Electron-based clients, PinkHunkDB is typically smaller in binary size (around 10MB class), starts faster, and uses less memory.
 
 ---
 
 ## Project Overview
 
-GoNavi-Lite is designed for developers and DBAs who need a unified desktop experience across multiple databases.
+PinkHunkDB is designed for developers and DBAs who need a unified desktop experience across multiple databases.
 
 - **Native-performance architecture**: Wails (Go + WebView) with lightweight runtime overhead.
 - **Large dataset usability**: virtualized rendering and optimized DataGrid workflows for high-volume tables.
@@ -207,19 +207,19 @@ Target artifacts include:
 
 Without Apple notarization, Gatekeeper may block startup.
 
-1. Move `GoNavi-Lite.app` to **Applications**.
+1. Move `PinkHunkDB.app` to **Applications**.
 2. Open **Terminal**.
 3. Run:
 
 ```bash
-sudo xattr -rd com.apple.quarantine /Applications/GoNavi-Lite.app
+sudo xattr -rd com.apple.quarantine /Applications/PinkHunkDB.app
 ```
 
 Or right-click the app in Finder and choose **Open** with Control key flow.
 
 ### Linux: missing `libwebkit2gtk` / `libjavascriptcoregtk`
 
-GoNavi-Lite depends on WebKitGTK runtime libraries.
+PinkHunkDB depends on WebKitGTK runtime libraries.
 
 ```bash
 # Debian 13 / Ubuntu 24.04+
@@ -235,7 +235,7 @@ If you use Linux artifacts with the `-WebKit41` suffix, prefer Debian 13 / Ubunt
 
 ### Linux: Chinese text appears as square boxes
 
-Minimal Ubuntu 24.04 LTS desktop/server environments may not include Chinese CJK fonts. Install Noto / WenQuanYi fonts and restart GoNavi-Lite:
+Minimal Ubuntu 24.04 LTS desktop/server environments may not include Chinese CJK fonts. Install Noto / WenQuanYi fonts and restart PinkHunkDB:
 
 ```bash
 sudo apt-get update
@@ -257,7 +257,7 @@ Local notes (may differ from upstream):
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=FaaTang%2FGoNavi-Lite&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=FaaTang%2FPinkHunkDB&type=date&legend=top-left">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=FaaTang/PinkHunkDB&type=date&theme=dark&legend=top-left" />
    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=FaaTang/PinkHunkDB&type=date&legend=top-left" />

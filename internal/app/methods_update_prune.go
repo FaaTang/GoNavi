@@ -133,26 +133,29 @@ func scanUpdateWorkspace(workspaceDir string, addPath func(version, path string)
 }
 
 func parseUpdateStagedDirVersion(dirName string) string {
-	const prefix = ".gonavi-update-"
-	if !strings.HasPrefix(dirName, prefix) {
-		return ""
-	}
-	rest := strings.TrimPrefix(dirName, prefix)
-	for _, osPrefix := range []string{"windows-", "darwin-", "linux-"} {
-		if !strings.HasPrefix(rest, osPrefix) {
+	for _, prefix := range []string{".PinkHunkDB-update-", ".GoNavi-Lite-update-", ".gonavi-update-"} {
+		if !strings.HasPrefix(dirName, prefix) {
 			continue
 		}
-		return normalizeUpdateArtifactVersionSuffix(strings.TrimPrefix(rest, osPrefix))
+		rest := strings.TrimPrefix(dirName, prefix)
+		for _, osPrefix := range []string{"windows-", "darwin-", "linux-"} {
+			if !strings.HasPrefix(rest, osPrefix) {
+				continue
+			}
+			return normalizeUpdateArtifactVersionSuffix(strings.TrimPrefix(rest, osPrefix))
+		}
 	}
 	return ""
 }
 
 func parseMacDesktopUpdateDirVersion(dirName string) string {
-	const prefix = "GoNavi-"
-	if !strings.HasPrefix(dirName, prefix) {
-		return ""
+	for _, prefix := range []string{"PinkHunkDB-", "GoNavi-Lite-", "GoNavi-"} {
+		if !strings.HasPrefix(dirName, prefix) {
+			continue
+		}
+		return normalizeVersion(strings.TrimPrefix(dirName, prefix))
 	}
-	return normalizeVersion(strings.TrimPrefix(dirName, prefix))
+	return ""
 }
 
 func normalizeUpdateArtifactVersionSuffix(versionPart string) string {

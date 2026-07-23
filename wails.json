@@ -1,6 +1,6 @@
 {
-  "name": "GoNavi-Lite",
-  "outputfilename": "GoNavi-Lite",
+  "name": "PinkHunkDB",
+  "outputfilename": "PinkHunkDB",
   "frontend:install": "node scripts/wails-frontend-install.mjs",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",

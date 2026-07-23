@@ -17,7 +17,7 @@ describe('AIMCPClientSelectorPanel', () => {
             matchesCurrent: true,
             clientDetected: true,
             clientCommand: 'codex',
-            message: '已检测到 Codex 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+            message: '已检测到 Codex 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
           },
           {
             client: 'openclaw',
@@ -27,7 +27,7 @@ describe('AIMCPClientSelectorPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'openclaw',
-            message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows GoNavi。',
+            message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows PinkHunkDB。',
           },
         ]}
         selectedClient="openclaw"

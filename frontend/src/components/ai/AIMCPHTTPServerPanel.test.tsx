@@ -88,7 +88,7 @@ describe('AIMCPHTTPServerPanel', () => {
       </I18nProvider>,
     );
 
-    expect(markup).toContain('GoNavi MCP HTTP service');
+    expect(markup).toContain('PinkHunkDB MCP HTTP service');
     expect(markup).toContain('Running');
     expect(markup).toContain('schema-only');
     expect(markup).toContain('Listen address / port');
@@ -104,7 +104,7 @@ describe('AIMCPHTTPServerPanel', () => {
       <AIMCPHTTPServerPanel {...buildPanelProps()} />,
     );
 
-    expect(markup).toContain('GoNavi MCP HTTP service');
+    expect(markup).toContain('PinkHunkDB MCP HTTP service');
     expect(markup).toContain('Running');
     expect(markup).toContain('Copy URL');
   });

@@ -434,10 +434,10 @@ function App() {
     switch(windowState){
         case 'fullscreen':
         case 'maximized':
-            document.body.style.setProperty('--GoNavi-Lite-border-radius', '0px');
+            document.body.style.setProperty('--PinkHunkDB-border-radius', '0px');
             break;
         default:
-            document.body.style.setProperty('--GoNavi-Lite-border-radius', `${windowCornerRadius}px`);
+            document.body.style.setProperty('--PinkHunkDB-border-radius', `${windowCornerRadius}px`);
             break;
     }
   }, [windowState]);
@@ -2036,7 +2036,7 @@ function App() {
       setIsToolsModalOpen(true);
   }, [toolCenterBackGroupKey]);
   const handleFocusSidebarSearch = useCallback(() => {
-      window.dispatchEvent(new CustomEvent('GoNavi-Lite:focus-sidebar-search'));
+      window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-sidebar-search'));
   }, []);
   const loadDataRootInfo = useCallback(async () => {
       setDataRootLoading(true);
@@ -2118,7 +2118,7 @@ function App() {
 
 
   const handleToggleLogPanel = useCallback(() => {
-      window.dispatchEvent(new CustomEvent('GoNavi-Lite:show-sql-execution-log'));
+      window.dispatchEvent(new CustomEvent('PinkHunkDB:show-sql-execution-log'));
   }, []);
   
   const handleCreateConnection = useCallback(() => {
@@ -2449,7 +2449,7 @@ function App() {
     document.body.style.fontSize = `${effectiveFontSize}px`;
     document.body.style.setProperty('--gn-font-sans', resolvedUiFontFamily);
     document.body.style.setProperty('--gn-font-mono', resolvedMonoFontFamily);
-    document.documentElement.style.setProperty('--GoNavi-Lite-font-size', `${effectiveFontSize}px`);
+    document.documentElement.style.setProperty('--PinkHunkDB-font-size', `${effectiveFontSize}px`);
     document.documentElement.style.setProperty('--gn-font-sans', resolvedUiFontFamily);
     document.documentElement.style.setProperty('--gn-font-mono', resolvedMonoFontFamily);
     document.documentElement.style.setProperty('--gn-ui-scale', `${effectiveUiScale}`);
@@ -2478,9 +2478,9 @@ function App() {
       const handleOpenShortcutSettingsEvent = () => {
           setIsShortcutModalOpen(true);
       };
-      window.addEventListener('GoNavi-Lite:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
+      window.addEventListener('PinkHunkDB:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('GoNavi-Lite:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
+          window.removeEventListener('PinkHunkDB:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
       };
   }, []);
 
@@ -2489,9 +2489,9 @@ function App() {
           setIsSnippetModalOpen(false);
           handleOpenToolCenterPane('workspace', 'snippet-settings');
       };
-      window.addEventListener('GoNavi-Lite:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
+      window.addEventListener('PinkHunkDB:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('GoNavi-Lite:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
+          window.removeEventListener('PinkHunkDB:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
       };
   }, [handleOpenToolCenterPane]);
 
@@ -2502,9 +2502,9 @@ function App() {
           setIsThemeModalOpen(true);
           setTabDisplaySettingsFocusRequest((current) => current + 1);
       };
-      window.addEventListener('GoNavi-Lite:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
+      window.addEventListener('PinkHunkDB:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('GoNavi-Lite:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
+          window.removeEventListener('PinkHunkDB:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
       };
   }, []);
 
@@ -2513,9 +2513,9 @@ function App() {
           setIsSettingsModalOpen(false);
           setIsPerformanceModalOpen(true);
       };
-      window.addEventListener('GoNavi-Lite:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+      window.addEventListener('PinkHunkDB:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('GoNavi-Lite:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+          window.removeEventListener('PinkHunkDB:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
       };
   }, []);
 
@@ -2523,9 +2523,9 @@ function App() {
       const handleCreateQueryTabEvent = () => {
           handleNewQuery();
       };
-      window.addEventListener('GoNavi-Lite:create-query-tab', handleCreateQueryTabEvent as EventListener);
+      window.addEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);
       return () => {
-          window.removeEventListener('GoNavi-Lite:create-query-tab', handleCreateQueryTabEvent as EventListener);
+          window.removeEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);
       };
   }, [handleNewQuery]);
 
@@ -2580,10 +2580,10 @@ function App() {
 
           switch (matchedAction) {
               case 'runQuery':
-                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:run-active-query'));
+                  window.dispatchEvent(new CustomEvent('PinkHunkDB:run-active-query'));
                   break;
               case 'focusSidebarSearch':
-                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:focus-sidebar-search'));
+                  window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-sidebar-search'));
                   break;
               case 'switchToNextTab':
                   switchActiveTabByOffset(1);
@@ -2593,7 +2593,7 @@ function App() {
                   break;
               case 'closeCurrentTab':
                   if (activeTabId) {
-                      window.dispatchEvent(new CustomEvent('GoNavi-Lite:close-active-tab'));
+                      window.dispatchEvent(new CustomEvent('PinkHunkDB:close-active-tab'));
                   }
                   break;
               case 'newConnection':
@@ -2806,8 +2806,8 @@ function App() {
             display: 'flex', 
             flexDirection: 'column',
             background: 'transparent',
-            borderRadius: showLinuxResizeHandles ? 0 : 'var(--GoNavi-Lite-border-radius)',
-            clipPath: showLinuxResizeHandles ? 'none' : 'inset(0 round var(--GoNavi-Lite-border-radius))',
+            borderRadius: showLinuxResizeHandles ? 0 : 'var(--PinkHunkDB-border-radius)',
+            clipPath: showLinuxResizeHandles ? 'none' : 'inset(0 round var(--PinkHunkDB-border-radius))',
             backdropFilter: blurFilter,
             WebkitBackdropFilter: blurFilter,
         }}>
@@ -2832,7 +2832,7 @@ function App() {
           >
               <div style={{ display: 'flex', alignItems: 'center', gap: Math.max(6, Math.round(8 * effectiveUiScale)), fontWeight: 600, minWidth: 0 }}>
                   {/* Logo can be added here if available */}
-                  GoNavi-Lite
+                  PinkHunkDB
               </div>
               {useNativeMacWindowControls ? (
                   <div style={{ minWidth: Math.max(40, Math.round(48 * effectiveUiScale)) }} />
@@ -4769,7 +4769,7 @@ function App() {
                   </Button>,
               ]}
           >
-              <div data-GoNavi-Lite-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>
+              <div data-PinkHunkDB-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>
                   <div style={utilityPanelStyle}>
                       <div style={{ fontSize: 12, color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(16,24,40,0.55)' }}>
                            {t('app.shortcuts.capture_hint')}

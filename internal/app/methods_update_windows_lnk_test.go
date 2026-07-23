@@ -11,7 +11,7 @@ import (
 )
 
 func TestParseWindowsShortcutTargetReadsLocalBasePath(t *testing.T) {
-	targetPath := `C:\Program Files\GoNavi\GoNavi.exe`
+	targetPath := `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`
 	lnkPath := filepath.Join(t.TempDir(), "GoNavi.lnk")
 	if err := os.WriteFile(lnkPath, buildWindowsShortcutFixture(targetPath), 0o644); err != nil {
 		t.Fatalf("write shortcut fixture failed: %v", err)

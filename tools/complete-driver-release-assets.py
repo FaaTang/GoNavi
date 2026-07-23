@@ -36,7 +36,7 @@ DRIVERS = [
     "elasticsearch",
 ]
 
-BUNDLE_NAME = "GoNavi-DriverAgents.zip"
+BUNDLE_NAME = "PinkHunkDB-DriverAgents.zip"
 
 
 def required_assets():
@@ -60,7 +60,7 @@ def required_assets():
 def github_headers():
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "GoNavi-CI",
+        "User-Agent": "PinkHunkDB-CI",
     }
     token = os.environ.get("DRIVER_RELEASE_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if token:

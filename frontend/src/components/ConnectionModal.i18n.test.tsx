@@ -1092,7 +1092,7 @@ setCurrentLanguage("zh-CN");
     const pageText = textContent(renderer!.toJSON());
     expect(pageText).toContain("Driver name");
     expect(pageText).toContain("DSN");
-    expect(pageText).toContain("Enter a Go database/sql driver name already registered by GoNavi");
+    expect(pageText).toContain("Enter a Go database/sql driver name already registered by PinkHunkDB");
     expect(pageText).toContain("Do not enter a system ODBC/JDBC driver name directly or import a JDBC Jar");
   });
 
@@ -1129,7 +1129,7 @@ setCurrentLanguage("en-US");
     expect(pageText).toContain("Agent URL");
     expect(pageText).toContain("Diagnostic transport");
     expect(pageText).toContain("Agent Bridge");
-    expect(pageText).toContain("Use the GoNavi Agent Bridge diagnostic endpoint.");
+    expect(pageText).toContain("Use the PinkHunkDB Agent Bridge diagnostic endpoint.");
     expect(pageText).toContain("Observe commands");
     expect(pageText).toContain(
       "Allow read-only commands such as dashboard, thread, and JVM info.",

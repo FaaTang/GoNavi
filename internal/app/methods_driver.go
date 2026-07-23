@@ -353,9 +353,9 @@ const (
 	driverReleaseRepo                   = updateRepo
 	driverReleaseLatestAPIURL           = "https://api.github.com/repos/" + driverReleaseRepo + "/releases/latest"
 	driverReleaseDevTag                 = "dev-latest"
-	optionalDriverBundleAssetName       = "GoNavi-Lite-DriverAgents.zip"
+	optionalDriverBundleAssetName       = "PinkHunkDB-DriverAgents.zip"
 	duckDBWindowsDriverZipAssetName     = "duckdb-driver.zip"
-	optionalDriverBundleIndexAssetName  = "GoNavi-Lite-DriverAgents-Index.json"
+	optionalDriverBundleIndexAssetName  = "PinkHunkDB-DriverAgents-Index.json"
 	optionalDriverBundleDownloadTimeout = 15 * time.Minute
 	optionalDriverBundleCacheMaxAge     = 7 * 24 * time.Hour
 	optionalDriverBundleCacheMaxFiles   = 4
@@ -1737,7 +1737,7 @@ func doDriverProbeRequest(client *http.Client, urlText string, method string) (*
 	if err != nil {
 		return nil, "", err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Lite-DriverManager")
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
 	// 用 GET+Range 探测可更接近真实下载链路，同时避免下载正文。
 	if strings.EqualFold(method, http.MethodGet) {
 		req.Header.Set("Range", "bytes=0-0")
@@ -1805,7 +1805,7 @@ func defaultDriverDownloadDirectory() string {
 	if err == nil && strings.TrimSpace(root) != "" {
 		return root
 	}
-	return filepath.Join(os.TempDir(), "GoNavi-Lite-drivers")
+	return filepath.Join(os.TempDir(), "PinkHunkDB-drivers")
 }
 
 func resolveDriverDownloadDirectory(directory string) (string, error) {
@@ -2651,7 +2651,7 @@ func fetchGoModuleVersionMetas(modulePath string) ([]goModuleVersionMeta, error)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Lite-DriverManager")
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
@@ -2801,7 +2801,7 @@ func fetchDriverReleaseList() ([]githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Lite-DriverManager")
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)
@@ -3153,7 +3153,7 @@ func loadManifestContent(resolvedURL string) ([]byte, error) {
 			if reqErr != nil {
 				return nil, reqErr
 			}
-			req.Header.Set("User-Agent", "GoNavi-Lite-DriverManifest")
+			req.Header.Set("User-Agent", "PinkHunkDB-DriverManifest")
 			resp, doErr := client.Do(req)
 			if doErr != nil {
 				return nil, doErr
@@ -4423,7 +4423,7 @@ func buildVersionedDriverModOverride(projectRoot string, modulePath string, vers
 		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.source_build_module_dependency_missing", map[string]any{"modulePath": modulePath}, nil)
 	}
 
-	workDir, err := os.MkdirTemp("", "GoNavi-Lite-driver-mod-*")
+	workDir, err := os.MkdirTemp("", "PinkHunkDB-driver-mod-*")
 	if err != nil {
 		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.source_build_temp_directory_create_failed", nil, err)
 	}
@@ -4775,7 +4775,7 @@ func executableEnvDir(key string) string {
 }
 
 func prepareDuckDBWindowsDynamicLibraryForBuild() (string, func(), error) {
-	workDir, err := os.MkdirTemp("", "GoNavi-Lite-duckdb-lib-*")
+	workDir, err := os.MkdirTemp("", "PinkHunkDB-duckdb-lib-*")
 	if err != nil {
 		return "", nil, err
 	}

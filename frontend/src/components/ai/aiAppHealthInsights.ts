@@ -120,7 +120,7 @@ const summarizeAppLogSnapshot = (
       translateInspectionCopy(
         options.translate,
         'ai_chat.inspection.app_health.app_log.unread',
-        `GoNavi application logs are not readable: ${detail}`,
+        `PinkHunkDB application logs are not readable: ${detail}`,
         { detail },
       ),
       options.lineLimit,
@@ -279,7 +279,7 @@ export const buildAIAppHealthSnapshot = (params: {
     appendUnique(warnings, translateInspectionCopy(
       translate,
       'ai_chat.inspection.app_health.warning.app_log_unread',
-      'GoNavi application logs cannot be read, so startup exceptions and MCP/connection errors lack log evidence',
+      'PinkHunkDB application logs cannot be read, so startup exceptions and MCP/connection errors lack log evidence',
     ));
     appendUnique(nextActions, translateInspectionCopy(
       translate,

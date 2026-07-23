@@ -1677,7 +1677,7 @@ func (a *App) ImportConfigFile() connection.QueryResult {
 		Title: "Select Config File",
 		Filters: []runtime.FileFilter{
 			{
-				DisplayName: "GoNavi Connection Package (*.gonavi-conn)",
+				DisplayName: "PinkHunkDB Connection Package (*.gonavi-conn)",
 				Pattern:     "*.gonavi-conn",
 			},
 			{
@@ -3089,7 +3089,7 @@ func quoteQualifiedIdentByType(dbType string, ident string) string {
 
 func writeSQLHeader(w *bufio.Writer, config connection.ConnectionConfig, dbName string) error {
 	now := time.Now().Format("2006-01-02 15:04:05")
-	if _, err := w.WriteString(fmt.Sprintf("-- GoNavi SQL Export\n-- Time: %s\n", now)); err != nil {
+	if _, err := w.WriteString(fmt.Sprintf("-- PinkHunkDB SQL Export\n-- Time: %s\n", now)); err != nil {
 		return err
 	}
 	if strings.TrimSpace(dbName) != "" {
@@ -4194,7 +4194,7 @@ func (w *htmlExportFileWriter) SetColumns(columns []string) error {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GoNavi Export</title>
+  <title>PinkHunkDB Export</title>
   <style>
     :root {
       color-scheme: light;
@@ -4298,7 +4298,7 @@ func (w *htmlExportFileWriter) SetColumns(columns []string) error {
 <body>
   <div class="export-wrap">
     <div class="export-head">
-      <h1>GoNavi Data Export</h1>
+      <h1>PinkHunkDB Data Export</h1>
       <div class="export-meta">`); err != nil {
 		return err
 	}
@@ -4725,7 +4725,7 @@ func writeRowsToHTML(f *os.File, data []map[string]interface{}, columns []string
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GoNavi Export</title>
+  <title>PinkHunkDB Export</title>
   <style>
     :root {
       color-scheme: light;
@@ -4829,7 +4829,7 @@ func writeRowsToHTML(f *os.File, data []map[string]interface{}, columns []string
 <body>
   <div class="export-wrap">
     <div class="export-head">
-      <h1>GoNavi Data Export</h1>
+      <h1>PinkHunkDB Data Export</h1>
       <div class="export-meta">`); err != nil {
 		return err
 	}

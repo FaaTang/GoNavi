@@ -21,13 +21,13 @@ func TestConnectionErrorMessageSourceUsesLocalizedTextForGenericWrapperAndEndpoi
 		`return "JVM 连接失败"`,
 		`return "Endpoint 连接失败：未填写 Endpoint Base URL。"`,
 		`"Endpoint 连接失败：Endpoint Base URL 格式不合法。"`,
-		`"请填写完整的 ` + "`http://` 或 `https://` 地址，并指向实现 GoNavi JVM HTTP 合约的管理接口根路径，例如 `http://127.0.0.1:19090/manage/jvm`。" + ``,
+		`"请填写完整的 ` + "`http://` 或 `https://` 地址，并指向实现 PinkHunkDB JVM HTTP 合约的管理接口根路径，例如 `http://127.0.0.1:19090/manage/jvm`。" + ``,
 		`"Endpoint 连接失败：当前只支持 HTTP 或 HTTPS 协议。"`,
 		`"请把 Endpoint Base URL 改成 ` + "`http://` 或 `https://` 开头的地址。" + ``,
-		`"Endpoint 连接失败：目标地址已响应，但没有找到 GoNavi JVM 管理接口。"`,
+		`"Endpoint 连接失败：目标地址已响应，但没有找到 PinkHunkDB JVM 管理接口。"`,
 		`"请确认 Base URL 指向的是 JVM 管理接口根路径，而不是普通业务接口、健康检查地址或网关首页。"`,
 		`"Endpoint 连接失败：目标管理接口未监听，或当前地址不可达。"`,
-		`"请确认 Base URL 指向实现 GoNavi JVM HTTP 合约的管理接口，并检查服务监听、端口映射和防火墙。"`,
+		`"请确认 Base URL 指向实现 PinkHunkDB JVM HTTP 合约的管理接口，并检查服务监听、端口映射和防火墙。"`,
 		`"Endpoint 连接失败：目标管理接口已响应，但当前 API Key 无效或缺失。"`,
 		`"请检查连接中的 Endpoint API Key 是否与目标服务配置一致。"`,
 		`"Endpoint 连接失败：当前请求被目标管理接口拒绝。"`,
@@ -82,7 +82,7 @@ func TestConnectionErrorMessageSourceUsesLocalizedTextForAgent(t *testing.T) {
 		`"Agent 连接失败：当前只支持 HTTP 或 HTTPS 协议。"`,
 		`"请把 Agent Base URL 改成 ` + "`http://` 或 `https://` 开头的地址。" + ``,
 		`"Agent 连接失败：目标 Agent 管理端口未监听，或当前地址不可达。"`,
-		`"请确认 Java 服务已通过 ` + "`-javaagent`" + ` 启动 GoNavi Agent，并检查 Base URL、端口映射和防火墙。"`,
+		`"请确认 Java 服务已通过 ` + "`-javaagent`" + ` 启动 PinkHunkDB Agent，并检查 Base URL、端口映射和防火墙。"`,
 		`"Agent 连接失败：Agent 已响应，但当前 API Key 无效或缺失。"`,
 		`"请检查连接中的 Agent API Key 是否与目标服务启动参数一致。"`,
 		`"Agent 连接失败：当前请求被 Agent 拒绝。"`,
@@ -284,7 +284,7 @@ func TestDescribeConnectionTestErrorLocalizesGenericAndEndpointMessagesInEnglish
 	got := DescribeConnectionTestError(cfg, errors.New(raw))
 	want := strings.Join([]string{
 		"Endpoint connection failed: Endpoint Base URL is invalid.",
-		"Suggestion: Enter a full http:// or https:// URL that points to the management API root implementing the GoNavi JVM HTTP contract, for example http://127.0.0.1:19090/manage/jvm.",
+		"Suggestion: Enter a full http:// or https:// URL that points to the management API root implementing the PinkHunkDB JVM HTTP contract, for example http://127.0.0.1:19090/manage/jvm.",
 		`Technical detail: endpoint baseurl is invalid: parse ":bad-url": missing protocol scheme`,
 	}, "\n")
 	if got != want {

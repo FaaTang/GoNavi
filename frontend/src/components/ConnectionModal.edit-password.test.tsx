@@ -180,7 +180,7 @@ describe('ConnectionModal data source registry', () => {
     expect(source).toContain("name: 'GaussDB'");
     expect(source).toContain('type === "gaussdb"');
     expect(source).toContain('return "gaussdb://user:pass@127.0.0.1:5432/db_name";');
-    expect(source).toContain('return "application_name=GoNavi&statement_timeout=30000";');
+    expect(source).toContain('return "application_name=PinkHunkDB&statement_timeout=30000";');
     expect(source).toContain('? "gaussdb"');
     expect(source).toContain('dbType === "gaussdb"');
   });

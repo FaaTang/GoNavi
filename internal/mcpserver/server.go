@@ -27,7 +27,7 @@ func NewServerWithOptions(backend Backend, options ServerOptions) *mcp.Server {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_connections",
-		Description: "列出当前 GoNavi 已保存的数据库连接，先调用它获取 connectionId。不会返回明文密码等敏感信息。",
+		Description: "列出当前 PinkHunkDB 已保存的数据库连接，先调用它获取 connectionId。不会返回明文密码等敏感信息。",
 	}, service.GetConnections)
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -73,7 +73,7 @@ func NewServerWithOptions(backend Backend, options ServerOptions) *mcp.Server {
 	if !options.SchemaOnly {
 		mcp.AddTool(server, &mcp.Tool{
 			Name:        "execute_sql",
-			Description: "执行 SQL，支持多语句结果集。执行范围受 GoNavi AI 设置中的安全控制约束；命中允许范围内的 DML/DDL 等非只读语句时，仍必须显式传 allowMutating=true。",
+			Description: "执行 SQL，支持多语句结果集。执行范围受 PinkHunkDB AI 设置中的安全控制约束；命中允许范围内的 DML/DDL 等非只读语句时，仍必须显式传 allowMutating=true。",
 		}, service.ExecuteSQL)
 	}
 

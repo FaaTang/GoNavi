@@ -487,9 +487,9 @@ func withMySQLMaxUserConnectionsHint(err error, released int) error {
 		return err
 	}
 	if released > 0 {
-		return fmt.Errorf("%w；数据库账号连接数已达上限(max_user_connections)，GoNavi-Lite 已释放同一连接实例的 %d 个缓存连接并重试；若仍失败，请关闭 Navicat/其他客户端连接或提高数据库用户 max_user_connections", err, released)
+		return fmt.Errorf("%w；数据库账号连接数已达上限(max_user_connections)，PinkHunkDB 已释放同一连接实例的 %d 个缓存连接并重试；若仍失败，请关闭 Navicat/其他客户端连接或提高数据库用户 max_user_connections", err, released)
 	}
-	return fmt.Errorf("%w；数据库账号连接数已达上限(max_user_connections)，GoNavi-Lite 未找到可释放的同实例缓存连接；请关闭 Navicat/其他客户端连接或提高数据库用户 max_user_connections", err)
+	return fmt.Errorf("%w；数据库账号连接数已达上限(max_user_connections)，PinkHunkDB 未找到可释放的同实例缓存连接；请关闭 Navicat/其他客户端连接或提高数据库用户 max_user_connections", err)
 }
 
 func shortCacheKey(cacheKey string) string {

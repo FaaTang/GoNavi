@@ -1306,7 +1306,7 @@ func TestMethodsDriverUpdateStatusUsesLocalizedText(t *testing.T) {
 	}{
 		"func optionalDriverAgentRevisionStatus": {
 			rawMessages: []string{
-				`fmt.Sprintf("当前 GoNavi 版本要求更新后的 %s driver-agent（revision: %s）", displayName, expected)`,
+				`fmt.Sprintf("当前 PinkHunkDB 版本要求更新后的 %s driver-agent（revision: %s）", displayName, expected)`,
 				`impact := "driver-agent 是独立二进制，不会随主程序自动更新；如果不重装，会继续使用旧 agent 逻辑，驱动侧已修复或优化的行为不会生效，可能继续出现旧版本问题。强烈建议重装对应驱动代理"`,
 				`fmt.Sprintf("原因：%s。影响：%s", updateReason, impact)`,
 				`fmt.Sprintf("原因：%s。影响：%s（已安装标记：%s，当前需要：%s）", updateReason, impact, actual, expected)`,

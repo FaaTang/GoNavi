@@ -44,7 +44,7 @@ func TestRenderRemoteMCPClientConfigShowsCloudAndWindowsCommands(t *testing.T) {
 		Token:             "secret-token",
 		LocalAddr:         "127.0.0.1:8765",
 		Path:              "/mcp",
-		GoNaviCommand:     `C:\Program Files\GoNavi\GoNavi.exe`,
+		GoNaviCommand:     `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`,
 		StandaloneCommand: "gonavi-mcp-server",
 		SchemaOnly:        true,
 	})
@@ -53,13 +53,13 @@ func TestRenderRemoteMCPClientConfigShowsCloudAndWindowsCommands(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"GoNavi MCP 远程接入配置 - OpenClaw",
+		"PinkHunkDB MCP 远程接入配置 - OpenClaw",
 		`"type": "streamable-http"`,
 		`"url": "https://openclaw.example.com/mcp"`,
 		`"Authorization": "Bearer secret-token"`,
-		`"C:\Program Files\GoNavi\GoNavi.exe" mcp-server http --addr 127.0.0.1:8765 --path /mcp --token secret-token --schema-only`,
+		`"C:\Program Files\PinkHunkDB\PinkHunkDB.exe" mcp-server http --addr 127.0.0.1:8765 --path /mcp --token secret-token --schema-only`,
 		`gonavi-mcp-server http --addr 127.0.0.1:8765 --path /mcp --token secret-token --schema-only`,
-		"数据库连接、账号和密码继续保存在 Windows GoNavi",
+		"数据库连接、账号和密码继续保存在 Windows PinkHunkDB",
 		"默认 schema-only 模式不会注册 execute_sql",
 		"allowMutating=true",
 	} {

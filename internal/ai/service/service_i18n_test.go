@@ -667,7 +667,7 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 	}{
 		"func (s *Service) AIStartMCPHTTPServer(options ai.MCPHTTPServerOptions) (ai.MCPHTTPServerStatus, error) {": {
 			rawMessages: []string{
-				`fmt.Sprintf("GoNavi MCP HTTP 服务启动失败：%v", err)`,
+				`fmt.Sprintf("PinkHunkDB MCP HTTP 服务启动失败：%v", err)`,
 			},
 			keys: []string{
 				"ai_service.backend.error.mcp_http_start_failed",
@@ -675,7 +675,7 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func (s *Service) AIStopMCPHTTPServer() (ai.MCPHTTPServerStatus, error) {": {
 			rawMessages: []string{
-				`"GoNavi MCP HTTP 服务已停止"`,
+				`"PinkHunkDB MCP HTTP 服务已停止"`,
 			},
 			keys: []string{
 				"ai_settings.mcp_http.message.stopped",
@@ -683,8 +683,8 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func (s *Service) stopMCPHTTPServer(ctx context.Context, message string) (ai.MCPHTTPServerStatus, error) {": {
 			rawMessages: []string{
-				`"GoNavi MCP HTTP 服务未启动"`,
-				`fmt.Sprintf("GoNavi MCP HTTP 服务停止失败：%v", err)`,
+				`"PinkHunkDB MCP HTTP 服务未启动"`,
+				`fmt.Sprintf("PinkHunkDB MCP HTTP 服务停止失败：%v", err)`,
 			},
 			keys: []string{
 				"ai_settings.mcp_http.status.not_running",
@@ -693,8 +693,8 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func (s *Service) watchMCPHTTPServer(runtime *mcpHTTPServerRuntime) {": {
 			rawMessages: []string{
-				`"GoNavi MCP HTTP 服务已停止"`,
-				`fmt.Sprintf("GoNavi MCP HTTP 服务异常退出：%v", err)`,
+				`"PinkHunkDB MCP HTTP 服务已停止"`,
+				`fmt.Sprintf("PinkHunkDB MCP HTTP 服务异常退出：%v", err)`,
 			},
 			keys: []string{
 				"ai_settings.mcp_http.message.stopped",
@@ -703,7 +703,7 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func startMCPHTTPCommandProcess(ctx context.Context, options mcpHTTPProcessStartOptions, textLookup mcpHTTPTextLookup) (mcpHTTPProcess, error) {": {
 			rawMessages: []string{
-				`fmt.Errorf("定位当前 GoNavi 可执行文件失败: %w", err)`,
+				`fmt.Errorf("定位当前 PinkHunkDB 可执行文件失败: %w", err)`,
 			},
 			keys: []string{
 				"ai_service.backend.error.mcp_http_executable_resolve_failed",
@@ -727,7 +727,7 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func statusFromMCPHTTPOptions(options mcpHTTPProcessStartOptions, token string, textLookup mcpHTTPTextLookup) ai.MCPHTTPServerStatus {": {
 			rawMessages: []string{
-				`"GoNavi MCP HTTP 服务已启动"`,
+				`"PinkHunkDB MCP HTTP 服务已启动"`,
 			},
 			keys: []string{
 				"ai_settings.mcp_http.message.started",
@@ -743,7 +743,7 @@ func TestAIServiceMCPHTTPServerMessagesUseLocalizedText(t *testing.T) {
 		},
 		"func defaultMCPHTTPServerStatus(textLookup mcpHTTPTextLookup) ai.MCPHTTPServerStatus {": {
 			rawMessages: []string{
-				`"GoNavi MCP HTTP 服务未启动"`,
+				`"PinkHunkDB MCP HTTP 服务未启动"`,
 			},
 			keys: []string{
 				"ai_settings.mcp_http.status.not_running",

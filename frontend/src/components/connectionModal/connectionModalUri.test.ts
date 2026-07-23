@@ -10,7 +10,7 @@ import {
 
 describe('connectionModalUri trino support', () => {
   it('parses catalog and schema from a Trino URI into the database field', () => {
-    expect(parseTrinoUriToValues('https://alice@127.0.0.1:8443?catalog=hive&schema=default&source=GoNavi&query_timeout=30s'))
+    expect(parseTrinoUriToValues('https://alice@127.0.0.1:8443?catalog=hive&schema=default&source=PinkHunkDB&query_timeout=30s'))
       .toMatchObject({
         host: '127.0.0.1',
         port: 8443,
@@ -18,7 +18,7 @@ describe('connectionModalUri trino support', () => {
         database: 'hive.default',
         useSSL: true,
         sslMode: 'required',
-        connectionParams: 'source=GoNavi&query_timeout=30s',
+        connectionParams: 'source=PinkHunkDB&query_timeout=30s',
       });
   });
 
@@ -40,11 +40,11 @@ describe('connectionModalUri trino support', () => {
       user: 'alice',
       database: 'hive.default',
       connectionParams: 'query_timeout=45s',
-    })).toBe('http://alice@127.0.0.1:8080?query_timeout=45s&catalog=hive&schema=default&source=GoNavi');
+    })).toBe('http://alice@127.0.0.1:8080?query_timeout=45s&catalog=hive&schema=default&source=PinkHunkDB');
   });
 
   it('keeps dedicated Trino placeholders concise', () => {
-    expect(getUriPlaceholder('trino')).toBe('http://user@127.0.0.1:8080?catalog=hive&schema=default&source=GoNavi');
+    expect(getUriPlaceholder('trino')).toBe('http://user@127.0.0.1:8080?catalog=hive&schema=default&source=PinkHunkDB');
     expect(getConnectionParamsPlaceholder('trino', 'mysql')).toBe('session_properties=query_max_execution_time:30m&query_timeout=30s');
   });
 });

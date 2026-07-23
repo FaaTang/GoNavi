@@ -180,13 +180,13 @@ func TestExpectedAssetNameForExecutableUsesLinuxWebKit41Suffix(t *testing.T) {
 		"linux",
 		"amd64",
 		"v0.6.5",
-		"/opt/GoNavi-Lite/GoNavi-Lite-build-linux-amd64-webkit41",
+		"/opt/PinkHunkDB/PinkHunkDB-build-linux-amd64-webkit41",
 	)
 	if err != nil {
 		t.Fatalf("expectedAssetNameForExecutable returned error: %v", err)
 	}
 
-	want := "GoNavi-Lite-0.6.5-Linux-Amd64-WebKit41.tar.gz"
+	want := "PinkHunkDB-0.6.5-Linux-Amd64-WebKit41.tar.gz"
 	if assetName != want {
 		t.Fatalf("unexpected linux webkit41 asset name: got %q want %q", assetName, want)
 	}
@@ -194,9 +194,9 @@ func TestExpectedAssetNameForExecutableUsesLinuxWebKit41Suffix(t *testing.T) {
 
 func TestBuildLinuxScriptPrefersTargetExecutableBasename(t *testing.T) {
 	script := buildLinuxScript(
-		"/tmp/GoNavi-Lite-0.6.5-Linux-Amd64-WebKit41.tar.gz",
-		"/opt/GoNavi-Lite/GoNavi-Lite-build-linux-amd64-webkit41",
-		"/tmp/.GoNavi-Lite-update-linux-0.6.5",
+		"/tmp/PinkHunkDB-0.6.5-Linux-Amd64-WebKit41.tar.gz",
+		"/opt/PinkHunkDB/PinkHunkDB-build-linux-amd64-webkit41",
+		"/tmp/.PinkHunkDB-update-linux-0.6.5",
 		12345,
 	)
 
@@ -204,7 +204,7 @@ func TestBuildLinuxScriptPrefersTargetExecutableBasename(t *testing.T) {
 		`TARGET_NAME="$(basename "$TARGET")"`,
 		`NEWBIN="$TMPDIR/$TARGET_NAME"`,
 		`NEWBIN=$(find "$TMPDIR" -type f -name "$TARGET_NAME" | head -n 1)`,
-		`NEWBIN=$(find "$TMPDIR" -type f -name "GoNavi-Lite" | head -n 1)`,
+		`NEWBIN=$(find "$TMPDIR" -type f -name "PinkHunkDB" | head -n 1)`,
 	}
 	for _, want := range mustContain {
 		if !strings.Contains(script, want) {
@@ -215,9 +215,9 @@ func TestBuildLinuxScriptPrefersTargetExecutableBasename(t *testing.T) {
 
 func TestResolveUpdateArtifactVersionsToKeepKeepsCurrentAndPrevious(t *testing.T) {
 	discovered := map[string][]string{
-		"0.8.0": {"/tmp/GoNavi-Lite-updates/.GoNavi-Lite-update-windows-0.8.0"},
-		"0.8.1": {"/tmp/GoNavi-Lite-updates/.GoNavi-Lite-update-windows-0.8.1"},
-		"0.8.2": {"/tmp/GoNavi-Lite-updates/.GoNavi-Lite-update-windows-0.8.2"},
+		"0.8.0": {"/tmp/PinkHunkDB-updates/.PinkHunkDB-update-windows-0.8.0"},
+		"0.8.1": {"/tmp/PinkHunkDB-updates/.PinkHunkDB-update-windows-0.8.1"},
+		"0.8.2": {"/tmp/PinkHunkDB-updates/.PinkHunkDB-update-windows-0.8.2"},
 	}
 
 	keep := resolveUpdateArtifactVersionsToKeep("0.8.2", "", discovered)
@@ -237,8 +237,8 @@ func TestResolveUpdateArtifactVersionsToKeepKeepsCurrentAndPrevious(t *testing.T
 
 func TestResolveUpdateArtifactVersionsToKeepKeepsDownloadedFutureVersion(t *testing.T) {
 	discovered := map[string][]string{
-		"0.8.1": {"/tmp/GoNavi-Lite-updates/.GoNavi-Lite-update-windows-0.8.1"},
-		"0.8.2": {"/tmp/GoNavi-Lite-updates/.GoNavi-Lite-update-windows-0.8.2"},
+		"0.8.1": {"/tmp/PinkHunkDB-updates/.PinkHunkDB-update-windows-0.8.1"},
+		"0.8.2": {"/tmp/PinkHunkDB-updates/.PinkHunkDB-update-windows-0.8.2"},
 	}
 
 	keep := resolveUpdateArtifactVersionsToKeep("0.8.1", "0.8.2", discovered)
@@ -255,9 +255,9 @@ func TestResolveUpdateArtifactVersionsToKeepKeepsDownloadedFutureVersion(t *test
 
 func TestPruneHistoricalUpdateArtifactsRemovesOlderVersions(t *testing.T) {
 	workspace := t.TempDir()
-	keepDir := filepath.Join(workspace, ".GoNavi-Lite-update-windows-0.8.2")
-	prevDir := filepath.Join(workspace, ".GoNavi-Lite-update-windows-0.8.1")
-	oldDir := filepath.Join(workspace, ".GoNavi-Lite-update-windows-0.8.0")
+	keepDir := filepath.Join(workspace, ".PinkHunkDB-update-windows-0.8.2")
+	prevDir := filepath.Join(workspace, ".PinkHunkDB-update-windows-0.8.1")
+	oldDir := filepath.Join(workspace, ".PinkHunkDB-update-windows-0.8.0")
 	for _, dir := range []string{keepDir, prevDir, oldDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("mkdir failed: %v", err)
@@ -284,7 +284,7 @@ func TestPruneHistoricalUpdateArtifactsRemovesOlderVersions(t *testing.T) {
 }
 
 func TestParseUpdateStagedDirVersionSupportsTimestampSuffix(t *testing.T) {
-	if got := parseUpdateStagedDirVersion(".GoNavi-Lite-update-windows-0.8.2-1710000000000"); got != "0.8.2" {
+	if got := parseUpdateStagedDirVersion(".PinkHunkDB-update-windows-0.8.2-1710000000000"); got != "0.8.2" {
 		t.Fatalf("unexpected parsed version: %q", got)
 	}
 }

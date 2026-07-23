@@ -322,7 +322,7 @@ const buildRedisNextActions = (
     actions.push(redisTopologyCopy(
       translate,
       'next_action.disable_ssh',
-      'Disable the SSH tunnel and use direct access, proxy/VPN, or GoNavi MCP HTTP so the remote Agent can access Redis through local GoNavi.',
+      'Disable the SSH tunnel and use direct access, proxy/VPN, or PinkHunkDB MCP HTTP so the remote Agent can access Redis through local PinkHunkDB.',
     ));
   }
   if (warnings.some((warning) => warning.code === 'sentinel_default_redis_port')) {
@@ -403,7 +403,7 @@ const buildRedisTopologyRecommendations = (
     recommendations.push(redisTopologyCopy(
       translate,
       'recommendation.network_for_cluster_sentinel',
-      'For cross-network Redis Cluster/Sentinel access, prefer a network proxy, VPN, or GoNavi MCP HTTP instead of a single-port SSH tunnel.',
+      'For cross-network Redis Cluster/Sentinel access, prefer a network proxy, VPN, or PinkHunkDB MCP HTTP instead of a single-port SSH tunnel.',
     ));
   }
   if (config.useSSL === true) {

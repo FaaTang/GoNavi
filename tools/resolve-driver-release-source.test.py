@@ -41,7 +41,7 @@ class ResolveDriverReleaseSourceTests(unittest.TestCase):
         release = {
             "assets": [
                 {"name": "foo.txt"},
-                {"name": "GoNavi-DriverAgents-Manifest.json", "url": "https://example.test/manifest"},
+                {"name": "PinkHunkDB-DriverAgents-Manifest.json", "url": "https://example.test/manifest"},
             ]
         }
         asset = MODULE.find_manifest_asset(release)
@@ -49,7 +49,7 @@ class ResolveDriverReleaseSourceTests(unittest.TestCase):
         self.assertEqual(asset["url"], "https://example.test/manifest")
 
     def test_returns_none_when_manifest_asset_missing(self):
-        release = {"assets": [{"name": "GoNavi-DriverAgents.zip"}]}
+        release = {"assets": [{"name": "PinkHunkDB-DriverAgents.zip"}]}
         self.assertIsNone(MODULE.find_manifest_asset(release))
 
 

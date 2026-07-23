@@ -210,7 +210,7 @@ describe('TabManager hover info', () => {
   it('opens tab display settings from the v2 tab context menu', () => {
     const source = readFileSync(new URL('./TabManager.tsx', import.meta.url), 'utf8');
 
-    expect(source).toContain("new CustomEvent('GoNavi-Lite:open-tab-display-settings')");
+    expect(source).toContain("new CustomEvent('PinkHunkDB:open-tab-display-settings')");
     expect(source).toContain("if (typeof window === 'undefined')");
   });
 
@@ -262,7 +262,7 @@ describe('TabManager hover info', () => {
       '关闭右侧',
       '关闭所有',
       '关闭 ',
-      'GoNavi-Lite 起始工作台',
+      'PinkHunkDB 起始工作台',
       '快捷工作流',
       '连接、查询和分析从同一个工作台开始。',
       '选择数据源、打开查询编辑器，或把上下文交给 AI 面板继续处理。',
@@ -344,7 +344,7 @@ describe('TabManager hover info', () => {
     expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToLeftIds(tabs, tab.id), () => closeTabsToLeft(tab.id))');
     expect(source).toContain('closeTabsWithQueryPrompt(getCloseTabsToRightIds(tabs, tab.id), () => closeTabsToRight(tab.id))');
     expect(source).toContain('closeTabsWithQueryPrompt(tabs.map((item) => item.id), () => closeAllTabs())');
-    expect(source).toContain("window.addEventListener('GoNavi-Lite:close-active-tab', handleCloseActiveTab)");
+    expect(source).toContain("window.addEventListener('PinkHunkDB:close-active-tab', handleCloseActiveTab)");
   });
 
   it('closes inactive v2 tabs from the close button without relying on the active tab', () => {

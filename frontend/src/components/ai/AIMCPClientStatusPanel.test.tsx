@@ -17,7 +17,7 @@ describe('AIMCPClientStatusPanel', () => {
           matchesCurrent: false,
           clientDetected: false,
           clientCommand: 'hermans',
-          message: 'Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。',
+          message: 'Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。',
         }}
         selectedCommandText=""
         darkMode={false}
@@ -32,13 +32,13 @@ describe('AIMCPClientStatusPanel', () => {
 
     expect(markup).toContain('Selected client status');
     expect(markup).toContain('Current target client: Hermans');
-    expect(markup).toContain('needs a remote MCP bridge to call this GoNavi');
+    expect(markup).toContain('needs a remote MCP bridge to call this PinkHunkDB');
     expect(markup).toContain('Remote connection boundary');
     expect(markup).toContain('--schema-only does not register execute_sql by default');
     expect(markup).toContain('Hermans Remote MCP quick setup');
     expect(markup).toContain('Configure in cloud Agent');
     expect(markup).toContain('CLI detection: Remote Agent does not need local hermans command detection');
-    expect(markup).toContain('Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。');
+    expect(markup).toContain('Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。');
     expect(markup).toContain('Refresh status');
     expect(markup).toContain('Copy config path');
     expect(markup).toContain('Copy launch command');

@@ -4,10 +4,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # 配置
-APP_NAME="GoNavi-Lite"
+APP_NAME="PinkHunkDB"
 DIST_DIR="dist"
 BUILD_BIN_DIR="build/bin"
-DEFAULT_BINARY_NAME="GoNavi-Lite" # 对应 wails.json 中的 outputfilename
+DEFAULT_BINARY_NAME="PinkHunkDB" # 对应 wails.json 中的 outputfilename
 DEV_VERSION_FILE="version/dev-version.txt"
 DEFAULT_DEV_VERSION="0.0.1-test"
 

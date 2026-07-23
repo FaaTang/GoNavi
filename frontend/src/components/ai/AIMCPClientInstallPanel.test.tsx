@@ -17,7 +17,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'claude',
-            message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+            message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
           },
           {
             client: 'codex',
@@ -27,7 +27,7 @@ describe('AIMCPClientInstallPanel', () => {
             clientDetected: true,
             clientCommand: 'codex',
             clientPath: 'C:/Users/mock/AppData/Roaming/npm/codex.cmd',
-            message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+            message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
             configPath: '~/.codex/config.toml',
             command: 'gonavi-mcp-server',
             args: ['stdio'],
@@ -42,7 +42,7 @@ describe('AIMCPClientInstallPanel', () => {
           clientDetected: true,
           clientCommand: 'codex',
           clientPath: 'C:/Users/mock/AppData/Roaming/npm/codex.cmd',
-          message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+          message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
           configPath: '~/.codex/config.toml',
           command: 'gonavi-mcp-server',
           args: ['stdio'],
@@ -62,7 +62,7 @@ describe('AIMCPClientInstallPanel', () => {
       />,
     );
 
-    expect(markup).toContain('This connects GoNavi MCP to Claude Code / Codex / OpenClaw / Hermans');
+    expect(markup).toContain('This connects PinkHunkDB MCP to Claude Code / Codex / OpenClaw / Hermans');
     expect(markup).toContain('external tool calls');
     expect(markup).toContain('Cloud Agents such as OpenClaw and Hermans use remote connection guidance');
     expect(markup).toContain('Connect external client');
@@ -94,7 +94,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'claude',
-            message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+            message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
           },
           {
             client: 'codex',
@@ -103,7 +103,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: true,
             clientDetected: true,
             clientCommand: 'codex',
-            message: '已检测到 Codex 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+            message: '已检测到 Codex 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
           },
         ]}
         selectedClient="claude-code"
@@ -114,7 +114,7 @@ describe('AIMCPClientInstallPanel', () => {
           matchesCurrent: false,
           clientDetected: false,
           clientCommand: 'claude',
-          message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+          message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
         }}
         selectedCommandText="gonavi-mcp-server stdio"
         darkMode={false}
@@ -149,7 +149,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'openclaw',
-            message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。',
+            message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。',
           },
           {
             client: 'hermans',
@@ -159,7 +159,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'hermans',
-            message: 'Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。',
+            message: 'Hermans 这类远程 Agent 请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。',
           },
         ]}
         selectedClient="openclaw"
@@ -171,7 +171,7 @@ describe('AIMCPClientInstallPanel', () => {
           matchesCurrent: false,
           clientDetected: false,
           clientCommand: 'openclaw',
-          message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。',
+          message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。',
         }}
         selectedCommandText=""
         darkMode={false}
@@ -207,19 +207,19 @@ describe('AIMCPClientInstallPanel', () => {
     expect(markup).toContain('&quot;type&quot;: &quot;streamable-http&quot;');
     expect(markup).toContain('&quot;url&quot;: &quot;https://&lt;your-domain-or-tunnel&gt;/mcp&quot;');
     expect(markup).toContain('&quot;Authorization&quot;: &quot;Bearer &lt;random-token&gt;&quot;');
-    expect(markup).toContain('GoNavi.exe mcp-server remote-config --client openclaw --url https://&lt;your-domain-or-tunnel&gt;/mcp --token &lt;random-token&gt; --schema-only');
-    expect(markup).toContain('Start GoNavi MCP HTTP on Windows');
-    expect(markup).toContain('GoNavi.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token &lt;random-token&gt; --schema-only');
+    expect(markup).toContain('PinkHunkDB.exe mcp-server remote-config --client openclaw --url https://&lt;your-domain-or-tunnel&gt;/mcp --token &lt;random-token&gt; --schema-only');
+    expect(markup).toContain('Start PinkHunkDB MCP HTTP on Windows');
+    expect(markup).toContain('PinkHunkDB.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token &lt;random-token&gt; --schema-only');
     expect(markup).toContain('Standalone binary: gonavi-mcp-server http --addr 127.0.0.1:8765 --path /mcp --token &lt;random-token&gt; --schema-only');
     expect(markup).toContain('Verification order');
     expect(markup).toContain('Security boundary');
-    expect(markup).toContain('Database accounts and passwords stay in Windows GoNavi');
+    expect(markup).toContain('Database accounts and passwords stay in Windows PinkHunkDB');
     expect(markup).toContain('--schema-only does not register execute_sql by default');
     expect(markup).toContain('CLI detection: Remote Agent does not need local openclaw command detection');
     expect(markup).toContain('Copy OpenClaw remote connection guide');
   });
 
-  it('makes repeated install avoidance explicit when the selected client already matches current GoNavi', () => {
+  it('makes repeated install avoidance explicit when the selected client already matches current PinkHunkDB', () => {
     const markup = renderToStaticMarkup(
       <AIMCPClientInstallPanel
         statuses={[
@@ -230,7 +230,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: true,
             clientDetected: true,
             clientCommand: 'claude',
-            message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+            message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
           },
           {
             client: 'codex',
@@ -239,7 +239,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: false,
             clientCommand: 'codex',
-            message: '未检测到 Codex 用户级 GoNavi MCP 配置',
+            message: '未检测到 Codex 用户级 PinkHunkDB MCP 配置',
           },
         ]}
         selectedClient="claude-code"
@@ -250,7 +250,7 @@ describe('AIMCPClientInstallPanel', () => {
           matchesCurrent: true,
           clientDetected: true,
           clientCommand: 'claude',
-          message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+          message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
         }}
         selectedCommandText="gonavi-mcp-server stdio"
         darkMode={false}
@@ -267,12 +267,12 @@ describe('AIMCPClientInstallPanel', () => {
       />,
     );
 
-    expect(markup).toContain('Current status: Connected to current GoNavi; no repeated action needed');
+    expect(markup).toContain('Current status: Connected to current PinkHunkDB; no repeated action needed');
     expect(markup).toContain('Claude Code is connected; no reinstall needed');
     expect(markup).toContain('the main button is disabled to avoid repeated writes');
   });
 
-  it('prefers the client that already matches current GoNavi over another stale installed record', () => {
+  it('prefers the client that already matches current PinkHunkDB over another stale installed record', () => {
     const markup = renderToStaticMarkup(
       <AIMCPClientInstallPanel
         statuses={[
@@ -283,7 +283,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: true,
             clientDetected: true,
             clientCommand: 'claude',
-            message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+            message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
           },
           {
             client: 'codex',
@@ -292,7 +292,7 @@ describe('AIMCPClientInstallPanel', () => {
             matchesCurrent: false,
             clientDetected: true,
             clientCommand: 'codex',
-            message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+            message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
           },
         ]}
         selectedClient="claude-code"
@@ -303,7 +303,7 @@ describe('AIMCPClientInstallPanel', () => {
           matchesCurrent: true,
           clientDetected: true,
           clientCommand: 'claude',
-          message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+          message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
         }}
         selectedCommandText="gonavi-mcp-server stdio"
         darkMode={false}
@@ -321,6 +321,6 @@ describe('AIMCPClientInstallPanel', () => {
     );
 
     expect(markup).toContain('Selected client status');
-    expect(markup).toContain('Current status: Connected to current GoNavi; no repeated action needed');
+    expect(markup).toContain('Current status: Connected to current PinkHunkDB; no repeated action needed');
   });
 });

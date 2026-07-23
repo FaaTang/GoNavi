@@ -45,7 +45,7 @@ describe('AIChatPanelConversationView', () => {
       />,
     );
 
-    expect(markup).toContain('你好，我是 GoNavi AI');
+    expect(markup).toContain('你好，我是 PinkHunkDB AI');
     expect(markup).toContain('已自动关联');
     expect(markup).toContain('生成 SQL');
   });

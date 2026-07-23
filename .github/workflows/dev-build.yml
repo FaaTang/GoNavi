@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p frontend/dist
-          printf '<!doctype html><title>GoNavi-Lite</title>\n' > frontend/dist/index.html
+          printf '<!doctype html><title>PinkHunkDB</title>\n' > frontend/dist/index.html
           wails generate module
           node frontend/scripts/wails-frontend-install.mjs
           npm --prefix frontend run build
@@ -333,7 +333,7 @@ jobs:
             platform: darwin/amd64
             os_name: MacOS
             arch_name: Amd64
-            build_name: gonavi-build-darwin-amd64
+            build_name: pinkhunkdb-build-darwin-amd64
             wails_tags: ""
             artifact_suffix: ""
             build_optional_agents: true
@@ -342,7 +342,7 @@ jobs:
             platform: darwin/arm64
             os_name: MacOS
             arch_name: Arm64
-            build_name: gonavi-build-darwin-arm64
+            build_name: pinkhunkdb-build-darwin-arm64
             wails_tags: ""
             artifact_suffix: ""
             build_optional_agents: true
@@ -351,7 +351,7 @@ jobs:
             platform: windows/amd64
             os_name: Windows
             arch_name: Amd64
-            build_name: gonavi-build-windows-amd64
+            build_name: pinkhunkdb-build-windows-amd64
             wails_tags: ""
             artifact_suffix: ""
             build_optional_agents: true
@@ -360,7 +360,7 @@ jobs:
             platform: windows/arm64
             os_name: Windows
             arch_name: Arm64
-            build_name: gonavi-build-windows-arm64
+            build_name: pinkhunkdb-build-windows-arm64
             wails_tags: ""
             artifact_suffix: ""
             build_optional_agents: true
@@ -369,7 +369,7 @@ jobs:
             platform: linux/amd64
             os_name: Linux
             arch_name: Amd64
-            build_name: gonavi-build-linux-amd64
+            build_name: pinkhunkdb-build-linux-amd64
             wails_tags: ""
             artifact_suffix: ""
             build_optional_agents: true
@@ -378,7 +378,7 @@ jobs:
             platform: linux/amd64
             os_name: Linux
             arch_name: Amd64
-            build_name: gonavi-build-linux-amd64-webkit41
+            build_name: pinkhunkdb-build-linux-amd64-webkit41
             wails_tags: "webkit2_41"
             artifact_suffix: "-WebKit41"
             build_optional_agents: false
@@ -897,11 +897,11 @@ jobs:
           codesign --force --deep --sign - "$APP_NAME"
           
           DMG_NAME="${{ matrix.build_name }}.dmg"
-          FINAL_NAME="GoNavi-Lite-${VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.dmg"
+          FINAL_NAME="PinkHunkDB-${VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.dmg"
           echo "📦 正在生成 DMG: $DMG_NAME..."
           
           create-dmg \
-            --volname "GoNavi-Lite Dev Build" \
+            --volname "PinkHunkDB Dev Build" \
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
@@ -911,7 +911,7 @@ jobs:
             "$DMG_NAME" \
             "$APP_NAME"
 
-          VERIFY_MOUNT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/GoNavi-Lite-dev-verify.XXXXXX")
+          VERIFY_MOUNT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/PinkHunkDB-dev-verify.XXXXXX")
           hdiutil attach -nobrowse -readonly -mountpoint "$VERIFY_MOUNT_DIR" "$DMG_NAME" >/dev/null
           PACKAGED_APP=$(find "$VERIFY_MOUNT_DIR" -maxdepth 1 -name "*.app" | head -n 1)
           if [ -z "$PACKAGED_APP" ]; then
@@ -932,7 +932,7 @@ jobs:
           Set-Location build/bin
           $version = "${{ steps.version.outputs.version }}"
           $target = "${{ matrix.build_name }}"
-          $finalExeName = "GoNavi-Lite-$version-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.exe"
+          $finalExeName = "PinkHunkDB-$version-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.exe"
 
           if (Test-Path "$target.exe") {
               $finalExe = "$target.exe"
@@ -985,8 +985,8 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           cd build/bin
           TARGET="${{ matrix.build_name }}"
-          TAR_NAME="GoNavi-Lite-$VERSION-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.tar.gz"
-          APPIMAGE_NAME="GoNavi-Lite-$VERSION-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.AppImage"
+          TAR_NAME="PinkHunkDB-$VERSION-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.tar.gz"
+          APPIMAGE_NAME="PinkHunkDB-$VERSION-${{ matrix.os_name }}-${{ matrix.arch_name }}${{ matrix.artifact_suffix }}.AppImage"
 
           if [ ! -f "$TARGET" ]; then
               echo "❌ 未找到构建产物 '$TARGET'!"
@@ -1020,28 +1020,28 @@ jobs:
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-          cp "$TARGET" AppDir/usr/bin/GoNavi-Lite
+          cp "$TARGET" AppDir/usr/bin/PinkHunkDB
 
           printf '%s\n' \
             '[Desktop Entry]' \
-            'Name=GoNavi-Lite' \
-            'Exec=GoNavi-Lite' \
-            'Icon=GoNavi-Lite' \
+            'Name=PinkHunkDB' \
+            'Exec=PinkHunkDB' \
+            'Icon=PinkHunkDB' \
             'Type=Application' \
             'Categories=Development;Database;' \
             'Comment=Database Management Tool' \
-            > AppDir/usr/share/applications/GoNavi-Lite.desktop
+            > AppDir/usr/share/applications/PinkHunkDB.desktop
 
-          cp AppDir/usr/share/applications/GoNavi-Lite.desktop AppDir/GoNavi-Lite.desktop
+          cp AppDir/usr/share/applications/PinkHunkDB.desktop AppDir/PinkHunkDB.desktop
 
           if [ -f "../../build/appicon.png" ]; then
-              cp "../../build/appicon.png" AppDir/usr/share/icons/hicolor/256x256/apps/GoNavi-Lite.png
-              cp "../../build/appicon.png" AppDir/GoNavi-Lite.png
+              cp "../../build/appicon.png" AppDir/usr/share/icons/hicolor/256x256/apps/PinkHunkDB.png
+              cp "../../build/appicon.png" AppDir/PinkHunkDB.png
           else
-              convert -size 256x256 xc:#336791 -fill white -gravity center -pointsize 48 -annotate 0 "GoNavi-Lite" AppDir/GoNavi-Lite.png || \
-              wget -q "https://via.placeholder.com/256/336791/FFFFFF?text=GoNavi-Lite" -O AppDir/GoNavi-Lite.png || \
-              touch AppDir/GoNavi-Lite.png
-              cp AppDir/GoNavi-Lite.png AppDir/usr/share/icons/hicolor/256x256/apps/GoNavi-Lite.png
+              convert -size 256x256 xc:#336791 -fill white -gravity center -pointsize 48 -annotate 0 "PinkHunkDB" AppDir/PinkHunkDB.png || \
+              wget -q "https://via.placeholder.com/256/336791/FFFFFF?text=PinkHunkDB" -O AppDir/PinkHunkDB.png || \
+              touch AppDir/PinkHunkDB.png
+              cp AppDir/PinkHunkDB.png AppDir/usr/share/icons/hicolor/256x256/apps/PinkHunkDB.png
           fi
 
           export DEPLOY_GTK_VERSION=3
@@ -1050,7 +1050,7 @@ jobs:
               exit 0
           }
 
-          mv GoNavi-Lite*.AppImage "$APPIMAGE_NAME" 2>/dev/null || {
+          mv PinkHunkDB*.AppImage "$APPIMAGE_NAME" 2>/dev/null || {
               echo "⚠️ AppImage 重命名失败"
               exit 0
           }
@@ -1065,10 +1065,10 @@ jobs:
         with:
           name: dev-build-artifacts-${{ strategy.job-index }}
           path: |
-            GoNavi-Lite-*.dmg
-            GoNavi-Lite-*.exe
-            GoNavi-Lite-*.tar.gz
-            GoNavi-Lite-*.AppImage
+            PinkHunkDB-*.dmg
+            PinkHunkDB-*.exe
+            PinkHunkDB-*.tar.gz
+            PinkHunkDB-*.AppImage
             drivers/**
           retention-days: 7
 
@@ -1120,14 +1120,14 @@ jobs:
             exit 0
           fi
 
-          echo "📦 打包驱动总包至当前 release：GoNavi-Lite-DriverAgents.zip"
+          echo "📦 打包驱动总包至当前 release：PinkHunkDB-DriverAgents.zip"
           bundle_dir="$RUNNER_TEMP/driver-bundle"
           rm -rf "$bundle_dir"
           mkdir -p "$bundle_dir"
           python3 ../tools/package-driver-release-assets.py drivers "$bundle_dir"
           python3 ../tools/generate-driver-release-manifest.py \
             --assets-dir drivers \
-            --output "$bundle_dir/GoNavi-Lite-DriverAgents-Manifest.json"
+            --output "$bundle_dir/PinkHunkDB-DriverAgents-Manifest.json"
           mv "$bundle_dir"/* .
           rm -rf drivers "$bundle_dir"
 

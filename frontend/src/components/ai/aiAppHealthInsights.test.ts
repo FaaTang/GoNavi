@@ -29,7 +29,7 @@ describe('buildAIAppHealthSnapshot', () => {
       activeProviderId: 'provider-1',
       mcpServers: [{
         id: 'server-1',
-        name: 'GoNavi MCP',
+        name: 'PinkHunkDB MCP',
         transport: 'stdio',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
@@ -48,13 +48,13 @@ describe('buildAIAppHealthSnapshot', () => {
         configPath: 'C:/Users/demo/.codex/config.toml',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
-        message: '已接入当前 GoNavi MCP',
+        message: '已接入当前 PinkHunkDB MCP',
       }],
       mcpTools: [{
         alias: 'inspect_app_health',
         originalName: 'inspect_app_health',
         serverId: 'server-1',
-        serverName: 'GoNavi MCP',
+        serverName: 'PinkHunkDB MCP',
         title: 'Inspect app health',
       }],
       userPromptSettings: {
@@ -93,7 +93,7 @@ describe('buildAIAppHealthSnapshot', () => {
     expect(source).not.toContain('当前还没有记录到 AI 消息渲染异常');
     expect(source).not.toContain('GoNavi 应用日志暂不可读');
     expect(source).not.toContain('连接失败日志暂不可读');
-    expect(source).not.toContain('当前无法读取 GoNavi 应用日志');
+    expect(source).not.toContain('当前无法读取 PinkHunkDB 应用日志');
     expect(source).not.toContain('最近应用日志里有 ');
     expect(source).not.toContain('当前 AI 应用健康总览通过');
   });
@@ -118,7 +118,7 @@ describe('buildAIAppHealthSnapshot', () => {
       builtinToolNames: ['inspect_app_health', 'inspect_ai_setup_health', 'inspect_app_logs'],
       mcpServers: [{
         id: 'server-1',
-        name: 'GoNavi MCP',
+        name: 'PinkHunkDB MCP',
         transport: 'stdio',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
@@ -264,7 +264,7 @@ describe('buildAIAppHealthSnapshot', () => {
         configPath: 'C:/Users/demo/.codex/config.toml',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
-        message: '已接入当前 GoNavi MCP',
+        message: '已接入当前 PinkHunkDB MCP',
       }],
       mcpTools: [{
         alias: 'browser_open',

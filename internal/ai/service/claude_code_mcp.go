@@ -65,7 +65,7 @@ type codexMCPServerConfig struct {
 	StartupTimeoutSec int
 }
 
-// AIGetMCPClientInstallStatuses 返回 GoNavi MCP 在常见外部客户端中的安装状态。
+// AIGetMCPClientInstallStatuses 返回 PinkHunkDB MCP 在常见外部客户端中的安装状态。
 func (s *Service) AIGetMCPClientInstallStatuses() []ai.MCPClientInstallStatus {
 	command, args, resolveErr := resolveCurrentLocalMCPCommand(s.serviceText)
 	return []ai.MCPClientInstallStatus{
@@ -76,7 +76,7 @@ func (s *Service) AIGetMCPClientInstallStatuses() []ai.MCPClientInstallStatus {
 	}
 }
 
-// AIInstallClaudeCodeMCP 把 GoNavi 的 MCP server 写入 Claude Code 用户级 MCP 配置。
+// AIInstallClaudeCodeMCP 把 PinkHunkDB 的 MCP server 写入 Claude Code 用户级 MCP 配置。
 func (s *Service) AIInstallClaudeCodeMCP() (ai.MCPClientInstallResult, error) {
 	configPath, err := claudeCodeConfigPathFunc()
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *Service) AIInstallClaudeCodeMCP() (ai.MCPClientInstallResult, error) {
 	}, nil
 }
 
-// AIInstallCodexMCP 把 GoNavi 的 MCP server 写入 Codex 用户级 MCP 配置。
+// AIInstallCodexMCP 把 PinkHunkDB 的 MCP server 写入 Codex 用户级 MCP 配置。
 func (s *Service) AIInstallCodexMCP() (ai.MCPClientInstallResult, error) {
 	configPath, err := codexConfigPathFunc()
 	if err != nil {

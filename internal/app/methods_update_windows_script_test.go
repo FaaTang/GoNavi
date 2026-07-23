@@ -49,14 +49,14 @@ func TestBuildWindowsPowerShellUpdateScriptUsesCRLFLineEndings(t *testing.T) {
 func TestWindowsUpdateScriptEnv(t *testing.T) {
 	env := windowsUpdateScriptEnv(
 		`C:\tmp\GoNavi-v0.5.0-windows-amd64.exe`,
-		`C:\Program Files (x86)\GoNavi\GoNavi.exe`,
+		`C:\Program Files (x86)\GoNavi\PinkHunkDB.exe`,
 		`C:\Program Files (x86)\GoNavi\.gonavi-update-windows-v0.5.0`,
 		`C:\Program Files (x86)\GoNavi\logs\update-install.log`,
 		99999,
 	)
 	want := []string{
 		`GONAVI_UPDATE_SOURCE=C:\tmp\GoNavi-v0.5.0-windows-amd64.exe`,
-		`GONAVI_UPDATE_TARGET=C:\Program Files (x86)\GoNavi\GoNavi.exe`,
+		`GONAVI_UPDATE_TARGET=C:\Program Files (x86)\GoNavi\PinkHunkDB.exe`,
 		`GONAVI_UPDATE_STAGED=C:\Program Files (x86)\GoNavi\.gonavi-update-windows-v0.5.0`,
 		`GONAVI_UPDATE_LOG=C:\Program Files (x86)\GoNavi\logs\update-install.log`,
 		`GONAVI_UPDATE_PID=99999`,

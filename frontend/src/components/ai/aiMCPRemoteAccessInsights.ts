@@ -45,7 +45,7 @@ const MCP_REMOTE_STRATEGY_FALLBACKS: Record<MCPRemoteExposeStrategyKey, {
 }> = {
   reverse_proxy: {
     title: 'Internal reverse proxy',
-    detail: 'Use this when Windows GoNavi and the cloud Agent already share a trusted intranet or gateway.',
+    detail: 'Use this when Windows PinkHunkDB and the cloud Agent already share a trusted intranet or gateway.',
     risk: 'Keep source IP, TLS, and Bearer Token restrictions at the gateway; do not expose it directly to the public internet.',
   },
   ssh_reverse_tunnel: {
@@ -60,8 +60,8 @@ const MCP_REMOTE_STRATEGY_FALLBACKS: Record<MCPRemoteExposeStrategyKey, {
   },
   tailscale: {
     title: 'Tailscale / WireGuard',
-    detail: 'Use this when Windows GoNavi and the cloud Agent can join the same private network and prefer an intranet address.',
-    risk: 'Control ACLs so only the target Agent can reach the GoNavi MCP port.',
+    detail: 'Use this when Windows PinkHunkDB and the cloud Agent can join the same private network and prefer an intranet address.',
+    risk: 'Control ACLs so only the target Agent can reach the PinkHunkDB MCP port.',
   },
   custom: {
     title: 'Custom bridge',
@@ -169,7 +169,7 @@ export const buildMCPRemoteAccessSnapshot = (params: {
     translateMCPRemoteCopy(
       translate,
       'ai_chat.inspection.mcp_remote.next_action.start_local_http',
-      'Start GoNavi MCP HTTP mode on Windows and confirm /healthz is reachable.',
+      'Start PinkHunkDB MCP HTTP mode on Windows and confirm /healthz is reachable.',
     ),
     translateMCPRemoteCopy(
       translate,
@@ -216,13 +216,13 @@ export const buildMCPRemoteAccessSnapshot = (params: {
       ? translateMCPRemoteCopy(
           translate,
           'ai_chat.inspection.mcp_remote.message.with_public_url',
-          'The remote Agent should access GoNavi MCP through {{publicUrl}} and authenticate with Bearer Token',
+          'The remote Agent should access PinkHunkDB MCP through {{publicUrl}} and authenticate with Bearer Token',
           { publicUrl },
         )
       : translateMCPRemoteCopy(
           translate,
           'ai_chat.inspection.mcp_remote.message.no_public_url',
-          'The remote Agent needs to access the Windows GoNavi MCP HTTP endpoint through a controlled tunnel or reverse proxy',
+          'The remote Agent needs to access the Windows PinkHunkDB MCP HTTP endpoint through a controlled tunnel or reverse proxy',
         ),
     endpoint: {
       localAddr,
@@ -233,7 +233,7 @@ export const buildMCPRemoteAccessSnapshot = (params: {
       authHeader: `Authorization: Bearer ${TOKEN_PLACEHOLDER}`,
     },
     launchCommands: {
-      appBinary: buildHttpLaunchCommand('GoNavi.exe', localAddr, path),
+      appBinary: buildHttpLaunchCommand('PinkHunkDB.exe', localAddr, path),
       standaloneBinary: buildStandaloneLaunchCommand(localAddr, path),
       tokenEnvFallback: `GONAVI_MCP_HTTP_TOKEN=${TOKEN_PLACEHOLDER} gonavi-mcp-server http --addr 127.0.0.1:8765 --path /mcp`,
     },

@@ -38,7 +38,7 @@ jobs:
       matrix:
         image_name:
           - gonavi-mcp-server
-          - gonavi-build-env
+          - pinkhunkdb-build-env
         platform:
           - linux/amd64
           - linux/arm64
@@ -46,7 +46,7 @@ jobs:
           - image_name: gonavi-mcp-server
             dockerfile: Dockerfile.mcp-server
             description: GoNavi MCP Server container image
-          - image_name: gonavi-build-env
+          - image_name: pinkhunkdb-build-env
             dockerfile: Dockerfile.build-env
             description: GoNavi Linux build environment image
           - platform: linux/amd64
@@ -112,7 +112,7 @@ jobs:
           exit 1
 
       - name: Smoke test build environment image
-        if: matrix.image_name == 'gonavi-build-env'
+        if: matrix.image_name == 'pinkhunkdb-build-env'
         shell: bash
         run: |
           set -euo pipefail
@@ -161,7 +161,7 @@ jobs:
         include:
           - image_name: gonavi-mcp-server
             description: GoNavi MCP Server container image
-          - image_name: gonavi-build-env
+          - image_name: pinkhunkdb-build-env
             description: GoNavi Linux build environment image
     steps:
       - name: Normalize image namespace

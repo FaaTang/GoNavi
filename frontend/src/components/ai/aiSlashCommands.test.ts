@@ -102,7 +102,7 @@ describe('aiSlashCommands', () => {
     expect(health).toMatchObject({
       label: '🩺 AI health check',
       desc: 'Run health probes for the current AI setup',
-      prompt: 'Call inspect_ai_setup_health first. Run a full health check of the current GoNavi AI setup, then summarize blockers, warnings, and nextActions.',
+      prompt: 'Call inspect_ai_setup_health first. Run a full health check of the current PinkHunkDB AI setup, then summarize blockers, warnings, and nextActions.',
     });
     expect(commands.some((command) => command.cmd === '/health')).toBe(true);
     expect(commands.some((command) => command.cmd === '/tools')).toBe(true);

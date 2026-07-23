@@ -1,6 +1,6 @@
 # AI 扩展能力路线
 
-当前 GoNavi-Lite 的 AI 链路是：
+当前 PinkHunkDB 的 AI 链路是：
 
 1. 前端 `AIChatPanel` 组装 system messages。
 2. 前端声明本地固定工具 `LOCAL_TOOLS`。
@@ -42,15 +42,15 @@
 
 ### MCP 是否需要单独 GitHub 仓库
 
-不需要把“GoNavi-Lite 对 MCP 的支持”单独拆仓库。
+不需要把“PinkHunkDB 对 MCP 的支持”单独拆仓库。
 
 更合理的边界是：
 
-- `GoNavi-Lite 主仓库`
+- `PinkHunkDB 主仓库`
   - 维护 MCP client、配置、UI、工具注册和运行时桥接。
 - `单独仓库（可选）`
   - 只在你要发布一个可复用的 MCP Server 时才有价值。
-  - 例如 `GoNavi-Lite-mcp-sql-tools`、`GoNavi-Lite-mcp-jvm-agent` 这类独立 server。
+  - 例如 `PinkHunkDB-mcp-sql-tools`、`PinkHunkDB-mcp-jvm-agent` 这类独立 server。
 
 结论：
 
@@ -80,7 +80,7 @@ Skills 不建议直接等同于“另一种提示词”。
 
 建议顺序：
 
-1. 先在 GoNavi-Lite 主仓库内把 Skills manifest/runtime 跑通。
+1. 先在 PinkHunkDB 主仓库内把 Skills manifest/runtime 跑通。
 2. 等格式稳定后，再考虑增加“本地目录导入”或“Git 仓库导入”。
 
 只有当你明确要做下面两件事时，独立仓库才值得：

@@ -86,7 +86,7 @@ const valuesExpectedToDifferFromEnglish = [
 ] as const;
 
 const fixedChineseWelcomeChrome = [
-  '你好，我是 GoNavi AI',
+  '你好，我是 PinkHunkDB AI',
   '我是你的智能数据库助手',
   '已自动关联',
   '点击下方按钮快速开始分析',
@@ -192,7 +192,7 @@ describe('AIChatWelcome i18n', () => {
     expect(pageText).toContain(t('en-US', 'ai_chat.quick_action.explain_sql.title'));
     expect(pageText).toContain(t('en-US', 'ai_chat.quick_action.optimize.title'));
     expect(pageText).toContain(t('en-US', 'ai_chat.quick_action.schema_analysis.title'));
-    expect(pageText).not.toContain('你好，我是 GoNavi AI');
+    expect(pageText).not.toContain('你好，我是 PinkHunkDB AI');
     expect(pageText).not.toContain('请解释以下 SQL');
 
     const actions = findQuickActionNodes(renderer);

@@ -44,7 +44,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "GoNavi-Lite",
+		Title:     "PinkHunkDB",
 		Width:     1024,
 		Height:    768,
 		MinWidth:  900,
@@ -94,7 +94,7 @@ func runSpecialMode(args []string) bool {
 	}
 
 	if err := runMCPServerMode(context.Background(), args[1:]); err != nil {
-		logger.Error(err, "GoNavi-Lite MCP Server 退出")
+		logger.Error(err, "PinkHunkDB MCP Server 退出")
 	}
 	return true
 }
@@ -113,7 +113,7 @@ func runMCPServerMode(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		logger.Infof("GoNavi-Lite MCP Streamable HTTP Server 启动：addr=%s path=%s schemaOnly=%v", options.Addr, options.Path, options.SchemaOnly)
+		logger.Infof("PinkHunkDB MCP Streamable HTTP Server 启动：addr=%s path=%s schemaOnly=%v", options.Addr, options.Path, options.SchemaOnly)
 		return mcpserver.RunAppStreamableHTTPServer(ctx, options)
 	case "remote-config", "--remote-config":
 		return mcpserver.WriteRemoteMCPClientConfig(os.Stdout, args[1:])

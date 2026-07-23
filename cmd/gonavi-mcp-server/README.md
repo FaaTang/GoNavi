@@ -1,11 +1,11 @@
-# GoNavi-Lite MCP Server
+# PinkHunkDB MCP Server
 
-`GoNavi-Lite-mcp-server` 会把 GoNavi-Lite 已保存连接背后的数据库能力通过 MCP 暴露给外部客户端。本机客户端默认使用 `stdio`；云端 Agent 可使用显式开启的 Streamable HTTP 模式。
+`PinkHunkDB-mcp-server` 会把 PinkHunkDB 已保存连接背后的数据库能力通过 MCP 暴露给外部客户端。本机客户端默认使用 `stdio`；云端 Agent 可使用显式开启的 Streamable HTTP 模式。
 
 ## 当前提供的 tools
 
 - `get_connections`
-  - 返回 GoNavi-Lite 已保存连接的 `id/name/type/target/defaultDatabase` 等摘要信息
+  - 返回 PinkHunkDB 已保存连接的 `id/name/type/target/defaultDatabase` 等摘要信息
 - `get_databases`
   - 入参：`connectionId`
 - `get_tables`
@@ -27,32 +27,32 @@
 开发态直接运行：
 
 ```powershell
-go run ./cmd/GoNavi-Lite-mcp-server
+go run ./cmd/PinkHunkDB-mcp-server
 ```
 
 显式运行本机 `stdio`：
 
 ```powershell
-go run ./cmd/GoNavi-Lite-mcp-server stdio
+go run ./cmd/PinkHunkDB-mcp-server stdio
 ```
 
 也可以先编译：
 
 ```powershell
-go build -o .\bin\GoNavi-Lite-mcp-server.exe .\cmd\GoNavi-Lite-mcp-server
+go build -o .\bin\PinkHunkDB-mcp-server.exe .\cmd\PinkHunkDB-mcp-server
 ```
 
 远程 Agent 使用 Streamable HTTP 时必须设置 bearer token：
 
 ```powershell
 $env:GONAVI_MCP_HTTP_TOKEN = "<随机token>"
-go run ./cmd/GoNavi-Lite-mcp-server http --addr 127.0.0.1:8765 --path /mcp --schema-only
+go run ./cmd/PinkHunkDB-mcp-server http --addr 127.0.0.1:8765 --path /mcp --schema-only
 ```
 
 安装包主程序也支持同样模式：
 
 ```powershell
-& "C:\Program Files\GoNavi-Lite\GoNavi-Lite.exe" mcp-server http --addr 127.0.0.1:8765 --path /mcp --token "<随机token>" --schema-only
+& "C:\Program Files\PinkHunkDB\PinkHunkDB.exe" mcp-server http --addr 127.0.0.1:8765 --path /mcp --token "<随机token>" --schema-only
 ```
 
 默认建议只监听 `127.0.0.1`，再通过 SSH 隧道、反向代理或内网网关暴露给云端 Agent。不要在没有 TLS、防火墙和鉴权的情况下直接监听公网地址。
@@ -60,7 +60,7 @@ go run ./cmd/GoNavi-Lite-mcp-server http --addr 127.0.0.1:8765 --path /mcp --sch
 无图形界面或需要把配置交给云端 Agent 时，可直接生成 OpenClaw / Hermans 等远程 MCP 配置：
 
 ```powershell
-& "C:\Program Files\GoNavi-Lite\GoNavi-Lite.exe" mcp-server remote-config --client openclaw --url "https://<你的域名或隧道地址>/mcp" --token "<随机token>" --schema-only
+& "C:\Program Files\PinkHunkDB\PinkHunkDB.exe" mcp-server remote-config --client openclaw --url "https://<你的域名或隧道地址>/mcp" --token "<随机token>" --schema-only
 ```
 
 独立 server 开发态也支持同样能力：
@@ -71,16 +71,16 @@ go run ./cmd/gonavi-mcp-server remote-config --client hermans --url "https://<�
 
 ## Claude Code / Codex / OpenClaw / Hermans
 
-正式安装包场景，推荐直接在 GoNavi-Lite 里使用“AI 设置 -> MCP 服务 -> 安装到 Claude Code / 安装到 Codex”。
+正式安装包场景，推荐直接在 PinkHunkDB 里使用“AI 设置 -> MCP 服务 -> 安装到 Claude Code / 安装到 Codex”。
 
-它会自动把当前安装的 `GoNavi-Lite.exe` 写入 Claude Code 的用户级 `~/.claude.json`，命令形态类似：
+它会自动把当前安装的 `PinkHunkDB.exe` 写入 Claude Code 的用户级 `~/.claude.json`，命令形态类似：
 
 ```json
 {
   "mcpServers": {
-    "GoNavi-Lite": {
+    "PinkHunkDB": {
       "type": "stdio",
-      "command": "C:\\Program Files\\GoNavi-Lite\\GoNavi-Lite.exe",
+      "command": "C:\\Program Files\\PinkHunkDB\\PinkHunkDB.exe",
       "args": ["mcp-server"],
       "env": {}
     }
@@ -88,13 +88,13 @@ go run ./cmd/gonavi-mcp-server remote-config --client hermans --url "https://<�
 }
 ```
 
-这样用户不需要自己找本机 `GoNavi-Lite-mcp-server.exe` 路径，安装包本体就能直接作为 MCP 入口。
+这样用户不需要自己找本机 `PinkHunkDB-mcp-server.exe` 路径，安装包本体就能直接作为 MCP 入口。
 
-Codex 当前使用 `~/.codex/config.toml`，GoNavi-Lite 会写入类似下面这段：
+Codex 当前使用 `~/.codex/config.toml`，PinkHunkDB 会写入类似下面这段：
 
 ```toml
-[mcp_servers.GoNavi-Lite]
-command = 'C:\Program Files\GoNavi-Lite\GoNavi-Lite.exe'
+[mcp_servers.PinkHunkDB]
+command = 'C:\Program Files\PinkHunkDB\PinkHunkDB.exe'
 args = ['mcp-server']
 startup_timeout_sec = 60
 ```
@@ -102,23 +102,23 @@ startup_timeout_sec = 60
 仓库开发态如果要在本机 `Claude Code CLI` 里稳定使用这个 MCP，仍然推荐走仓库内包装脚本：
 
 ```powershell
-.\tools\claude-GoNavi-Lite-mcp.ps1 -p "必须调用 GoNavi-Lite MCP 的 get_connections 工具"
+.\tools\claude-PinkHunkDB-mcp.ps1 -p "必须调用 PinkHunkDB MCP 的 get_connections 工具"
 ```
 
 或者：
 
 ```cmd
-tools\claude-GoNavi-Lite-mcp.cmd -p "必须调用 GoNavi-Lite MCP 的 get_connections 工具"
+tools\claude-PinkHunkDB-mcp.cmd -p "必须调用 PinkHunkDB MCP 的 get_connections 工具"
 ```
 
-这个脚本会先构建 `bin\GoNavi-Lite-mcp-server.exe`，再通过 `--mcp-config` 和 `--strict-mcp-config` 把 GoNavi-Lite MCP 单独注入当前 Claude 会话，避免默认混合 MCP 加载时序导致的首轮工具未挂载问题。
+这个脚本会先构建 `bin\PinkHunkDB-mcp-server.exe`，再通过 `--mcp-config` 和 `--strict-mcp-config` 把 PinkHunkDB MCP 单独注入当前 Claude 会话，避免默认混合 MCP 加载时序导致的首轮工具未挂载问题。
 
-OpenClaw、Hermans 这类部署在云端或远端 Linux 的 Agent，不能直接使用 Windows 本机的 `stdio` 命令。GoNavi-Lite 的连接信息和数据库密码仍应留在 Windows 本机，由 GoNavi-Lite MCP 读取保存连接和系统凭据；远端 Agent 只拿到 MCP tools 和 `connectionId`。
+OpenClaw、Hermans 这类部署在云端或远端 Linux 的 Agent，不能直接使用 Windows 本机的 `stdio` 命令。PinkHunkDB 的连接信息和数据库密码仍应留在 Windows 本机，由 PinkHunkDB MCP 读取保存连接和系统凭据；远端 Agent 只拿到 MCP tools 和 `connectionId`。
 
 推荐接入形态：
 
-1. Windows 本机运行 GoNavi-Lite，并保持能访问已保存的数据库连接。
-2. 在 Windows 本机启动 `GoNavi-Lite.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <随机token> --schema-only`。
+1. Windows 本机运行 PinkHunkDB，并保持能访问已保存的数据库连接。
+2. 在 Windows 本机启动 `PinkHunkDB.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <随机token> --schema-only`。
 3. 通过 SSH 隧道、反向代理或内网网关把 `http://127.0.0.1:8765/mcp` 暴露为云端 Agent 可访问的 HTTPS 地址。
 4. 在 OpenClaw / Hermans 中添加远程 MCP Server，transport 选择 Streamable HTTP，URL 指向 `/mcp` 地址，并设置请求头 `Authorization: Bearer <随机token>`。
 5. 先调用 `get_connections` 获取 `connectionId`，再调用 `get_databases`、`get_tables`、`get_columns`、`get_table_ddl` 等工具读取结构。
@@ -128,7 +128,7 @@ OpenClaw、Hermans 这类部署在云端或远端 Linux 的 Agent，不能直接
 ```json
 {
   "mcpServers": {
-    "GoNavi-Lite": {
+    "PinkHunkDB": {
       "type": "streamable-http",
       "url": "https://<你的域名或隧道地址>/mcp",
       "headers": {
@@ -139,7 +139,7 @@ OpenClaw、Hermans 这类部署在云端或远端 Linux 的 Agent，不能直接
 }
 ```
 
-不要把数据库 `host/user/password` 写入云端 Agent 的配置文件。默认 `--schema-only` 不暴露 `execute_sql`；如果你明确需要远程执行 SQL，可以去掉该参数，此时 `execute_sql` 仍受 GoNavi-Lite AI 安全设置控制，写操作必须显式传 `allowMutating=true`。
+不要把数据库 `host/user/password` 写入云端 Agent 的配置文件。默认 `--schema-only` 不暴露 `execute_sql`；如果你明确需要远程执行 SQL，可以去掉该参数，此时 `execute_sql` 仍受 PinkHunkDB AI 安全设置控制，写操作必须显式传 `allowMutating=true`。
 
 ## MCP 客户端配置示例
 
@@ -148,9 +148,9 @@ OpenClaw、Hermans 这类部署在云端或远端 Linux 的 Agent，不能直接
 ```json
 {
   "mcpServers": {
-    "GoNavi-Lite": {
+    "PinkHunkDB": {
       "command": "go",
-      "args": ["run", "./cmd/GoNavi-Lite-mcp-server"]
+      "args": ["run", "./cmd/PinkHunkDB-mcp-server"]
     }
   }
 }
@@ -161,22 +161,22 @@ Windows 独立 server 编译产物（开发态）：
 ```json
 {
   "mcpServers": {
-    "GoNavi-Lite": {
-      "command": "D:\\Work\\CodeRepos\\GoNavi-Lite\\bin\\GoNavi-Lite-mcp-server.exe",
+    "PinkHunkDB": {
+      "command": "D:\\Work\\CodeRepos\\PinkHunkDB\\bin\\PinkHunkDB-mcp-server.exe",
       "args": []
     }
   }
 }
 ```
 
-Windows 已安装 GoNavi-Lite（推荐给最终用户）：
+Windows 已安装 PinkHunkDB（推荐给最终用户）：
 
 ```json
 {
   "mcpServers": {
-    "GoNavi-Lite": {
+    "PinkHunkDB": {
       "type": "stdio",
-      "command": "C:\\Program Files\\GoNavi-Lite\\GoNavi-Lite.exe",
+      "command": "C:\\Program Files\\PinkHunkDB\\PinkHunkDB.exe",
       "args": ["mcp-server"],
       "env": {}
     }
@@ -187,7 +187,7 @@ Windows 已安装 GoNavi-Lite（推荐给最终用户）：
 ## 使用说明
 
 - 先调用 `get_connections`，拿到 `connectionId`
-- 之后所有数据库工具都只传 `connectionId`，由 GoNavi-Lite 服务端内部解析保存连接和密钥
+- 之后所有数据库工具都只传 `connectionId`，由 PinkHunkDB 服务端内部解析保存连接和密钥
 - 如果 `dbName` 为空，会优先使用该保存连接里的默认数据库
-- Server 会读取 GoNavi-Lite 当前活动数据目录里的连接配置，并通过系统 keyring/凭据管理器解析密文
+- Server 会读取 PinkHunkDB 当前活动数据目录里的连接配置，并通过系统 keyring/凭据管理器解析密文
 - 如果本机凭据存储不可用，依赖密钥的连接会返回对应错误

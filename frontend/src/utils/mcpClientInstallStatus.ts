@@ -145,7 +145,7 @@ export const EMPTY_MCP_CLIENT_STATUSES: AIMCPClientInstallStatus[] = [
     matchesCurrent: false,
     clientDetected: false,
     clientCommand: 'claude',
-    message: 'No Claude Code user-level GoNavi MCP configuration was detected',
+    message: 'No Claude Code user-level PinkHunkDB MCP configuration was detected',
   },
   {
     client: 'codex',
@@ -155,7 +155,7 @@ export const EMPTY_MCP_CLIENT_STATUSES: AIMCPClientInstallStatus[] = [
     matchesCurrent: false,
     clientDetected: false,
     clientCommand: 'codex',
-    message: 'No Codex user-level GoNavi MCP configuration was detected',
+    message: 'No Codex user-level PinkHunkDB MCP configuration was detected',
   },
   {
     client: 'openclaw',
@@ -165,7 +165,7 @@ export const EMPTY_MCP_CLIENT_STATUSES: AIMCPClientInstallStatus[] = [
     matchesCurrent: false,
     clientDetected: false,
     clientCommand: 'openclaw',
-    message: 'OpenClaw usually runs on cloud Linux; use a remote MCP bridge to reach Windows GoNavi and do not copy database passwords.',
+    message: 'OpenClaw usually runs on cloud Linux; use a remote MCP bridge to reach Windows PinkHunkDB and do not copy database passwords.',
   },
   {
     client: 'hermans',
@@ -175,7 +175,7 @@ export const EMPTY_MCP_CLIENT_STATUSES: AIMCPClientInstallStatus[] = [
     matchesCurrent: false,
     clientDetected: false,
     clientCommand: 'hermans',
-    message: 'Remote Agents such as Hermans should use a remote MCP bridge to reach Windows GoNavi and should not copy database passwords.',
+    message: 'Remote Agents such as Hermans should use a remote MCP bridge to reach Windows PinkHunkDB and should not copy database passwords.',
   },
 ];
 
@@ -298,7 +298,7 @@ export const buildRemoteMCPClientGuide = (
     translateMCPClientCopy(
       translate,
       'ai_settings.mcp_server.remote_quick_start.guide.title',
-      'GoNavi MCP remote access guide - {{displayName}}',
+      'PinkHunkDB MCP remote access guide - {{displayName}}',
       { displayName: quickStart.displayName },
     ),
     '',
@@ -310,7 +310,7 @@ export const buildRemoteMCPClientGuide = (
     `- ${translateMCPClientCopy(
       translate,
       'ai_settings.mcp_server.remote_quick_start.guide.goal.credentials_stay_local',
-      'Database connections, accounts, and passwords stay in Windows GoNavi. The cloud Agent does not need to store database passwords.',
+      'Database connections, accounts, and passwords stay in Windows PinkHunkDB. The cloud Agent does not need to store database passwords.',
     )}`,
     `- ${translateMCPClientCopy(
       translate,
@@ -331,12 +331,12 @@ export const buildRemoteMCPClientGuide = (
     `- ${translateMCPClientCopy(
       translate,
       'ai_settings.mcp_server.remote_quick_start.guide.boundary.local_stdio',
-      'The built-in local GoNavi MCP entry is stdio, suitable for clients such as Claude Code / Codex running on the same machine as GoNavi.',
+      'The built-in local PinkHunkDB MCP entry is stdio, suitable for clients such as Claude Code / Codex running on the same machine as PinkHunkDB.',
     )}`,
     `- ${translateMCPClientCopy(
       translate,
       'ai_settings.mcp_server.remote_quick_start.guide.boundary.remote_cloud',
-      'If OpenClaw/Hermans runs on cloud Linux, it cannot use the Windows local stdio command directly; start GoNavi Streamable HTTP mode on Windows, then let the cloud Agent call it through a tunnel or reverse proxy.',
+      'If OpenClaw/Hermans runs on cloud Linux, it cannot use the Windows local stdio command directly; start PinkHunkDB Streamable HTTP mode on Windows, then let the cloud Agent call it through a tunnel or reverse proxy.',
     )}`,
     '',
     translateMCPClientCopy(
@@ -396,7 +396,7 @@ export const buildRemoteMCPClientGuide = (
     translateMCPClientCopy(
       translate,
       'ai_settings.mcp_server.remote_quick_start.guide.execute_sql_note',
-      'If remote SQL execution is explicitly required, remove --schema-only; execute_sql remains constrained by GoNavi AI safety controls, and writes must explicitly pass allowMutating=true.',
+      'If remote SQL execution is explicitly required, remove --schema-only; execute_sql remains constrained by PinkHunkDB AI safety controls, and writes must explicitly pass allowMutating=true.',
     ),
     '',
     status?.message
@@ -416,9 +416,9 @@ export const buildRemoteMCPClientQuickStart = (
 ): RemoteMCPClientQuickStart => {
   const displayName = String(status?.displayName || translate('ai_settings.mcp_server.remote_quick_start.default_agent_name')).trim();
   const client = isMCPClientKey(String(status?.client || '')) ? String(status?.client || '').trim() : 'openclaw';
-  const launchCommand = `GoNavi.exe mcp-server http --addr ${DEFAULT_REMOTE_MCP_LOCAL_ADDR} --path ${DEFAULT_REMOTE_MCP_PATH} --token <random-token> --schema-only`;
+  const launchCommand = `PinkHunkDB.exe mcp-server http --addr ${DEFAULT_REMOTE_MCP_LOCAL_ADDR} --path ${DEFAULT_REMOTE_MCP_PATH} --token <random-token> --schema-only`;
   const standaloneCommand = `gonavi-mcp-server http --addr ${DEFAULT_REMOTE_MCP_LOCAL_ADDR} --path ${DEFAULT_REMOTE_MCP_PATH} --token <random-token> --schema-only`;
-  const configCommand = `GoNavi.exe mcp-server remote-config --client ${client} --url ${DEFAULT_REMOTE_MCP_PUBLIC_URL} --token <random-token> --schema-only`;
+  const configCommand = `PinkHunkDB.exe mcp-server remote-config --client ${client} --url ${DEFAULT_REMOTE_MCP_PUBLIC_URL} --token <random-token> --schema-only`;
   const configJson = JSON.stringify({
     mcpServers: {
       gonavi: {

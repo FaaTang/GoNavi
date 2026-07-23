@@ -148,7 +148,7 @@ type MCPClientInstallResult struct {
 	Args       []string `json:"args,omitempty"`
 }
 
-// MCPClientInstallStatus 表示 GoNavi MCP 在外部客户端中的当前安装状态。
+// MCPClientInstallStatus 表示 PinkHunkDB MCP 在外部客户端中的当前安装状态。
 type MCPClientInstallStatus struct {
 	Client         string   `json:"client"`
 	DisplayName    string   `json:"displayName"`
@@ -164,7 +164,7 @@ type MCPClientInstallStatus struct {
 	Args           []string `json:"args,omitempty"`
 }
 
-// MCPHTTPServerOptions 表示从客户端启动 GoNavi Streamable HTTP MCP 的参数。
+// MCPHTTPServerOptions 表示从客户端启动 PinkHunkDB Streamable HTTP MCP 的参数。
 type MCPHTTPServerOptions struct {
 	Addr       string `json:"addr,omitempty"`
 	Path       string `json:"path,omitempty"`

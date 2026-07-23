@@ -89,10 +89,10 @@ describe('aiMCPRemoteAccessInsights', () => {
     expect(snapshot.mode).toBe('streamable-http');
     expect(snapshot.endpoint.publicUrl).toBe('https://mcp.example.com/gonavi/mcp');
     expect(snapshot.endpoint.authHeader).toBe('Authorization: Bearer <random-token>');
-    expect(snapshot.launchCommands.appBinary).toContain('GoNavi.exe mcp-server http');
+    expect(snapshot.launchCommands.appBinary).toContain('PinkHunkDB.exe mcp-server http');
     expect(snapshot.selectedStrategy.key).toBe('cloudflare_tunnel');
     expect(snapshot.remoteClients.some((client) => client.client === 'openclaw')).toBe(true);
-    expect(snapshot.remoteClients.find((client) => client.client === 'openclaw')?.guide).toContain('Database connections, accounts, and passwords stay in Windows GoNavi');
+    expect(snapshot.remoteClients.find((client) => client.client === 'openclaw')?.guide).toContain('Database connections, accounts, and passwords stay in Windows PinkHunkDB');
     expect(snapshot.securityBoundary.databaseSecretsStayLocal).toBe(true);
     expect(snapshot.securityBoundary.cloudAgentNeedsDatabasePassword).toBe(false);
     expect(snapshot.securityBoundary.mutatingSqlStillRequiresAllowMutating).toBe(true);

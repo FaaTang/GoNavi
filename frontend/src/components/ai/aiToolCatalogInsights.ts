@@ -249,7 +249,7 @@ export const buildAIToolCatalogSnapshot = (params: {
         : translateToolCatalogCopy(
           translate,
           'message.summary',
-          'Returned the GoNavi AI tool catalog summary',
+          'Returned the PinkHunkDB AI tool catalog summary',
         ),
   };
 };

@@ -16,13 +16,13 @@ import urllib.request
 from pathlib import Path
 
 
-MANIFEST_ASSET_NAME = "GoNavi-DriverAgents-Manifest.json"
+MANIFEST_ASSET_NAME = "PinkHunkDB-DriverAgents-Manifest.json"
 
 
 def github_headers(binary: bool = False):
     headers = {
         "Accept": "application/octet-stream" if binary else "application/vnd.github+json",
-        "User-Agent": "GoNavi-CI",
+        "User-Agent": "PinkHunkDB-CI",
     }
     token = os.environ.get("DRIVER_RELEASE_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if token:

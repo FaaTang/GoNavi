@@ -84,7 +84,7 @@ func (h *StreamableHTTPServerHandle) waitErr() error {
 	return h.err
 }
 
-// RunAppStdioServer 启动基于真实 GoNavi App 的 stdio MCP server。
+// RunAppStdioServer 启动基于真实 PinkHunkDB App 的 stdio MCP server。
 func RunAppStdioServer(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -106,7 +106,7 @@ func RunStdioServer(ctx context.Context, backend Backend) error {
 	return server.Run(ctx, &mcp.StdioTransport{})
 }
 
-// StartAppStreamableHTTPServer 启动基于真实 GoNavi App 的 Streamable HTTP MCP server，并立即返回可停止句柄。
+// StartAppStreamableHTTPServer 启动基于真实 PinkHunkDB App 的 Streamable HTTP MCP server，并立即返回可停止句柄。
 func StartAppStreamableHTTPServer(ctx context.Context, options HTTPServerOptions) (*StreamableHTTPServerHandle, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -126,7 +126,7 @@ func StartAppStreamableHTTPServer(ctx context.Context, options HTTPServerOptions
 	return handle, nil
 }
 
-// RunAppStreamableHTTPServer 启动基于真实 GoNavi App 的 Streamable HTTP MCP server。
+// RunAppStreamableHTTPServer 启动基于真实 PinkHunkDB App 的 Streamable HTTP MCP server。
 func RunAppStreamableHTTPServer(ctx context.Context, options HTTPServerOptions) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -295,7 +295,7 @@ func normalizeHTTPServerOptions(options HTTPServerOptions) (HTTPServerOptions, e
 func bearerTokenAuthHandler(token string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !hasBearerToken(req, token) {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="GoNavi-Lite MCP"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="PinkHunkDB MCP"`)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

@@ -1141,7 +1141,7 @@ export const getUriPlaceholder = (dbType: string) => {
     return "clickhouse://default:pass@127.0.0.1:9000/default";
   }
   if (dbType === "trino") {
-    return "http://user@127.0.0.1:8080?catalog=hive&schema=default&source=GoNavi";
+    return "http://user@127.0.0.1:8080?catalog=hive&schema=default&source=PinkHunkDB";
   }
   if (dbType === "chroma") {
     return "http://127.0.0.1:8000/default_database?tenant=default_tenant";
@@ -1208,11 +1208,11 @@ export const getConnectionParamsPlaceholder = (
     case "vastbase":
     case "opengauss":
     case "gaussdb":
-      return "application_name=GoNavi&statement_timeout=30000";
+      return "application_name=PinkHunkDB&statement_timeout=30000";
     case "oracle":
       return "PREFETCH_ROWS=5000&TRACE FILE=/tmp/go-ora.trc";
     case "sqlserver":
-      return "app name=GoNavi&packet size=32767";
+      return "app name=PinkHunkDB&packet size=32767";
     case "iris":
       return "timeout=30";
     case "clickhouse":
@@ -1275,7 +1275,7 @@ export const buildUriFromValues = (values: any) => {
       params.delete("schema");
     }
     if (!String(params.get("source") || "").trim()) {
-      params.set("source", "GoNavi-Lite");
+      params.set("source", "PinkHunkDB");
     }
 
     if (values.useSSL) {

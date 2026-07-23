@@ -718,7 +718,7 @@ describe("i18n catalog", () => {
     expect(dataRootModalSource).not.toContain("数据存储位置");
     expect(dataRootModalSource).not.toContain("数据目录");
 
-    expect(aboutModalSource).not.toContain("关于 GoNavi");
+    expect(aboutModalSource).not.toContain("关于 PinkHunkDB");
     expect(aboutModalSource).not.toContain("项目入口");
   });
 

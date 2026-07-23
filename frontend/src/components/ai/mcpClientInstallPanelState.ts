@@ -80,7 +80,7 @@ export const getMCPClientInstallStateLabel = (
   translate?: MCPClientInstallTranslator,
 ): string => {
   if (status?.matchesCurrent) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.state.connected', 'External tool connection status: connected to this GoNavi');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.state.connected', 'External tool connection status: connected to this PinkHunkDB');
   }
   if (status?.installed) {
     return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.state.stale', 'External tool connection status: old config found, update needed');
@@ -108,18 +108,18 @@ export const getMCPClientStatusSummary = (
 ): string => {
   const label = status?.displayName || 'this client';
   if (status?.matchesCurrent) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.connected', '{{label}} is connected to this GoNavi MCP and can call it directly.', { label });
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.connected', '{{label}} is connected to this PinkHunkDB MCP and can call it directly.', { label });
   }
   if (status?.installed) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.stale', '{{label}} already has an old GoNavi entry. Updating will point it to this GoNavi.', { label });
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.stale', '{{label}} already has an old PinkHunkDB entry. Updating will point it to this PinkHunkDB.', { label });
   }
   if (hasMCPClientStatusIssue(status)) {
     return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.error', 'Failed to read the connection status for {{label}}. Refresh detection first.', { label });
   }
   if (isRemoteMCPClientStatus(status)) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.remote', '{{label}} usually runs in the cloud or on another machine and needs a remote MCP bridge to call this GoNavi.', { label });
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.remote', '{{label}} usually runs in the cloud or on another machine and needs a remote MCP bridge to call this PinkHunkDB.', { label });
   }
-  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.missing', 'This GoNavi MCP is not connected to {{label}} yet.', { label });
+  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.summary.missing', 'This PinkHunkDB MCP is not connected to {{label}} yet.', { label });
 };
 
 export const getMCPClientOptionSummary = (
@@ -127,18 +127,18 @@ export const getMCPClientOptionSummary = (
   translate?: MCPClientInstallTranslator,
 ): string => {
   if (status?.matchesCurrent) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.connected', 'This GoNavi MCP is already connected to this client.');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.connected', 'This PinkHunkDB MCP is already connected to this client.');
   }
   if (status?.installed) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.stale', 'An old GoNavi entry was detected. Update it to the current install path.');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.stale', 'An old PinkHunkDB entry was detected. Update it to the current install path.');
   }
   if (hasMCPClientStatusIssue(status)) {
     return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.error', 'Connection status looks abnormal. Refresh before changing it.');
   }
   if (isRemoteMCPClientStatus(status)) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.remote', 'For cloud Agents: schema-only reads GoNavi structure by default, without copying database passwords or exposing execute_sql.');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.remote', 'For cloud Agents: schema-only reads PinkHunkDB structure by default, without copying database passwords or exposing execute_sql.');
   }
-  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.missing', 'Current GoNavi MCP is not connected here yet.');
+  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.option.missing', 'Current PinkHunkDB MCP is not connected here yet.');
 };
 
 export const getMCPClientDetectionSummary = (
@@ -161,18 +161,18 @@ export const getSelectedMCPClientStateLine = (
   translate?: MCPClientInstallTranslator,
 ): string => {
   if (status?.matchesCurrent) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.connected', 'Connected to current GoNavi; no repeated action needed');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.connected', 'Connected to current PinkHunkDB; no repeated action needed');
   }
   if (status?.installed) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.stale', 'Old connection record exists; update it to the current GoNavi path');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.stale', 'Old connection record exists; update it to the current PinkHunkDB path');
   }
   if (hasMCPClientStatusIssue(status)) {
     return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.error', 'Status read is abnormal; refresh detection first');
   }
   if (isRemoteMCPClientStatus(status)) {
-    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.remote', 'Configure a remote MCP bridge; database passwords stay on the GoNavi machine');
+    return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.remote', 'Configure a remote MCP bridge; database passwords stay on the PinkHunkDB machine');
   }
-  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.missing', 'GoNavi MCP is not connected yet');
+  return translateMCPClientInstallCopy(translate, 'ai_chat.mcp_client.install.selected.missing', 'PinkHunkDB MCP is not connected yet');
 };
 
 export const resolveMCPClientInstallActionLabel = (

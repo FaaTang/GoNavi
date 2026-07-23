@@ -6,23 +6,23 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
   it.each([
     [
       'zh-CN',
-      '2026/06/11 10:00:00.000000 [ERROR] \u555f\u52d5 GoNavi MCP HTTP \u670d\u52d9\u5931\u6557: listen tcp 127.0.0.1:8765: bind: permission denied',
-      '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP \u670d\u52d9\u7570\u5e38\u9000\u51fa: MCP HTTP \u5b50\u7a0b\u5e8f\u5df2\u9000\u51fa',
+      '2026/06/11 10:00:00.000000 [ERROR] \u555f\u52d5 PinkHunkDB MCP HTTP \u670d\u52d9\u5931\u6557: listen tcp 127.0.0.1:8765: bind: permission denied',
+      '2026/06/11 10:00:01.000000 [ERROR] PinkHunkDB MCP HTTP \u670d\u52d9\u7570\u5e38\u9000\u51fa: MCP HTTP \u5b50\u7a0b\u5e8f\u5df2\u9000\u51fa',
     ],
     [
       'en-US',
-      '2026/06/11 10:00:00.000000 [ERROR] GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f: listen tcp 127.0.0.1:8765: bind: permission denied',
-      '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u304c\u7570\u5e38\u7d42\u4e86\u3057\u307e\u3057\u305f: MCP HTTP \u30b5\u30d6\u30d7\u30ed\u30bb\u30b9\u304c\u7d42\u4e86\u3057\u307e\u3057\u305f',
+      '2026/06/11 10:00:00.000000 [ERROR] PinkHunkDB MCP HTTP \u30b5\u30fc\u30d3\u30b9\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f: listen tcp 127.0.0.1:8765: bind: permission denied',
+      '2026/06/11 10:00:01.000000 [ERROR] PinkHunkDB MCP HTTP \u30b5\u30fc\u30d3\u30b9\u304c\u7570\u5e38\u7d42\u4e86\u3057\u307e\u3057\u305f: MCP HTTP \u30b5\u30d6\u30d7\u30ed\u30bb\u30b9\u304c\u7d42\u4e86\u3057\u307e\u3057\u305f',
     ],
     [
       'en-US',
-      '2026/06/11 10:00:00.000000 [ERROR] Starten des GoNavi MCP HTTP-Dienstes fehlgeschlagen: listen tcp 127.0.0.1:8765: bind: permission denied',
-      '2026/06/11 10:00:01.000000 [ERROR] Der GoNavi MCP HTTP-Dienst wurde unerwartet beendet: Der MCP HTTP-Unterprozess wurde beendet',
+      '2026/06/11 10:00:00.000000 [ERROR] Starten des PinkHunkDB MCP HTTP-Dienstes fehlgeschlagen: listen tcp 127.0.0.1:8765: bind: permission denied',
+      '2026/06/11 10:00:01.000000 [ERROR] Der PinkHunkDB MCP HTTP-Dienst wurde unerwartet beendet: Der MCP HTTP-Unterprozess wurde beendet',
     ],
     [
       'en-US',
-      '2026/06/11 10:00:00.000000 [ERROR] \u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u043b\u0443\u0436\u0431\u0443 GoNavi MCP HTTP: listen tcp 127.0.0.1:8765: bind: permission denied',
-      '2026/06/11 10:00:01.000000 [ERROR] \u0421\u043b\u0443\u0436\u0431\u0430 GoNavi MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0430\u0441\u044c \u0430\u0432\u0430\u0440\u0438\u0439\u043d\u043e: \u041f\u043e\u0434\u043f\u0440\u043e\u0446\u0435\u0441\u0441 MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0441\u044f',
+      '2026/06/11 10:00:00.000000 [ERROR] \u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u043b\u0443\u0436\u0431\u0443 PinkHunkDB MCP HTTP: listen tcp 127.0.0.1:8765: bind: permission denied',
+      '2026/06/11 10:00:01.000000 [ERROR] \u0421\u043b\u0443\u0436\u0431\u0430 PinkHunkDB MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0430\u0441\u044c \u0430\u0432\u0430\u0440\u0438\u0439\u043d\u043e: \u041f\u043e\u0434\u043f\u0440\u043e\u0446\u0435\u0441\u0441 MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0441\u044f',
     ],
   ])('classifies localized MCP HTTP runtime wrappers for %s', (_locale, startLine, exitLine) => {
     const snapshot = buildMCPRuntimeFailureSnapshot({
@@ -231,8 +231,8 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       readResult: {
         data: {
           lines: [
-            '2026/06/11 10:00:00.000000 [ERROR] GoNavi MCP HTTP 服务启动失败：listen tcp 127.0.0.1:8765: bind: permission denied GONAVI_MCP_HTTP_TOKEN=abcdef1234567890',
-            '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP 服务异常退出：exit status 1',
+            '2026/06/11 10:00:00.000000 [ERROR] PinkHunkDB MCP HTTP 服务启动失败：listen tcp 127.0.0.1:8765: bind: permission denied GONAVI_MCP_HTTP_TOKEN=abcdef1234567890',
+            '2026/06/11 10:00:01.000000 [ERROR] PinkHunkDB MCP HTTP 服务异常退出：exit status 1',
           ],
         },
       },
@@ -255,8 +255,8 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       readResult: {
         data: {
           lines: [
-            '2026/06/11 10:00:00.000000 [ERROR] Failed to start GoNavi MCP HTTP service: listen tcp 127.0.0.1:8765: bind: permission denied',
-            '2026/06/11 10:00:01.000000 [ERROR] GoNavi MCP HTTP service stopped unexpectedly: MCP HTTP subprocess exited',
+            '2026/06/11 10:00:00.000000 [ERROR] Failed to start PinkHunkDB MCP HTTP service: listen tcp 127.0.0.1:8765: bind: permission denied',
+            '2026/06/11 10:00:01.000000 [ERROR] PinkHunkDB MCP HTTP service stopped unexpectedly: MCP HTTP subprocess exited',
           ],
         },
       },
@@ -270,7 +270,7 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       permission: 1,
       process_exit: 1,
     });
-    expect(snapshot.lines?.join('\n')).toContain('GoNavi MCP HTTP service stopped unexpectedly');
+    expect(snapshot.lines?.join('\n')).toContain('PinkHunkDB MCP HTTP service stopped unexpectedly');
   });
 
   it('returns an actionable empty state when no MCP failures are found', () => {
@@ -278,7 +278,7 @@ describe('buildMCPRuntimeFailureSnapshot', () => {
       readResult: {
         data: {
           lines: [
-            '2026/06/11 10:00:00.000000 [INFO] GoNavi MCP HTTP 服务已启动',
+            '2026/06/11 10:00:00.000000 [INFO] PinkHunkDB MCP HTTP 服务已启动',
           ],
         },
       },

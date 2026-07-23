@@ -427,13 +427,13 @@ func TestFormatCustomDriverOpenErrorUsesCurrentLanguageForUnknownDrivers(t *test
 			name:   "system odbc driver",
 			driver: "InterSystems IRIS ODBC35",
 			base:   errors.New(`sql: unknown driver "InterSystems IRIS ODBC35" (forgotten import?)`),
-			want:   `Failed to open database connection: custom connections do not support entering the system ODBC/JDBC driver name "InterSystems IRIS ODBC35" directly. Enter a Go database/sql driver name already registered by GoNavi. The current build does not register a generic ODBC driver, so connecting to InterSystems IRIS through "InterSystems IRIS ODBC35" is not supported yet: sql: unknown driver "InterSystems IRIS ODBC35" (forgotten import?)`,
+			want:   `Failed to open database connection: custom connections do not support entering the system ODBC/JDBC driver name "InterSystems IRIS ODBC35" directly. Enter a Go database/sql driver name already registered by PinkHunkDB. The current build does not register a generic ODBC driver, so connecting to InterSystems IRIS through "InterSystems IRIS ODBC35" is not supported yet: sql: unknown driver "InterSystems IRIS ODBC35" (forgotten import?)`,
 		},
 		{
 			name:   "unregistered go driver",
 			driver: "not-a-registered-go-driver",
 			base:   errors.New(`sql: unknown driver "not-a-registered-go-driver" (forgotten import?)`),
-			want:   `Failed to open database connection: the custom connection driver "not-a-registered-go-driver" is not registered in GoNavi. Enter a registered Go database/sql driver name instead of a system ODBC/JDBC driver name: sql: unknown driver "not-a-registered-go-driver" (forgotten import?)`,
+			want:   `Failed to open database connection: the custom connection driver "not-a-registered-go-driver" is not registered in PinkHunkDB. Enter a registered Go database/sql driver name instead of a system ODBC/JDBC driver name: sql: unknown driver "not-a-registered-go-driver" (forgotten import?)`,
 		},
 	}
 
@@ -465,7 +465,7 @@ func TestFormatCustomDriverOpenErrorSourceUsesI18nKeys(t *testing.T) {
 	functionSource := databaseFunctionSource(t, source, "func formatCustomDriverOpenError(driver string, err error) error")
 
 	for _, rawMessage := range []string{
-		`fmt.Errorf("打开数据库连接失败：自定义连接不支持直接填写系统 ODBC/JDBC 驱动名 %q；请填写 GoNavi 已注册的 Go database/sql 驱动名。当前版本未注册通用 ODBC 驱动，因此暂不支持通过 %q 连接 InterSystems IRIS：%w", driver, driver, err)`,
+		`fmt.Errorf("打开数据库连接失败：自定义连接不支持直接填写系统 ODBC/JDBC 驱动名 %q；请填写 PinkHunkDB 已注册的 Go database/sql 驱动名。当前版本未注册通用 ODBC 驱动，因此暂不支持通过 %q 连接 InterSystems IRIS：%w", driver, driver, err)`,
 		`fmt.Errorf("打开数据库连接失败：自定义连接驱动 %q 未在 GoNavi 中注册；请填写已注册的 Go database/sql 驱动名，不能填写系统 ODBC/JDBC 驱动名：%w", driver, err)`,
 	} {
 		if strings.Contains(functionSource, rawMessage) {

@@ -76,7 +76,7 @@ const AIMCPClientSelectorPanel: React.FC<AIMCPClientSelectorPanelProps> = ({
       <div style={{ fontSize: 12, color: overlayTheme.mutedText, lineHeight: 1.7 }}>
         {copy(
           'ai_chat.mcp_client.install.selector.description',
-          'Choose one target client first. Local CLIs can write or update config automatically; remote Agents must access current GoNavi through an MCP bridge or tunnel and should not store database passwords.',
+          'Choose one target client first. Local CLIs can write or update config automatically; remote Agents must access current PinkHunkDB through an MCP bridge or tunnel and should not store database passwords.',
         )}
       </div>
     </div>
@@ -135,7 +135,7 @@ const AIMCPClientSelectorPanel: React.FC<AIMCPClientSelectorPanelProps> = ({
       </div>
       <div
         role="radiogroup"
-        aria-label={copy('ai_chat.mcp_client.install.selector.aria_label', 'Select the external client for GoNavi MCP')}
+        aria-label={copy('ai_chat.mcp_client.install.selector.aria_label', 'Select the external client for PinkHunkDB MCP')}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}
       >
         {statuses.map((status) => {

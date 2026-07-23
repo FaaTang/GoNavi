@@ -203,11 +203,11 @@ func TestImportConnectionsPayloadNavicatNCXUsesCurrentLanguageForNoSupportedConn
 	}
 
 	got := err.Error()
-	want := "No valid GoNavi-supported connection configuration was found in Navicat NCX"
+	want := "No valid PinkHunkDB-supported connection configuration was found in Navicat NCX"
 	if got != want {
 		t.Fatalf("expected English no-connections error %q, got %q", want, got)
 	}
-	if strings.Contains(got, "未在 Navicat NCX 中找到 GoNavi 支持的有效连接配置") {
+	if strings.Contains(got, "未在 Navicat NCX 中找到 PinkHunkDB 支持的有效连接配置") {
 		t.Fatalf("expected no Chinese Navicat no-connections wrapper in en-US mode, got %q", got)
 	}
 }

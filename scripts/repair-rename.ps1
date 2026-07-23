@@ -1,4 +1,4 @@
-# 修复 rename-product.ps1 误改的内部标识符，保留用户可见的 GoNavi-Lite 文案。
+# 修复 rename-product.ps1 误改的内部标识符，保留用户可见的 PinkHunkDB 文案。
 $root = 'd:\kayou\github\GoNavi'
 $patterns = @(
   @{ Old = 'GoNavi'; New = 'GoNavi' },

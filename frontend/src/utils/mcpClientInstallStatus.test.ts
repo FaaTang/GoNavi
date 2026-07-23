@@ -19,7 +19,7 @@ describe('mcpClientInstallStatus helpers', () => {
         displayName: 'Codex',
         installed: true,
         matchesCurrent: true,
-        message: '已检测到 Codex 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+        message: '已检测到 Codex 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
       },
     ]);
 
@@ -34,7 +34,7 @@ describe('mcpClientInstallStatus helpers', () => {
         clientDetected: false,
         clientCommand: 'codex',
         clientPath: '',
-        message: '已检测到 Codex 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+        message: '已检测到 Codex 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
         args: [],
       },
       EMPTY_MCP_CLIENT_STATUSES[2],
@@ -49,21 +49,21 @@ describe('mcpClientInstallStatus helpers', () => {
         displayName: 'Claude Code',
         installed: false,
         matchesCurrent: false,
-        message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+        message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
       },
       {
         client: 'codex',
         displayName: 'Codex',
         installed: true,
         matchesCurrent: false,
-        message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+        message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
       },
     ];
 
     expect(pickPreferredMCPClient(statuses)).toBe('codex');
   });
 
-  it('prefers a locally detected client command when neither client has existing GoNavi MCP config', () => {
+  it('prefers a locally detected client command when neither client has existing PinkHunkDB MCP config', () => {
     const statuses: AIMCPClientInstallStatus[] = [
       {
         client: 'claude-code',
@@ -72,7 +72,7 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: false,
         clientDetected: false,
         clientCommand: 'claude',
-        message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+        message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
       },
       {
         client: 'codex',
@@ -82,7 +82,7 @@ describe('mcpClientInstallStatus helpers', () => {
         clientDetected: true,
         clientCommand: 'codex',
         clientPath: 'C:/Users/mock/AppData/Roaming/npm/codex.cmd',
-        message: '未检测到 Codex 用户级 GoNavi MCP 配置',
+        message: '未检测到 Codex 用户级 PinkHunkDB MCP 配置',
       },
     ];
 
@@ -98,7 +98,7 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: false,
         clientDetected: false,
         clientCommand: 'claude',
-        message: 'No Claude Code user-level GoNavi MCP configuration was detected',
+        message: 'No Claude Code user-level PinkHunkDB MCP configuration was detected',
       },
       {
         client: 'codex',
@@ -123,7 +123,7 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: false,
         clientDetected: false,
         clientCommand: 'claude',
-        message: 'No Claude Code user-level GoNavi MCP configuration was detected',
+        message: 'No Claude Code user-level PinkHunkDB MCP configuration was detected',
       },
       {
         client: 'codex',
@@ -132,14 +132,14 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: false,
         clientDetected: false,
         clientCommand: 'codex',
-        message: 'Current GoNavi executable path is empty',
+        message: 'Current PinkHunkDB executable path is empty',
       },
     ];
 
     expect(pickPreferredMCPClient(statuses)).toBe('codex');
   });
 
-  it('prefers a client that already matches current GoNavi over another client with a stale config', () => {
+  it('prefers a client that already matches current PinkHunkDB over another client with a stale config', () => {
     const statuses: AIMCPClientInstallStatus[] = [
       {
         client: 'claude-code',
@@ -148,7 +148,7 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: true,
         clientDetected: true,
         clientCommand: 'claude',
-        message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+        message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
       },
       {
         client: 'codex',
@@ -157,7 +157,7 @@ describe('mcpClientInstallStatus helpers', () => {
         matchesCurrent: false,
         clientDetected: true,
         clientCommand: 'codex',
-        message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+        message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
       },
     ];
 
@@ -171,9 +171,9 @@ describe('mcpClientInstallStatus helpers', () => {
 
   it('formats quoted launch commands for display and clipboard use', () => {
     expect(formatMCPLaunchCommand({
-      command: 'C:/Program Files/GoNavi/GoNavi.exe',
+      command: 'C:/Program Files/GoNavi/PinkHunkDB.exe',
       args: ['mcp-server', '--stdio'],
-    })).toBe('"C:/Program Files/GoNavi/GoNavi.exe" mcp-server --stdio');
+    })).toBe('"C:/Program Files/GoNavi/PinkHunkDB.exe" mcp-server --stdio');
   });
 
   it('marks OpenClaw and Hermans as remote bridge clients and builds a safe guide', () => {
@@ -181,15 +181,15 @@ describe('mcpClientInstallStatus helpers', () => {
 
     expect(isRemoteMCPClientStatus(openClaw)).toBe(true);
     const guide = buildRemoteMCPClientGuide(openClaw);
-    expect(guide).toContain('GoNavi MCP remote access guide - OpenClaw');
+    expect(guide).toContain('PinkHunkDB MCP remote access guide - OpenClaw');
     expect(guide).toContain('The cloud Agent does not need to store database passwords.');
     expect(guide).toContain('Remote access uses schema-only mode by default and does not register execute_sql');
     expect(guide).toContain('it cannot use the Windows local stdio command directly');
     expect(guide).toContain('allowMutating=true');
     expect(guide).toContain('"type": "streamable-http"');
     expect(guide).toContain('"Authorization": "Bearer <random-token>"');
-    expect(guide).toContain('GoNavi.exe mcp-server remote-config --client openclaw --url https://<your-domain-or-tunnel>/mcp --token <random-token> --schema-only');
-    expect(guide).toContain('GoNavi.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <random-token> --schema-only');
+    expect(guide).toContain('PinkHunkDB.exe mcp-server remote-config --client openclaw --url https://<your-domain-or-tunnel>/mcp --token <random-token> --schema-only');
+    expect(guide).toContain('PinkHunkDB.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <random-token> --schema-only');
   });
 
   it('builds remote quick-start snippets for cloud agents without database secrets', () => {
@@ -203,8 +203,8 @@ describe('mcpClientInstallStatus helpers', () => {
     expect(quickStart.configJson).toContain('"url": "https://<your-domain-or-tunnel>/mcp"');
     expect(quickStart.configJson).toContain('"Authorization": "Bearer <random-token>"');
     expect(quickStart.configJson).not.toContain('password');
-    expect(quickStart.configCommand).toBe('GoNavi.exe mcp-server remote-config --client hermans --url https://<your-domain-or-tunnel>/mcp --token <random-token> --schema-only');
-    expect(quickStart.launchCommand).toBe('GoNavi.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <random-token> --schema-only');
+    expect(quickStart.configCommand).toBe('PinkHunkDB.exe mcp-server remote-config --client hermans --url https://<your-domain-or-tunnel>/mcp --token <random-token> --schema-only');
+    expect(quickStart.launchCommand).toBe('PinkHunkDB.exe mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <random-token> --schema-only');
     expect(quickStart.standaloneCommand).toBe('gonavi-mcp-server http --addr 127.0.0.1:8765 --path /mcp --token <random-token> --schema-only');
     expect(quickStart.verificationSteps.join('\n')).toContain('get_connections');
     expect(quickStart.securityNotes.join('\n')).toContain('--schema-only does not register execute_sql by default');

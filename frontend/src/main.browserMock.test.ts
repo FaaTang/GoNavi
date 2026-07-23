@@ -178,9 +178,9 @@ describe('main browser mock', () => {
 
   it('does not hardcode Chinese browser mock MCP HTTP server status messages', () => {
     const source = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8');
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务未启动'");
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务已启动'");
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务已停止'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务未启动'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务已启动'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务已停止'");
   });
 
   it('localizes browser mock data root update messages', async () => {
@@ -326,8 +326,8 @@ describe('main browser mock', () => {
 
   it('does not hardcode Chinese browser mock MCP client status and install messages', () => {
     const source = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8');
-    expect(source).not.toContain("'未检测到 Claude Code 用户级 GoNavi MCP 配置'");
-    expect(source).not.toContain("'已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新'");
+    expect(source).not.toContain("'未检测到 Claude Code 用户级 PinkHunkDB MCP 配置'");
+    expect(source).not.toContain("'已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新'");
     expect(source).not.toContain("'已写入 Claude Code 用户级 MCP 配置，重启 Claude CLI 后可在 /mcp 的 User MCPs 中看到 GoNavi。'");
     expect(source).not.toContain("'已写入 Codex 用户级 MCP 配置，重启 Codex CLI 或桌面端后可看到 GoNavi。'");
   });

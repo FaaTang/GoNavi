@@ -138,7 +138,7 @@ export const buildAISupportBundleSnapshot = (params: {
   const supportBundleMessage = translateInspectionCopy(
     params.translate,
     'ai_chat.inspection.support_bundle.message.ready',
-    'Generated a GoNavi AI support bundle snapshot for diagnosing AI, MCP, logs, connections, and context size issues',
+    'Generated a PinkHunkDB AI support bundle snapshot for diagnosing AI, MCP, logs, connections, and context size issues',
   );
   const privacyNote = translateInspectionCopy(
     params.translate,

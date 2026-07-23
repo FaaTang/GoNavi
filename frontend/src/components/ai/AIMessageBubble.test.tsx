@@ -69,7 +69,7 @@ describe('AIMessageBubble', () => {
       />,
     );
 
-    expect(markup).toContain('GoNavi AI');
+    expect(markup).toContain('PinkHunkDB AI');
     expect(markup).toContain('Thinking process');
     expect(markup).toContain('Map foreign key relationships');
     expect(markup).toContain('Copy raw error');

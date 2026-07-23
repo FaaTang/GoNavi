@@ -15,7 +15,7 @@ func resolveWindowsWebviewUserDataPath() string {
 		return ""
 	}
 
-	targetDir := filepath.Join(appDataDir, "GoNavi-Lite", "WebView2")
+	targetDir := filepath.Join(appDataDir, "PinkHunkDB", "WebView2")
 	_ = migrateLegacyWindowsWebviewUserData(appDataDir, targetDir)
 	return targetDir
 }
@@ -25,7 +25,7 @@ func migrateLegacyWindowsWebviewUserData(appDataDir, targetDir string) error {
 		return nil
 	}
 
-	exeName := "GoNavi-Lite.exe"
+	exeName := "PinkHunkDB.exe"
 	if exePath, err := os.Executable(); err == nil {
 		base := strings.TrimSpace(filepath.Base(exePath))
 		if base != "" {
@@ -37,8 +37,8 @@ func migrateLegacyWindowsWebviewUserData(appDataDir, targetDir string) error {
 	candidates := []string{
 		filepath.Join(appDataDir, exeName),
 		filepath.Join(appDataDir, exeBase),
-		filepath.Join(appDataDir, "GoNavi-Lite.exe"),
-		filepath.Join(appDataDir, "GoNavi-Lite"),
+		filepath.Join(appDataDir, "PinkHunkDB.exe"),
+		filepath.Join(appDataDir, "PinkHunkDB"),
 	}
 
 	seen := make(map[string]struct{}, len(candidates))

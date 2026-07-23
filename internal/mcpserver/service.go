@@ -458,7 +458,7 @@ func (s *Service) ExecuteSQL(ctx context.Context, req *mcp.CallToolRequest, args
 		return toolError("%s", buildSafetyDeniedMessage(safetyLevel, safetyDecision.disallowed)), executeSQLResult{}, nil
 	}
 	if safetyDecision.requiresConfirm && !args.AllowMutating {
-		return toolError("当前 SQL 已通过 GoNavi AI 安全控制（%s），但包含非只读语句 %s，请显式传入 allowMutating=true 后重试", safetyLevelDisplayName(safetyLevel), formatSafetyStatements(safetyDecision.confirmRequired)), executeSQLResult{}, nil
+		return toolError("当前 SQL 已通过 PinkHunkDB AI 安全控制（%s），但包含非只读语句 %s，请显式传入 allowMutating=true 后重试", safetyLevelDisplayName(safetyLevel), formatSafetyStatements(safetyDecision.confirmRequired)), executeSQLResult{}, nil
 	}
 
 	dbName := effectiveDBName(args.DBName, view.Config)
@@ -922,7 +922,7 @@ func normalizeSQLSafetyLevel(level ai.SQLPermissionLevel) ai.SQLPermissionLevel 
 }
 
 func buildSafetyDeniedMessage(level ai.SQLPermissionLevel, statements []sqlSafetyStatement) string {
-	return fmt.Sprintf("当前 GoNavi AI 安全控制为%s，已阻止以下语句：%s。%s", safetyLevelDisplayName(level), formatSafetyStatements(statements), safetyLevelRuleText(level))
+	return fmt.Sprintf("当前 PinkHunkDB AI 安全控制为%s，已阻止以下语句：%s。%s", safetyLevelDisplayName(level), formatSafetyStatements(statements), safetyLevelRuleText(level))
 }
 
 func safetyLevelDisplayName(level ai.SQLPermissionLevel) string {

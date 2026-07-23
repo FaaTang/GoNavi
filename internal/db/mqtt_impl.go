@@ -30,7 +30,7 @@ const (
 	defaultMQTTFetchWait    = 4 * time.Second
 	maxMQTTFetchWait        = 30 * time.Second
 	mqttSyntheticDatabase   = "topics"
-	mqttDefaultClientID     = "GoNavi-Lite"
+	mqttDefaultClientID     = "PinkHunkDB"
 )
 
 type mqttRuntime interface {

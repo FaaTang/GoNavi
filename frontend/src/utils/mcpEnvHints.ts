@@ -118,7 +118,7 @@ const KNOWN_ENV_HINTS: Record<string, KnownEnvHint> = {
     category: 'endpoint',
     label: 'Database connection string',
     detail: 'Lets the MCP service connect to a database itself; this gives database connection information to that MCP process.',
-    valueHint: 'Fill this only when the MCP must connect to the database directly; prefer GoNavi MCP to avoid password exposure.',
+    valueHint: 'Fill this only when the MCP must connect to the database directly; prefer PinkHunkDB MCP to avoid password exposure.',
     sensitive: true,
   }),
   HTTP_PROXY: withEnvHintKeys('known.http_proxy', {
@@ -147,7 +147,7 @@ const KNOWN_ENV_HINTS: Record<string, KnownEnvHint> = {
   }),
   GONAVI_MCP_HTTP_TOKEN: withEnvHintKeys('known.gonavi_mcp_http_token', {
     category: 'secret',
-    label: 'GoNavi MCP HTTP Token',
+    label: 'PinkHunkDB MCP HTTP Token',
     detail: 'Used when a remote MCP HTTP service enables Bearer Token authentication.',
     valueHint: 'Enter a high-entropy random token; do not reuse database passwords or model API Keys.',
     sensitive: true,

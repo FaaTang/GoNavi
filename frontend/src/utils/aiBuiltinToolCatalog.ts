@@ -127,9 +127,9 @@ const BUILTIN_TOOL_FLOW_COPY: BuiltinToolFlowCopy[] = [
   },
   {
     key: 'remote_agent_mcp',
-    title: 'Connect remote Agents to GoNavi MCP',
+    title: 'Connect remote Agents to PinkHunkDB MCP',
     steps: 'inspect_mcp_remote_access -> inspect_mcp_setup -> inspect_ai_safety',
-    description: 'Use when OpenClaw/Hermans run on cloud Linux while database connections and passwords stay on the Windows GoNavi machine.',
+    description: 'Use when OpenClaw/Hermans run on cloud Linux while database connections and passwords stay on the Windows PinkHunkDB machine.',
   },
   {
     key: 'mcp_authoring',

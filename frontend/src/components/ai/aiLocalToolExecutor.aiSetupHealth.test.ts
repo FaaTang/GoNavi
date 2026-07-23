@@ -97,7 +97,7 @@ describe('aiLocalToolExecutor inspect_ai_setup_health', () => {
             configPath: 'C:/Users/demo/.codex/config.toml',
             command: 'gonavi-mcp-server',
             args: ['stdio'],
-            message: '未检测到 Codex 用户级 GoNavi MCP 配置',
+            message: '未检测到 Codex 用户级 PinkHunkDB MCP 配置',
           },
         ]),
       },
@@ -109,7 +109,7 @@ describe('aiLocalToolExecutor inspect_ai_setup_health', () => {
     expect(result.content).toContain('"chatStatus":"ready"');
     expect(result.content).toContain('"enabledMCPServerCount":1');
     expect(result.content).toContain('"currentExternalClientCount":0');
-    expect(result.content).toContain('To let external Agents use GoNavi MCP');
+    expect(result.content).toContain('To let external Agents use PinkHunkDB MCP');
     expect(result.content).toContain('Chat is ready, but no table schema context is attached yet');
     expect(result.content).toContain('结构审查');
     expect(result.content).toContain('回答前先核对上下文。');

@@ -54,7 +54,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
             clientCommand: 'claude',
             message: t('app.browser_mock.mcp_client.claude_code.not_detected'),
             configPath: 'C:/Users/mock/.claude.json',
-            command: 'C:/Program Files/GoNavi-Lite/GoNavi-Lite.exe',
+            command: 'C:/Program Files/PinkHunkDB/PinkHunkDB.exe',
             args: ['mcp-server'],
         },
         {
@@ -67,7 +67,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
             clientPath: 'C:/Users/mock/AppData/Roaming/npm/codex.cmd',
             message: t('app.browser_mock.mcp_client.codex.path_mismatch'),
             configPath: 'C:/Users/mock/.codex/config.toml',
-            command: 'C:/Old/GoNavi-Lite.exe',
+            command: 'C:/Old/PinkHunkDB.exe',
             args: ['mcp-server'],
         },
     ];
@@ -458,7 +458,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
                             installed: true,
                             matchesCurrent: true,
                             message: t('app.browser_mock.mcp_client.claude_code.installed'),
-                            command: 'C:/Program Files/GoNavi-Lite/GoNavi-Lite.exe',
+                            command: 'C:/Program Files/PinkHunkDB/PinkHunkDB.exe',
                             args: ['mcp-server'],
                         }
                         : item);
@@ -467,7 +467,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
                         client: 'claude-code',
                         message: t('app.browser_mock.mcp_client.claude_code.installed'),
                         configPath: 'C:/Users/mock/.claude.json',
-                        command: 'C:/Program Files/GoNavi-Lite/GoNavi-Lite.exe',
+                        command: 'C:/Program Files/PinkHunkDB/PinkHunkDB.exe',
                         args: ['mcp-server'],
                     };
                 },
@@ -478,7 +478,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
                             installed: true,
                             matchesCurrent: true,
                             message: t('app.browser_mock.mcp_client.codex.installed'),
-                            command: 'C:/Program Files/GoNavi-Lite/GoNavi-Lite.exe',
+                            command: 'C:/Program Files/PinkHunkDB/PinkHunkDB.exe',
                             args: ['mcp-server'],
                         }
                         : item);
@@ -487,7 +487,7 @@ if (typeof window !== 'undefined' && (!(window as any).go?.app?.App || !(window 
                         client: 'codex',
                         message: t('app.browser_mock.mcp_client.codex.installed'),
                         configPath: 'C:/Users/mock/.codex/config.toml',
-                        command: 'C:/Program Files/GoNavi-Lite/GoNavi-Lite.exe',
+                        command: 'C:/Program Files/PinkHunkDB/PinkHunkDB.exe',
                         args: ['mcp-server'],
                     };
                 },

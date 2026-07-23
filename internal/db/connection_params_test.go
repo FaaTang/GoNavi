@@ -40,7 +40,7 @@ func TestSQLServerConnectionParamAllowlistMapsADOSynonyms(t *testing.T) {
 
 	params := url.Values{}
 	mergeConnectionParamValuesWithAllowlist(params, url.Values{
-		"Application Name":          []string{"GoNavi-Lite"},
+		"Application Name":          []string{"PinkHunkDB"},
 		"Initial Catalog":           []string{"appdb"},
 		"UID":                       []string{"sa"},
 		"Trust Server Certificate":  []string{"true"},
@@ -48,8 +48,8 @@ func TestSQLServerConnectionParamAllowlistMapsADOSynonyms(t *testing.T) {
 		"ignored":                   []string{"bad"},
 	}, sqlServerConnectionParamNames)
 
-	if got := params.Get("app name"); got != "GoNavi-Lite" {
-		t.Fatalf("app name = %q, want GoNavi-Lite", got)
+	if got := params.Get("app name"); got != "PinkHunkDB" {
+		t.Fatalf("app name = %q, want PinkHunkDB", got)
 	}
 	if got := params.Get("database"); got != "appdb" {
 		t.Fatalf("database = %q, want appdb", got)

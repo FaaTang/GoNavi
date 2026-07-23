@@ -35,16 +35,16 @@ class PackageDriverReleaseAssetsTest(unittest.TestCase):
                 check=True,
             )
 
-            self.assertIn("created GoNavi-DriverAgents.zip", proc.stdout)
-            self.assertTrue((output_dir / "GoNavi-DriverAgents.zip").is_file())
+            self.assertIn("created PinkHunkDB-DriverAgents.zip", proc.stdout)
+            self.assertTrue((output_dir / "PinkHunkDB-DriverAgents.zip").is_file())
             self.assertTrue((output_dir / windows_asset.name).is_file())
             self.assertTrue((output_dir / darwin_asset.name).is_file())
 
-            index = json.loads((output_dir / "GoNavi-DriverAgents-Index.json").read_text(encoding="utf-8"))
+            index = json.loads((output_dir / "PinkHunkDB-DriverAgents-Index.json").read_text(encoding="utf-8"))
             self.assertEqual(index["assets"][windows_asset.name], len(b"windows-asset"))
             self.assertEqual(index["assets"][darwin_asset.name], len(b"darwin-asset"))
 
-            with zipfile.ZipFile(output_dir / "GoNavi-DriverAgents.zip") as zf:
+            with zipfile.ZipFile(output_dir / "PinkHunkDB-DriverAgents.zip") as zf:
                 self.assertEqual(
                     sorted(zf.namelist()),
                     [

@@ -32,16 +32,16 @@ const MCP_TOOL_INFO_COPY: Record<
       "Returns the local MCP services, enabled state, declared startup commands, Claude Code / Codex local client write status, OpenClaw / Hermans remote Agent boundaries, and command detection results. Use it first when the user asks which MCP services are configured, why external clients cannot use them, or whether MCP was written into client configs.",
     paramsSummary: "No parameters",
     toolDescription:
-      "Read the current local MCP configuration snapshot, including MCP service list, enabled state, startup commands, environment variable keys, discovered tools, external client GoNavi MCP write status, local CLI detection results, and remote Agent access boundaries. Use it when the user mentions MCP service configuration, Claude/Codex/OpenClaw/Hermans access, external clients not working, or which MCP services are enabled.",
+      "Read the current local MCP configuration snapshot, including MCP service list, enabled state, startup commands, environment variable keys, discovered tools, external client PinkHunkDB MCP write status, local CLI detection results, and remote Agent access boundaries. Use it when the user mentions MCP service configuration, Claude/Codex/OpenClaw/Hermans access, external clients not working, or which MCP services are enabled.",
   },
   inspect_mcp_remote_access: {
     icon: "🌉",
     desc: "Inspect OpenClaw/Hermans remote MCP access",
     detail:
-      "Returns GoNavi Streamable HTTP MCP local startup commands, remote URL and authentication guidance, OpenClaw/Hermans cloud Agent access boundaries, optional bridging approaches, and safety reminders. Use it when the user asks how cloud OpenClaw connects to Windows GoNavi, how to keep database passwords away from Agents, or how to expose HTTP MCP.",
+      "Returns PinkHunkDB Streamable HTTP MCP local startup commands, remote URL and authentication guidance, OpenClaw/Hermans cloud Agent access boundaries, optional bridging approaches, and safety reminders. Use it when the user asks how cloud OpenClaw connects to Windows PinkHunkDB, how to keep database passwords away from Agents, or how to expose HTTP MCP.",
     paramsSummary: "publicUrl?, localAddr?, path?, exposeStrategy?, tokenConfigured?",
     toolDescription:
-      "Read the GoNavi MCP remote Agent access snapshot, including Streamable HTTP mode startup commands, /mcp URL, Bearer Token authentication requirements, OpenClaw/Hermans cloud access steps, the boundary that keeps database passwords on the Windows host, and risk reminders for tunnel, reverse proxy, Tailscale, or other exposure strategies.",
+      "Read the PinkHunkDB MCP remote Agent access snapshot, including Streamable HTTP mode startup commands, /mcp URL, Bearer Token authentication requirements, OpenClaw/Hermans cloud access steps, the boundary that keeps database passwords on the Windows host, and risk reminders for tunnel, reverse proxy, Tailscale, or other exposure strategies.",
     params: {
       publicUrl: "Optional. HTTPS or private-network URL reachable by the remote Agent. If /mcp is missing, the tool appends the configured path.",
       localAddr: "Optional. Windows local HTTP MCP listen address. Default 127.0.0.1:8765. Binding directly to 0.0.0.0 is not recommended.",

@@ -21,7 +21,7 @@ usage() {
   --platform <目标>      目标平台：current、all、GOOS/GOARCH，或逗号分隔列表
                         默认 current（当前 Go 环境）
   --out-dir <目录>      输出目录根路径，默认：dist/driver-agents
-  --bundle-name <文件名> 驱动总包 zip 名称，默认：GoNavi-DriverAgents.zip
+  --bundle-name <文件名> 驱动总包 zip 名称，默认：PinkHunkDB-DriverAgents.zip
   --strict              任一驱动构建失败即中断（默认失败后继续，最后汇总）
   --upx                 要求使用 UPX 压缩支持的平台产物（默认 auto：有 upx 则压缩）
   --no-upx              禁用 UPX 压缩
@@ -236,7 +236,7 @@ join_by_comma() {
 driver_csv=""
 target_platform=""
 out_root="dist/driver-agents"
-bundle_name="GoNavi-DriverAgents.zip"
+bundle_name="PinkHunkDB-DriverAgents.zip"
 duckdb_windows_zip_name="duckdb-driver.zip"
 strict_mode="false"
 upx_mode="${GONAVI_DRIVER_AGENT_UPX:-auto}"

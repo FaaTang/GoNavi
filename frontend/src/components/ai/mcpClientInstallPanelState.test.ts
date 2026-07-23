@@ -123,7 +123,7 @@ const buildStatus = (patch: Partial<AIMCPClientInstallStatus>): AIMCPClientInsta
   matchesCurrent: false,
   clientDetected: false,
   clientCommand: 'claude',
-  message: '未检测到 Claude Code 用户级 GoNavi MCP 配置',
+  message: '未检测到 Claude Code 用户级 PinkHunkDB MCP 配置',
   ...patch,
 });
 
@@ -173,12 +173,12 @@ describe('mcpClientInstallPanelState', () => {
       installed: true,
       matchesCurrent: true,
       clientDetected: true,
-      message: '已检测到 Claude Code 用户级 GoNavi MCP 配置，且与当前 GoNavi 安装路径一致',
+      message: '已检测到 Claude Code 用户级 PinkHunkDB MCP 配置，且与当前 PinkHunkDB 安装路径一致',
     });
 
     expect(getMCPClientStatusTone(status, false).label).toBe('Connected');
-    expect(getMCPClientInstallStateLabel(status)).toBe('External tool connection status: connected to this GoNavi');
-    expect(getSelectedMCPClientStateLine(status)).toBe('Connected to current GoNavi; no repeated action needed');
+    expect(getMCPClientInstallStateLabel(status)).toBe('External tool connection status: connected to this PinkHunkDB');
+    expect(getSelectedMCPClientStateLine(status)).toBe('Connected to current PinkHunkDB; no repeated action needed');
     expect(resolveMCPClientInstallActionLabel(status)).toBe('Claude Code is connected; no reinstall needed');
     expect(getMCPClientStatusSummary(status)).toContain('can call it directly');
   });
@@ -191,12 +191,12 @@ describe('mcpClientInstallPanelState', () => {
       matchesCurrent: false,
       clientDetected: true,
       clientCommand: 'codex',
-      message: '已检测到 Codex 中的 GoNavi MCP 记录，但与当前 GoNavi 安装路径不一致，建议更新',
+      message: '已检测到 Codex 中的 PinkHunkDB MCP 记录，但与当前 PinkHunkDB 安装路径不一致，建议更新',
     });
 
     expect(getMCPClientStatusTone(status, false).label).toBe('Update needed');
     expect(getMCPClientOptionSummary(status)).toContain('Update it to the current install path');
-    expect(getSelectedMCPClientStateLine(status)).toBe('Old connection record exists; update it to the current GoNavi path');
+    expect(getSelectedMCPClientStateLine(status)).toBe('Old connection record exists; update it to the current PinkHunkDB path');
     expect(resolveMCPClientInstallActionLabel(status)).toBe('Update Codex connection config');
   });
 
@@ -217,7 +217,7 @@ describe('mcpClientInstallPanelState', () => {
       displayName: 'OpenClaw',
       installMode: 'remote',
       clientCommand: 'openclaw',
-      message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows GoNavi，不要复制数据库密码。',
+      message: 'OpenClaw 通常部署在云端 Linux；请通过远程 MCP 桥接接入 Windows PinkHunkDB，不要复制数据库密码。',
     });
 
     expect(getMCPClientStatusTone(status, false).label).toBe('Remote bridge');
@@ -225,7 +225,7 @@ describe('mcpClientInstallPanelState', () => {
     expect(getMCPClientOptionSummary(status)).toContain('schema-only');
     expect(getMCPClientOptionSummary(status)).toContain('database passwords');
     expect(getMCPClientDetectionSummary(status)).toContain('No local openclaw command detection is needed');
-    expect(getSelectedMCPClientStateLine(status)).toContain('database passwords stay on the GoNavi machine');
+    expect(getSelectedMCPClientStateLine(status)).toContain('database passwords stay on the PinkHunkDB machine');
     expect(resolveMCPClientInstallActionLabel(status)).toBe('Copy OpenClaw remote connection guide');
   });
 });

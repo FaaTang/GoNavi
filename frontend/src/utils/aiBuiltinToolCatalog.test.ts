@@ -141,9 +141,9 @@ describe('describeBuiltinToolParameters', () => {
   it('localizes MCP inspection tool copy while preserving raw tool and parameter names', () => {
     const translations: Record<string, string> = {
       'ai_chat.inspection.tool_info.inspect_mcp_remote_access.desc': 'Inspect remote MCP access',
-      'ai_chat.inspection.tool_info.inspect_mcp_remote_access.detail': 'Returns GoNavi Streamable HTTP MCP access guidance for remote Agents.',
+      'ai_chat.inspection.tool_info.inspect_mcp_remote_access.detail': 'Returns PinkHunkDB Streamable HTTP MCP access guidance for remote Agents.',
       'ai_chat.inspection.tool_info.inspect_mcp_remote_access.params': 'publicUrl?, localAddr?, path?, exposeStrategy?, tokenConfigured?',
-      'ai_chat.inspection.tool_info.inspect_mcp_remote_access.tool_description': 'Read the GoNavi MCP remote Agent access snapshot.',
+      'ai_chat.inspection.tool_info.inspect_mcp_remote_access.tool_description': 'Read the PinkHunkDB MCP remote Agent access snapshot.',
       'ai_chat.inspection.tool_info.inspect_mcp_remote_access.param.publicUrl': 'Optional HTTPS or private-network URL reachable by the remote Agent.',
       'ai_chat.inspection.tool_info.inspect_mcp_remote_access.param.localAddr': 'Optional local HTTP MCP listen address.',
       'ai_chat.inspection.tool_info.inspect_mcp_remote_access.param.path': 'Optional Streamable HTTP MCP path.',
@@ -159,7 +159,7 @@ describe('describeBuiltinToolParameters', () => {
     expect(remoteAccess?.detail).toContain('Streamable HTTP MCP');
     expect(remoteAccess?.params).toBe('publicUrl?, localAddr?, path?, exposeStrategy?, tokenConfigured?');
     expect(remoteAccess?.tool.function.name).toBe('inspect_mcp_remote_access');
-    expect(remoteAccess?.tool.function.description).toBe('Read the GoNavi MCP remote Agent access snapshot.');
+    expect(remoteAccess?.tool.function.description).toBe('Read the PinkHunkDB MCP remote Agent access snapshot.');
     expect(Object.keys(remoteAccess?.tool.function.parameters.properties || {})).toEqual([
       'publicUrl',
       'localAddr',

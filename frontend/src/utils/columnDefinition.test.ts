@@ -75,7 +75,7 @@ describe('columnDefinition metadata normalization', () => {
     });
   });
 
-  it('maps boolean primary and unique metadata aliases to GoNavi keys', () => {
+  it('maps boolean primary and unique metadata aliases to PinkHunkDB keys', () => {
     expect(getColumnDefinitionKey({ column_name: 'id', isPrimary: true })).toBe('PRI');
     expect(getColumnDefinitionKey({ column_name: 'id', primary_key: 't' })).toBe('PRI');
     expect(getColumnDefinitionKey({ column_name: 'email', is_unique: 'yes' })).toBe('UNI');

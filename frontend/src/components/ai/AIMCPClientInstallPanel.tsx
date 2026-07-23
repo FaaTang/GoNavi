@@ -87,7 +87,7 @@ const AIMCPClientInstallPanel: React.FC<AIMCPClientInstallPanelProps> = ({
           <div style={{ fontWeight: 700, fontSize: 13, color: overlayTheme.titleText }}>
             {copy(
               'ai_chat.mcp_client.install.intro.title',
-              'This connects GoNavi MCP to Claude Code / Codex / OpenClaw / Hermans for external tool calls. It is not installing a plugin into GoNavi itself.',
+              'This connects PinkHunkDB MCP to Claude Code / Codex / OpenClaw / Hermans for external tool calls. It is not installing a plugin into PinkHunkDB itself.',
             )}
           </div>
           <div style={{ fontSize: 12, color: overlayTheme.mutedText, lineHeight: 1.7 }}>
@@ -128,7 +128,7 @@ const AIMCPClientInstallPanel: React.FC<AIMCPClientInstallPanelProps> = ({
                 {' '}
                 {copy(
                   'ai_chat.mcp_client.install.repeat_avoidance',
-                  'When already connected to this GoNavi, the main button is disabled to avoid repeated writes.',
+                  'When already connected to this PinkHunkDB, the main button is disabled to avoid repeated writes.',
                 )}
               </>
             )}

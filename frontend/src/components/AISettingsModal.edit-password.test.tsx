@@ -69,9 +69,9 @@ describe('AISettingsModal edit password behavior', () => {
     expect(source).not.toContain("'当前运行时暂不支持 MCP HTTP 服务控制'");
     expect(source).not.toContain("'当前版本暂不支持启动 MCP HTTP 服务'");
     expect(source).not.toContain("'当前版本暂不支持停止 MCP HTTP 服务'");
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务已启动'");
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务已停止'");
-    expect(source).not.toContain("'切换 GoNavi MCP HTTP 服务失败'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务已启动'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务已停止'");
+    expect(source).not.toContain("'切换 PinkHunkDB MCP HTTP 服务失败'");
     expect(source).not.toContain("'当前没有可复制的 MCP HTTP URL'");
     expect(source).not.toContain("'MCP HTTP URL 已复制'");
     expect(source).not.toContain("'请先启动 MCP HTTP 服务生成 Authorization Header'");
@@ -82,7 +82,7 @@ describe('AISettingsModal edit password behavior', () => {
     expect(source).toContain("const defaultMCPHTTPServerStatus = useMemo<AIMCPHTTPServerStatus>(() => ({");
     expect(source).toContain("message: t('ai_settings.mcp_http.status.not_running')");
     expect(source).toContain("useState<AIMCPHTTPServerStatus>(() => defaultMCPHTTPServerStatus)");
-    expect(source).not.toContain("'GoNavi MCP HTTP 服务未启动'");
+    expect(source).not.toContain("'PinkHunkDB MCP HTTP 服务未启动'");
   });
 
   it('localizes Skill required built-in tool option labels', () => {

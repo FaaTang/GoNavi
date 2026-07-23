@@ -14,11 +14,11 @@ import (
 )
 
 func TestResolveLocalMCPCommandUsesMainBinaryWithArgument(t *testing.T) {
-	command, args, err := resolveLocalMCPCommand(`C:\Program Files\GoNavi\GoNavi.exe`)
+	command, args, err := resolveLocalMCPCommand(`C:\Program Files\PinkHunkDB\PinkHunkDB.exe`)
 	if err != nil {
 		t.Fatalf("resolveLocalMCPCommand returned error: %v", err)
 	}
-	if command != `C:\Program Files\GoNavi\GoNavi.exe` {
+	if command != `C:\Program Files\PinkHunkDB\PinkHunkDB.exe` {
 		t.Fatalf("expected command to keep main binary path, got %q", command)
 	}
 	if !reflect.DeepEqual(args, []string{"mcp-server"}) {
@@ -27,11 +27,11 @@ func TestResolveLocalMCPCommandUsesMainBinaryWithArgument(t *testing.T) {
 }
 
 func TestResolveLocalMCPCommandKeepsDedicatedServerBinary(t *testing.T) {
-	command, args, err := resolveLocalMCPCommand(`D:\Work\CodeRepos\GoNavi\bin\gonavi-mcp-server.exe`)
+	command, args, err := resolveLocalMCPCommand(`D:\Work\CodeRepos\PinkHunkDB\bin\gonavi-mcp-server.exe`)
 	if err != nil {
 		t.Fatalf("resolveLocalMCPCommand returned error: %v", err)
 	}
-	if command != `D:\Work\CodeRepos\GoNavi\bin\gonavi-mcp-server.exe` {
+	if command != `D:\Work\CodeRepos\PinkHunkDB\bin\gonavi-mcp-server.exe` {
 		t.Fatalf("expected dedicated server path to be reused, got %q", command)
 	}
 	if len(args) != 0 {
@@ -46,7 +46,7 @@ func TestReadClaudeCodeMCPServerConfigReadsExistingInstall(t *testing.T) {
 		"mcpServers": map[string]any{
 			gonaviMCPServerID: map[string]any{
 				"type":    "stdio",
-				"command": `C:\Program Files\GoNavi\GoNavi.exe`,
+				"command": `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`,
 				"args":    []string{"mcp-server"},
 			},
 		},
@@ -66,7 +66,7 @@ func TestReadClaudeCodeMCPServerConfigReadsExistingInstall(t *testing.T) {
 	if !found {
 		t.Fatal("expected gonavi install to be detected")
 	}
-	if cfg.Command != `C:\Program Files\GoNavi\GoNavi.exe` {
+	if cfg.Command != `C:\Program Files\PinkHunkDB\PinkHunkDB.exe` {
 		t.Fatalf("unexpected command: %q", cfg.Command)
 	}
 	if !reflect.DeepEqual(cfg.Args, []string{"mcp-server"}) {
@@ -96,7 +96,7 @@ func TestUpsertClaudeCodeMCPServerConfigCreatesAndMergesUserConfig(t *testing.T)
 
 	err = upsertClaudeCodeMCPServerConfig(configPath, gonaviMCPServerID, claudeCodeMCPServerConfig{
 		Type:    "stdio",
-		Command: `C:\Program Files\GoNavi\GoNavi.exe`,
+		Command: `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`,
 		Args:    []string{"mcp-server"},
 		Env:     map[string]string{},
 	})
@@ -129,7 +129,7 @@ func TestUpsertClaudeCodeMCPServerConfigCreatesAndMergesUserConfig(t *testing.T)
 	if !ok {
 		t.Fatalf("expected gonavi server object, got %#v", mcpServers[gonaviMCPServerID])
 	}
-	if got := strings.TrimSpace(gonavi["command"].(string)); got != `C:\Program Files\GoNavi\GoNavi.exe` {
+	if got := strings.TrimSpace(gonavi["command"].(string)); got != `C:\Program Files\PinkHunkDB\PinkHunkDB.exe` {
 		t.Fatalf("expected gonavi command to be written, got %q", got)
 	}
 	args, ok := gonavi["args"].([]any)
@@ -147,7 +147,7 @@ func TestUpsertClaudeCodeMCPServerConfigRejectsInvalidMCPServersShape(t *testing
 
 	err := upsertClaudeCodeMCPServerConfig(configPath, gonaviMCPServerID, claudeCodeMCPServerConfig{
 		Type:    "stdio",
-		Command: "GoNavi.exe",
+		Command: "PinkHunkDB.exe",
 	})
 	if err == nil {
 		t.Fatal("expected invalid mcpServers shape to return error")
@@ -162,11 +162,11 @@ func TestParseCodexMCPServerConfigDetectsExistingInstall(t *testing.T) {
 		`model = "gpt-5.4"`,
 		``,
 		`[mcp_servers.gonavi]`,
-		`command = 'C:\Program Files\GoNavi\GoNavi.exe'`,
+		`command = 'C:\Program Files\PinkHunkDB\PinkHunkDB.exe'`,
 		`args = ['mcp-server']`,
 		`startup_timeout_sec = 60`,
 		``,
-		`[projects.'D:\Work\CodeRepos\GoNavi']`,
+		`[projects.'D:\Work\CodeRepos\PinkHunkDB']`,
 		`trust_level = "trusted"`,
 		``,
 	}, "\n")
@@ -178,7 +178,7 @@ func TestParseCodexMCPServerConfigDetectsExistingInstall(t *testing.T) {
 	if !found {
 		t.Fatal("expected gonavi install to be detected")
 	}
-	if cfg.Command != `C:\Program Files\GoNavi\GoNavi.exe` {
+	if cfg.Command != `C:\Program Files\PinkHunkDB\PinkHunkDB.exe` {
 		t.Fatalf("unexpected command: %q", cfg.Command)
 	}
 	if !reflect.DeepEqual(cfg.Args, []string{"mcp-server"}) {
@@ -274,7 +274,7 @@ func TestUpsertCodexMCPServerConfigCreatesAndMergesConfig(t *testing.T) {
 	}
 
 	err := upsertCodexMCPServerConfig(configPath, gonaviMCPServerID, codexMCPServerConfig{
-		Command:           `C:\Program Files\GoNavi\GoNavi.exe`,
+		Command:           `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`,
 		Args:              []string{"mcp-server"},
 		StartupTimeoutSec: defaultCodexMCPStartupTimeoutSecond,
 	})
@@ -293,7 +293,7 @@ func TestUpsertCodexMCPServerConfigCreatesAndMergesConfig(t *testing.T) {
 	if !strings.Contains(text, `[mcp_servers.gonavi]`) {
 		t.Fatalf("expected gonavi section to be created, got %s", text)
 	}
-	if !strings.Contains(text, `command = 'C:\Program Files\GoNavi\GoNavi.exe'`) {
+	if !strings.Contains(text, `command = 'C:\Program Files\PinkHunkDB\PinkHunkDB.exe'`) {
 		t.Fatalf("expected gonavi command to be written, got %s", text)
 	}
 	if !strings.Contains(text, `args = ['mcp-server']`) {
@@ -318,7 +318,7 @@ func TestUpsertCodexMCPServerConfigReplacesExistingBlockAndNestedSections(t *tes
 		`[mcp_servers.gonavi.env]`,
 		`FOO = "bar"`,
 		``,
-		`[projects.'D:\Work\CodeRepos\GoNavi']`,
+		`[projects.'D:\Work\CodeRepos\PinkHunkDB']`,
 		`trust_level = "trusted"`,
 		``,
 	}, "\n")
@@ -327,7 +327,7 @@ func TestUpsertCodexMCPServerConfigReplacesExistingBlockAndNestedSections(t *tes
 	}
 
 	err := upsertCodexMCPServerConfig(configPath, gonaviMCPServerID, codexMCPServerConfig{
-		Command:           `C:\Program Files\GoNavi\GoNavi.exe`,
+		Command:           `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`,
 		Args:              []string{"mcp-server"},
 		StartupTimeoutSec: defaultCodexMCPStartupTimeoutSecond,
 	})
@@ -343,7 +343,7 @@ func TestUpsertCodexMCPServerConfigReplacesExistingBlockAndNestedSections(t *tes
 	if strings.Contains(text, `command = 'old.exe'`) || strings.Contains(text, `[mcp_servers.gonavi.env]`) {
 		t.Fatalf("expected old gonavi block to be replaced, got %s", text)
 	}
-	if !strings.Contains(text, `[projects.'D:\Work\CodeRepos\GoNavi']`) {
+	if !strings.Contains(text, `[projects.'D:\Work\CodeRepos\PinkHunkDB']`) {
 		t.Fatalf("expected unrelated project config to be preserved, got %s", text)
 	}
 }
@@ -367,7 +367,7 @@ func TestInspectClaudeCodeMCPInstallStatusIncludesLocalCLIAvailability(t *testin
 		return `C:\Users\mock\AppData\Roaming\npm\claude.CMD`, nil
 	}
 
-	status := inspectClaudeCodeMCPInstallStatus(`C:\Program Files\GoNavi\GoNavi.exe`, []string{"mcp-server"}, nil)
+	status := inspectClaudeCodeMCPInstallStatus(`C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, []string{"mcp-server"}, nil)
 	if !status.ClientDetected {
 		t.Fatal("expected Claude Code command detection to be true")
 	}
@@ -401,7 +401,7 @@ func TestInspectCodexMCPInstallStatusKeepsMissingCLISignalSeparateFromConfigStat
 		return "", errors.New("not found")
 	}
 
-	status := inspectCodexMCPInstallStatus(`C:\Program Files\GoNavi\GoNavi.exe`, []string{"mcp-server"}, nil)
+	status := inspectCodexMCPInstallStatus(`C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, []string{"mcp-server"}, nil)
 	if status.ClientDetected {
 		t.Fatal("expected codex command detection to be false")
 	}
@@ -411,7 +411,7 @@ func TestInspectCodexMCPInstallStatusKeepsMissingCLISignalSeparateFromConfigStat
 	if status.ClientPath != "" {
 		t.Fatalf("expected missing codex command path to be empty, got %q", status.ClientPath)
 	}
-	if status.Message != "No Codex user-level GoNavi MCP configuration was detected" {
+	if status.Message != "No Codex user-level PinkHunkDB MCP configuration was detected" {
 		t.Fatalf("unexpected config message: %q", status.Message)
 	}
 }
@@ -434,7 +434,7 @@ func TestMCPClientInstallResultMessagesUseServiceLanguage(t *testing.T) {
 		return filepath.Join(tempDir, ".codex", "config.toml"), nil
 	}
 	localMCPExecutablePathFunc = func() (string, error) {
-		return `C:\Program Files\GoNavi\GoNavi.exe`, nil
+		return `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, nil
 	}
 
 	service := NewService()
@@ -484,7 +484,7 @@ func TestMCPClientInstallStatusMessagesUseServiceLanguage(t *testing.T) {
 		return filepath.Join(tempDir, ".codex", "config.toml"), nil
 	}
 	localMCPExecutablePathFunc = func() (string, error) {
-		return `C:\Program Files\GoNavi\GoNavi.exe`, nil
+		return `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, nil
 	}
 	localCLICommandPathFunc = func(string) (string, error) {
 		return "", errors.New("not found")
@@ -504,10 +504,10 @@ func TestMCPClientInstallStatusMessagesUseServiceLanguage(t *testing.T) {
 	if len(statuses) != 4 {
 		t.Fatalf("expected 4 MCP client statuses, got %d", len(statuses))
 	}
-	if !strings.Contains(statuses[0].Message, "No Claude Code user-level GoNavi MCP configuration") {
+	if !strings.Contains(statuses[0].Message, "No Claude Code user-level PinkHunkDB MCP configuration") {
 		t.Fatalf("unexpected Claude Code status message: %q", statuses[0].Message)
 	}
-	if !strings.Contains(statuses[1].Message, "No Codex user-level GoNavi MCP configuration") {
+	if !strings.Contains(statuses[1].Message, "No Codex user-level PinkHunkDB MCP configuration") {
 		t.Fatalf("unexpected Codex status message: %q", statuses[1].Message)
 	}
 	if !strings.Contains(statuses[2].Message, "usually runs in the cloud or a remote environment") {
@@ -534,7 +534,7 @@ func TestMCPClientInstallConfigPathFailuresUseServiceLanguage(t *testing.T) {
 		return "", errors.New("codex config denied")
 	}
 	localMCPExecutablePathFunc = func() (string, error) {
-		return `C:\Program Files\GoNavi\GoNavi.exe`, nil
+		return `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, nil
 	}
 	localCLICommandPathFunc = func(string) (string, error) {
 		return "", errors.New("not found")
@@ -587,7 +587,7 @@ func TestMCPClientInstallHomeDirDetailUsesServiceLanguage(t *testing.T) {
 		return "", errMCPClientUserHomeDirUnavailable
 	}
 	localMCPExecutablePathFunc = func() (string, error) {
-		return `C:\Program Files\GoNavi\GoNavi.exe`, nil
+		return `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, nil
 	}
 	localCLICommandPathFunc = func(string) (string, error) {
 		return "", errors.New("not found")
@@ -664,7 +664,7 @@ func TestMCPClientInstallExecutablePathFailuresUseServiceLanguage(t *testing.T) 
 	}
 	if _, err := service.AIInstallClaudeCodeMCP(); err == nil {
 		t.Fatal("expected Claude Code install executable path error")
-	} else if hanText.MatchString(err.Error()) || !strings.Contains(err.Error(), "Failed to locate the current GoNavi executable") || !strings.Contains(err.Error(), "executable lookup denied") {
+	} else if hanText.MatchString(err.Error()) || !strings.Contains(err.Error(), "Failed to locate the current PinkHunkDB executable") || !strings.Contains(err.Error(), "executable lookup denied") {
 		t.Fatalf("Claude Code executable path error should use English wrapper and keep raw detail, got %q", err.Error())
 	}
 	statuses := service.AIGetMCPClientInstallStatuses()
@@ -672,7 +672,7 @@ func TestMCPClientInstallExecutablePathFailuresUseServiceLanguage(t *testing.T) 
 		t.Fatalf("expected at least Claude Code and Codex statuses, got %d", len(statuses))
 	}
 	for _, status := range statuses[:2] {
-		if hanText.MatchString(status.Message) || !strings.Contains(status.Message, "Failed to locate the current GoNavi executable") || !strings.Contains(status.Message, "executable lookup denied") {
+		if hanText.MatchString(status.Message) || !strings.Contains(status.Message, "Failed to locate the current PinkHunkDB executable") || !strings.Contains(status.Message, "executable lookup denied") {
 			t.Fatalf("%s status executable path error should use English wrapper and keep raw detail, got %q", status.Client, status.Message)
 		}
 	}
@@ -682,12 +682,12 @@ func TestMCPClientInstallExecutablePathFailuresUseServiceLanguage(t *testing.T) 
 	}
 	if _, err := service.AIInstallCodexMCP(); err == nil {
 		t.Fatal("expected Codex install empty executable path error")
-	} else if hanText.MatchString(err.Error()) || !strings.Contains(err.Error(), "Current GoNavi executable path is empty") {
+	} else if hanText.MatchString(err.Error()) || !strings.Contains(err.Error(), "Current PinkHunkDB executable path is empty") {
 		t.Fatalf("Codex empty executable path error should use English wrapper, got %q", err.Error())
 	}
 	statuses = service.AIGetMCPClientInstallStatuses()
 	for _, status := range statuses[:2] {
-		if hanText.MatchString(status.Message) || !strings.Contains(status.Message, "Current GoNavi executable path is empty") {
+		if hanText.MatchString(status.Message) || !strings.Contains(status.Message, "Current PinkHunkDB executable path is empty") {
 			t.Fatalf("%s status empty executable path error should use English wrapper, got %q", status.Client, status.Message)
 		}
 	}
@@ -715,7 +715,7 @@ func TestMCPClientInstallConfigFormatFailuresUseServiceLanguage(t *testing.T) {
 		return codexConfigPath, nil
 	}
 	localMCPExecutablePathFunc = func() (string, error) {
-		return `C:\Program Files\GoNavi\GoNavi.exe`, nil
+		return `C:\Program Files\PinkHunkDB\PinkHunkDB.exe`, nil
 	}
 	localCLICommandPathFunc = func(string) (string, error) {
 		return "", errors.New("not found")
@@ -790,7 +790,7 @@ func TestMCPClientInstallConfigIOFailuresUseServiceLanguage(t *testing.T) {
 	blockedClaudeConfigPath := filepath.Join(blockingFile, ".claude.json")
 	if err := upsertClaudeCodeMCPServerConfig(blockedClaudeConfigPath, gonaviMCPServerID, claudeCodeMCPServerConfig{
 		Type:    "stdio",
-		Command: "GoNavi.exe",
+		Command: "PinkHunkDB.exe",
 	}, service.serviceText); err == nil {
 		t.Fatal("expected Claude Code directory creation error")
 	} else if hanText.MatchString(err.Error()) || !strings.Contains(err.Error(), "Failed to create Claude Code configuration directory") {
@@ -809,7 +809,7 @@ func TestMCPClientInstallConfigIOFailuresUseServiceLanguage(t *testing.T) {
 
 	blockedCodexConfigPath := filepath.Join(blockingFile, "config.toml")
 	if err := upsertCodexMCPServerConfig(blockedCodexConfigPath, gonaviMCPServerID, codexMCPServerConfig{
-		Command: "GoNavi.exe",
+		Command: "PinkHunkDB.exe",
 		Args:    []string{"mcp-server"},
 	}, service.serviceText); err == nil {
 		t.Fatal("expected Codex directory creation error")

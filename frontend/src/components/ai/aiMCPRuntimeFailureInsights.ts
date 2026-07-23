@@ -7,22 +7,22 @@ const DEFAULT_MCP_RUNTIME_LOG_LIMIT = 160;
 const MAX_MCP_RUNTIME_LOG_LIMIT = 200;
 
 const MCP_HTTP_START_FAILED_MARKERS = [
-  'GoNavi MCP HTTP \u670d\u52a1\u542f\u52a8\u5931\u8d25',
-  '\u542f\u52a8 GoNavi MCP HTTP \u670d\u52a1\u5931\u8d25',
-  '\u555f\u52d5 GoNavi MCP HTTP \u670d\u52d9\u5931\u6557',
-  'Failed to start GoNavi MCP HTTP service',
-  'GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f',
-  'Starten des GoNavi MCP HTTP-Dienstes fehlgeschlagen',
-  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u043b\u0443\u0436\u0431\u0443 GoNavi MCP HTTP',
+  'PinkHunkDB MCP HTTP \u670d\u52a1\u542f\u52a8\u5931\u8d25',
+  '\u542f\u52a8 PinkHunkDB MCP HTTP \u670d\u52a1\u5931\u8d25',
+  '\u555f\u52d5 PinkHunkDB MCP HTTP \u670d\u52d9\u5931\u6557',
+  'Failed to start PinkHunkDB MCP HTTP service',
+  'PinkHunkDB MCP HTTP \u30b5\u30fc\u30d3\u30b9\u306e\u8d77\u52d5\u306b\u5931\u6557\u3057\u307e\u3057\u305f',
+  'Starten des PinkHunkDB MCP HTTP-Dienstes fehlgeschlagen',
+  '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0441\u043b\u0443\u0436\u0431\u0443 PinkHunkDB MCP HTTP',
 ];
 
 const MCP_HTTP_PROCESS_EXITED_MARKERS = [
-  'GoNavi MCP HTTP \u670d\u52a1\u5f02\u5e38\u9000\u51fa',
-  'GoNavi MCP HTTP \u670d\u52d9\u7570\u5e38\u9000\u51fa',
-  'GoNavi MCP HTTP service stopped unexpectedly',
-  'GoNavi MCP HTTP \u30b5\u30fc\u30d3\u30b9\u304c\u7570\u5e38\u7d42\u4e86\u3057\u307e\u3057\u305f',
-  'Der GoNavi MCP HTTP-Dienst wurde unerwartet beendet',
-  '\u0421\u043b\u0443\u0436\u0431\u0430 GoNavi MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0430\u0441\u044c \u0430\u0432\u0430\u0440\u0438\u0439\u043d\u043e',
+  'PinkHunkDB MCP HTTP \u670d\u52a1\u5f02\u5e38\u9000\u51fa',
+  'PinkHunkDB MCP HTTP \u670d\u52d9\u7570\u5e38\u9000\u51fa',
+  'PinkHunkDB MCP HTTP service stopped unexpectedly',
+  'PinkHunkDB MCP HTTP \u30b5\u30fc\u30d3\u30b9\u304c\u7570\u5e38\u7d42\u4e86\u3057\u307e\u3057\u305f',
+  'Der PinkHunkDB MCP HTTP-Dienst wurde unerwartet beendet',
+  '\u0421\u043b\u0443\u0436\u0431\u0430 PinkHunkDB MCP HTTP \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0430\u0441\u044c \u0430\u0432\u0430\u0440\u0438\u0439\u043d\u043e',
 ];
 
 const MCP_HTTP_SUBPROCESS_EXITED_MARKERS = [

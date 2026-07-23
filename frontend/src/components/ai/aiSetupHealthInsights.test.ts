@@ -144,7 +144,7 @@ describe('buildAISetupHealthSnapshot', () => {
         configPath: 'C:/Users/demo/.codex/config.toml',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
-        message: '已接入当前 GoNavi MCP',
+        message: '已接入当前 PinkHunkDB MCP',
       }],
       mcpTools: [{
         alias: 'browser_open',
@@ -230,7 +230,7 @@ describe('buildAISetupHealthSnapshot', () => {
         configPath: 'C:/Users/demo/.codex/config.toml',
         command: 'gonavi-mcp-server',
         args: ['stdio'],
-        message: '已接入当前 GoNavi MCP',
+        message: '已接入当前 PinkHunkDB MCP',
       }],
       mcpTools: [],
       skills: [{

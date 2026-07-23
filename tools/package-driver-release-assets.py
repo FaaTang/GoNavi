@@ -17,9 +17,9 @@ def main():
     if not drivers_dir.is_dir():
         raise SystemExit(f"drivers dir not found: {drivers_dir}")
 
-    out_name = "GoNavi-DriverAgents.zip"
-    index_name = "GoNavi-DriverAgents-Index.json"
-    manifest_name = "GoNavi-DriverAgents-Manifest.json"
+    out_name = "PinkHunkDB-DriverAgents.zip"
+    index_name = "PinkHunkDB-DriverAgents-Index.json"
+    manifest_name = "PinkHunkDB-DriverAgents-Manifest.json"
 
     if output_dir.exists():
         shutil.rmtree(output_dir)

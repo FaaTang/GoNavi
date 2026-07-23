@@ -31,7 +31,7 @@ const (
 	defaultKafkaPreviewLimit = 100
 	kafkaSyntheticDatabase   = "topics"
 	kafkaFetchMaxBytes       = 1 << 20
-	kafkaDefaultClientID     = "GoNavi-Lite"
+	kafkaDefaultClientID     = "PinkHunkDB"
 )
 
 type kafkaRuntime interface {

@@ -89,7 +89,7 @@ export const buildAISafetySnapshot = (params: {
     effectiveRestrictions.push(translateInspectionCopy(
       translate,
       'ai_chat.inspection.safety.restriction.mcp_allow_mutating',
-      'When executing non-query statements through GoNavi MCP execute_sql, allowMutating=true must also be passed explicitly.',
+      'When executing non-query statements through PinkHunkDB MCP execute_sql, allowMutating=true must also be passed explicitly.',
     ));
   }
   if (activeResultReadOnly) {

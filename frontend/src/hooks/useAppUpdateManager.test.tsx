@@ -175,7 +175,7 @@ describe('useAppUpdateManager', () => {
         currentVersion: '0.8.1',
         latestVersion: '0.8.2',
         downloaded: true,
-        downloadPath: 'C:\\Temp\\gonavi-updates\\.gonavi-update-windows-0.8.2\\GoNavi.exe',
+        downloadPath: 'C:\\Temp\\gonavi-updates\\.gonavi-update-windows-0.8.2\\PinkHunkDB.exe',
       },
     });
     backendApp.OpenDownloadedUpdatePackage.mockResolvedValue({ success: true });

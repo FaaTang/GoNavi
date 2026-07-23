@@ -279,7 +279,7 @@ describe('AIChatHeader i18n', () => {
     expect(markdown).toContain('# prod/main.orders');
     expect(markdown).toContain('> Exported at:');
     expect(markdown).toContain('## 👤 You');
-    expect(markdown).toContain('## 🤖 GoNavi AI');
+    expect(markdown).toContain('## 🤖 PinkHunkDB AI');
     expect(markdown).toContain('select * from main.orders where id = 42');
     expect(markdown).toContain('Use an index on main.orders.id.');
     expect(markdown).not.toContain('导出时间');
@@ -328,7 +328,7 @@ describe('AIChatHeader i18n', () => {
     expect(markdown).toContain('# New chat');
     expect(markdown).toContain('> Exported at:');
     expect(markdown).toContain('## 👤 You');
-    expect(markdown).toContain('## 🤖 GoNavi AI');
+    expect(markdown).toContain('## 🤖 PinkHunkDB AI');
     expect(markdown).not.toContain('ai_chat.header.export_time');
   });
 

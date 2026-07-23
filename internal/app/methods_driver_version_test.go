@@ -652,7 +652,7 @@ func TestVerifyInstalledOptionalDriverAgentRevisionUsesI18nWrappers(t *testing.T
 }
 
 func TestAppendOptionalDriverAttemptErrorDeduplicatesIdenticalEntries(t *testing.T) {
-	source := "https://github.com/FaaTang/PinkHunkDB/releases/latest/download/GoNavi-DriverAgents.zip#MacOS/kingbase-driver-agent-darwin-arm64"
+	source := "https://github.com/FaaTang/PinkHunkDB/releases/latest/download/PinkHunkDB-DriverAgents.zip#MacOS/kingbase-driver-agent-darwin-arm64"
 	err := fmt.Errorf("kingbase 驱动代理 revision 不匹配（已安装：src-old，当前需要：src-new），请安装当前版本对应的 driver-agent")
 
 	entries := appendOptionalDriverAttemptError(nil, nil, source, err)
@@ -1664,7 +1664,7 @@ func TestDownloadOptionalDriverAgentFromBundleSharesConcurrentDownload(t *testin
 		_, _ = setGlobalProxyConfig(proxySnapshot.Enabled, proxySnapshot.Proxy)
 	})
 
-	bundlePath := filepath.Join(t.TempDir(), "GoNavi-DriverAgents.zip")
+	bundlePath := filepath.Join(t.TempDir(), "PinkHunkDB-DriverAgents.zip")
 	writeZipWithSelfExecutableEntries(t, bundlePath, []string{
 		optionalDriverBundleEntryPath("clickhouse"),
 		optionalDriverBundleEntryPath("mongodb"),

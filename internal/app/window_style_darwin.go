@@ -9,17 +9,17 @@ package app
 #import <Cocoa/Cocoa.h>
 #import <dispatch/dispatch.h>
 
-static inline BOOL GoNavi-LiteBoolYES() { return YES; }
-static inline BOOL GoNavi-LiteBoolNO()  { return NO; }
+static inline BOOL PinkHunkDBBoolYES() { return YES; }
+static inline BOOL PinkHunkDBBoolNO()  { return NO; }
 
-static char *GoNavi-LiteNativeLogPath = NULL;
-static BOOL GoNavi-LiteNativeObserverInstalled = NO;
+static char *PinkHunkDBNativeLogPath = NULL;
+static BOOL PinkHunkDBNativeObserverInstalled = NO;
 
-static void GoNavi-LiteWriteNativeWindowLogLine(NSString *line) {
-	if (line == nil || GoNavi-LiteNativeLogPath == NULL) {
+static void PinkHunkDBWriteNativeWindowLogLine(NSString *line) {
+	if (line == nil || PinkHunkDBNativeLogPath == NULL) {
 		return;
 	}
-	NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:[NSString stringWithUTF8String:GoNavi-LiteNativeLogPath]];
+	NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:[NSString stringWithUTF8String:PinkHunkDBNativeLogPath]];
 	if (handle == nil) {
 		return;
 	}
@@ -33,7 +33,7 @@ static void GoNavi-LiteWriteNativeWindowLogLine(NSString *line) {
 	}
 }
 
-static NSString *GoNavi-LiteWindowDiagnosticLine(NSString *eventName, NSWindow *window) {
+static NSString *PinkHunkDBWindowDiagnosticLine(NSString *eventName, NSWindow *window) {
 	NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 	[formatter setDateFormat:@"yyyy/MM/dd HH:mm:ss.SSSSSS"];
 	NSString *timestamp = [formatter stringFromDate:[NSDate date]];
@@ -71,10 +71,10 @@ static NSString *GoNavi-LiteWindowDiagnosticLine(NSString *eventName, NSWindow *
 		[window title] ?: @""];
 }
 
-@interface GoNavi-LiteNativeWindowObserver : NSObject
+@interface PinkHunkDBNativeWindowObserver : NSObject
 @end
 
-@implementation GoNavi-LiteNativeWindowObserver
+@implementation PinkHunkDBNativeWindowObserver
 
 - (void)logNotification:(NSNotification *)notification {
 	NSString *name = [notification name] ?: @"unknown";
@@ -84,19 +84,19 @@ static NSString *GoNavi-LiteWindowDiagnosticLine(NSString *eventName, NSWindow *
 	} else {
 		window = [NSApp keyWindow] ?: [NSApp mainWindow];
 	}
-	GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(name, window));
+	PinkHunkDBWriteNativeWindowLogLine(PinkHunkDBWindowDiagnosticLine(name, window));
 }
 
 @end
 
-static GoNavi-LiteNativeWindowObserver *GoNavi-LiteNativeWindowObserver = nil;
+static PinkHunkDBNativeWindowObserver *PinkHunkDBNativeWindowObserver = nil;
 
-static void GoNavi-LiteInstallNativeWindowObserver(void) {
-	if (GoNavi-LiteNativeObserverInstalled) {
+static void PinkHunkDBInstallNativeWindowObserver(void) {
+	if (PinkHunkDBNativeObserverInstalled) {
 		return;
 	}
-	GoNavi-LiteNativeObserverInstalled = YES;
-	GoNavi-LiteNativeWindowObserver = [[GoNavi-LiteNativeWindowObserver alloc] init];
+	PinkHunkDBNativeObserverInstalled = YES;
+	PinkHunkDBNativeWindowObserver = [[PinkHunkDBNativeWindowObserver alloc] init];
 	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 	NSArray<NSString *> *windowNotifications = @[
 		NSWindowDidBecomeKeyNotification,
@@ -112,7 +112,7 @@ static void GoNavi-LiteInstallNativeWindowObserver(void) {
 		NSWindowDidChangeOcclusionStateNotification,
 	];
 	for (NSString *notificationName in windowNotifications) {
-		[center addObserver:GoNavi-LiteNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
+		[center addObserver:PinkHunkDBNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
 	}
 	NSArray<NSString *> *appNotifications = @[
 		NSApplicationDidHideNotification,
@@ -121,28 +121,28 @@ static void GoNavi-LiteInstallNativeWindowObserver(void) {
 		NSApplicationDidResignActiveNotification,
 	];
 	for (NSString *notificationName in appNotifications) {
-		[center addObserver:GoNavi-LiteNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
+		[center addObserver:PinkHunkDBNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
 	}
 	for (NSWindow *window in [NSApp windows]) {
-		GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(@"observer:snapshot", window));
+		PinkHunkDBWriteNativeWindowLogLine(PinkHunkDBWindowDiagnosticLine(@"observer:snapshot", window));
 	}
 }
 
-static void GoNavi-LiteConfigureNativeWindowDiagnostics(const char *logPath) {
+static void PinkHunkDBConfigureNativeWindowDiagnostics(const char *logPath) {
 	if (logPath == NULL || logPath[0] == '\0') {
 		return;
 	}
-	if (GoNavi-LiteNativeLogPath != NULL) {
-		free(GoNavi-LiteNativeLogPath);
-		GoNavi-LiteNativeLogPath = NULL;
+	if (PinkHunkDBNativeLogPath != NULL) {
+		free(PinkHunkDBNativeLogPath);
+		PinkHunkDBNativeLogPath = NULL;
 	}
-	GoNavi-LiteNativeLogPath = strdup(logPath);
+	PinkHunkDBNativeLogPath = strdup(logPath);
 	dispatch_async(dispatch_get_main_queue(), ^{
-		GoNavi-LiteInstallNativeWindowObserver();
+		PinkHunkDBInstallNativeWindowObserver();
 	});
 }
 
-static void GoNavi-LiteSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
+static void PinkHunkDBSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
 	if (window == nil) {
 		return;
 	}
@@ -155,7 +155,7 @@ static void GoNavi-LiteSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
 	}
 }
 
-static BOOL GoNavi-LiteShouldApplyMacWindowStyle(NSWindow *window) {
+static BOOL PinkHunkDBShouldApplyMacWindowStyle(NSWindow *window) {
 	if (window == nil) {
 		return NO;
 	}
@@ -167,17 +167,17 @@ static BOOL GoNavi-LiteShouldApplyMacWindowStyle(NSWindow *window) {
 	if ([className isEqualToString:@"WailsWindow"] || [delegateClassName isEqualToString:@"WindowDelegate"]) {
 		return YES;
 	}
-	return [title isEqualToString:@"GoNavi-Lite"];
+	return [title isEqualToString:@"PinkHunkDB"];
 }
 
-static void GoNavi-LiteApplyMacWindowStyle(BOOL enabled) {
+static void PinkHunkDBApplyMacWindowStyle(BOOL enabled) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		for (NSWindow *window in [NSApp windows]) {
 			if (window == nil) {
 				continue;
 			}
-			if (!GoNavi-LiteShouldApplyMacWindowStyle(window)) {
-				GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(@"style:skip-non-app-window", window));
+			if (!PinkHunkDBShouldApplyMacWindowStyle(window)) {
+				PinkHunkDBWriteNativeWindowLogLine(PinkHunkDBWindowDiagnosticLine(@"style:skip-non-app-window", window));
 				continue;
 			}
 
@@ -194,7 +194,7 @@ static void GoNavi-LiteApplyMacWindowStyle(BOOL enabled) {
 				[window setTitlebarAppearsTransparent:YES];
 				[window setMovableByWindowBackground:YES];
 				[window setCollectionBehavior:[window collectionBehavior] | NSWindowCollectionBehaviorFullScreenPrimary];
-				GoNavi-LiteSetWindowButtonsVisible(window, YES);
+				PinkHunkDBSetWindowButtonsVisible(window, YES);
 			} else {
 				styleMask &= ~NSWindowStyleMaskTitled;
 				styleMask &= ~NSWindowStyleMaskFullSizeContentView;
@@ -202,12 +202,12 @@ static void GoNavi-LiteApplyMacWindowStyle(BOOL enabled) {
 				[window setTitleVisibility:NSWindowTitleVisible];
 				[window setTitlebarAppearsTransparent:NO];
 				[window setMovableByWindowBackground:YES];
-				GoNavi-LiteSetWindowButtonsVisible(window, NO);
+				PinkHunkDBSetWindowButtonsVisible(window, NO);
 			}
 
 			[[window contentView] setNeedsDisplay:YES];
 			[window invalidateShadow];
-			GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(enabled ? @"style:enable-native-controls" : @"style:disable-native-controls", window));
+			PinkHunkDBWriteNativeWindowLogLine(PinkHunkDBWindowDiagnosticLine(enabled ? @"style:enable-native-controls" : @"style:disable-native-controls", window));
 		}
 	});
 }
@@ -222,14 +222,14 @@ func installMacNativeWindowDiagnostics(logPath string) {
 	}
 	cLogPath := C.CString(logPath)
 	defer C.free(unsafe.Pointer(cLogPath))
-	C.GoNavi-LiteConfigureNativeWindowDiagnostics(cLogPath)
+	C.PinkHunkDBConfigureNativeWindowDiagnostics(cLogPath)
 }
 
 func setMacNativeWindowControls(enabled bool) {
 	state := resolveMacNativeWindowControlState(enabled)
 	if state.ShowNativeButtons {
-		C.GoNavi-LiteApplyMacWindowStyle(C.GoNavi-LiteBoolYES())
+		C.PinkHunkDBApplyMacWindowStyle(C.PinkHunkDBBoolYES())
 	} else {
-		C.GoNavi-LiteApplyMacWindowStyle(C.GoNavi-LiteBoolNO())
+		C.PinkHunkDBApplyMacWindowStyle(C.PinkHunkDBBoolNO())
 	}
 }

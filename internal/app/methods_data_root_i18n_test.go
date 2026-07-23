@@ -38,7 +38,7 @@ func TestMethodsDataRootMessagesUseLocalizedText(t *testing.T) {
 	}{
 		"func (a *App) SelectDataRootDirectory": {
 			rawMessages: []string{
-				`Title:                "选择 GoNavi 数据目录"`,
+				`Title:                "选择 PinkHunkDB 数据目录"`,
 			},
 			keys: []string{
 				"app.data_root.backend.dialog.select_directory",

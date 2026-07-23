@@ -65,7 +65,7 @@ func (s *Service) AIGetMCPHTTPServerStatus() ai.MCPHTTPServerStatus {
 	return defaultMCPHTTPServerStatus(s.serviceText)
 }
 
-// AIStartMCPHTTPServer 从客户端内启动 GoNavi Streamable HTTP MCP 服务。
+// AIStartMCPHTTPServer 从客户端内启动 PinkHunkDB Streamable HTTP MCP 服务。
 func (s *Service) AIStartMCPHTTPServer(options ai.MCPHTTPServerOptions) (ai.MCPHTTPServerStatus, error) {
 	s.mcpHTTPMu.Lock()
 	if s.mcpHTTP != nil {
@@ -118,12 +118,12 @@ func (s *Service) AIStartMCPHTTPServer(options ai.MCPHTTPServerOptions) (ai.MCPH
 	s.mcpHTTPLast = status
 	s.mcpHTTPMu.Unlock()
 
-	logger.Infof("客户端启动 GoNavi MCP HTTP 服务：addr=%s path=%s schemaOnly=%v", status.Addr, status.Path, status.SchemaOnly)
+	logger.Infof("客户端启动 PinkHunkDB MCP HTTP 服务：addr=%s path=%s schemaOnly=%v", status.Addr, status.Path, status.SchemaOnly)
 	go s.watchMCPHTTPServer(runtime)
 	return status, nil
 }
 
-// AIStopMCPHTTPServer 停止客户端内启动的 GoNavi Streamable HTTP MCP 服务。
+// AIStopMCPHTTPServer 停止客户端内启动的 PinkHunkDB Streamable HTTP MCP 服务。
 func (s *Service) AIStopMCPHTTPServer() (ai.MCPHTTPServerStatus, error) {
 	return s.stopMCPHTTPServer(context.Background(), s.serviceText("ai_settings.mcp_http.message.stopped", nil))
 }
@@ -167,7 +167,7 @@ func (s *Service) stopMCPHTTPServer(ctx context.Context, message string) (ai.MCP
 	s.mcpHTTPMu.Unlock()
 
 	if err == nil {
-		logger.Infof("客户端停止 GoNavi MCP HTTP 服务：addr=%s path=%s", status.Addr, status.Path)
+		logger.Infof("客户端停止 PinkHunkDB MCP HTTP 服务：addr=%s path=%s", status.Addr, status.Path)
 	}
 	return status, err
 }
@@ -192,7 +192,7 @@ func (s *Service) watchMCPHTTPServer(runtime *mcpHTTPServerRuntime) {
 		message = localizeMCPHTTPText(s.serviceText, "ai_service.backend.error.mcp_http_process_exited", map[string]any{
 			"detail": err.Error(),
 		})
-		logger.Error(err, "GoNavi MCP HTTP 服务异常退出：addr=%s path=%s", runtime.status.Addr, runtime.status.Path)
+		logger.Error(err, "PinkHunkDB MCP HTTP 服务异常退出：addr=%s path=%s", runtime.status.Addr, runtime.status.Path)
 	}
 	s.mcpHTTP = nil
 	s.mcpHTTPLast = stoppedMCPHTTPStatus(runtime.status, message)

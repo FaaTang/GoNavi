@@ -10,8 +10,8 @@ import AIMCPToolSchemaSummary, { buildMCPToolMinimalArgumentsExample } from './A
 
 const buildTool = (inputSchema: AIMCPToolDescriptor['inputSchema']): AIMCPToolDescriptor => ({
   alias: 'execute_sql',
-  serverId: 'GoNavi-Lite',
-  serverName: 'GoNavi-Lite',
+  serverId: 'PinkHunkDB',
+  serverName: 'PinkHunkDB',
   originalName: 'execute_sql',
   inputSchema,
 });
