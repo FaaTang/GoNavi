@@ -412,7 +412,7 @@ const RedisCommandEditor: React.FC<RedisCommandEditorProps> = ({ connectionId, r
                 <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                     <Editor
                         theme={darkMode ? 'transparent-dark' : 'transparent-light'}
-                        gonaviTypography="code"
+                        pinkHunkDBTypography="code"
                         defaultLanguage="redis"
                         language="redis"
                         value={command}

@@ -5209,7 +5209,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       >
         <Editor
           height="100%"
-          PinkHunkDBTypography="code"
+          pinkHunkDBTypography="code"
           defaultLanguage="sql"
           theme={darkMode ? "transparent-dark" : "transparent-light"}
           defaultValue={query}

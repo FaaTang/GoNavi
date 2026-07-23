@@ -68,7 +68,7 @@ describe('MonacoEditor typography', () => {
     storeState.appearance.dataTableFontSize = 15;
 
     const markup = renderToStaticMarkup(
-      <MonacoEditor gonaviTypography="data" options={{ lineNumbers: 'off' }} />,
+      <MonacoEditor pinkHunkDBTypography="data" options={{ lineNumbers: 'off' }} />,
     );
 
     expect(markup).toContain('&quot;fontSize&quot;:15');

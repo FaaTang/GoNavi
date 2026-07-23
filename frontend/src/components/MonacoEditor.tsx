@@ -5,7 +5,9 @@ import { sanitizeDataTableFontSize } from '../utils/dataGridDisplay';
 import { DEFAULT_MONO_FONT_FAMILY } from '../utils/fontFamilies';
 
 export type { BeforeMount, OnMount } from '@monaco-editor/react';
-export type GonaviMonacoTypography = 'code' | 'data';
+export type PinkHunkDBMonacoTypography = 'code' | 'data';
+/** @deprecated 使用 PinkHunkDBMonacoTypography */
+export type GonaviMonacoTypography = PinkHunkDBMonacoTypography;
 
 const DEFAULT_FONT_SIZE = 14;
 const MIN_FONT_SIZE = 12;
@@ -18,7 +20,7 @@ const isTestRuntime = (): boolean => {
   return env.MODE === 'test' || env.VITEST === true || env.VITEST === 'true';
 };
 
-export const registerGonaviMonacoThemes: BeforeMount = (monaco) => {
+export const registerPinkHunkDBMonacoThemes: BeforeMount = (monaco) => {
   if (transparentThemesRegistered) {
     return;
   }
@@ -51,6 +53,9 @@ export const registerGonaviMonacoThemes: BeforeMount = (monaco) => {
   transparentThemesRegistered = true;
 };
 
+/** @deprecated 使用 registerPinkHunkDBMonacoThemes */
+export const registerGonaviMonacoThemes = registerPinkHunkDBMonacoThemes;
+
 const ensureMonacoConfigured = (): Promise<void> => {
   if (isTestRuntime()) {
     return Promise.resolve();
@@ -68,16 +73,20 @@ const ensureMonacoConfigured = (): Promise<void> => {
 };
 
 interface MonacoEditorProps extends EditorProps {
-  gonaviTypography?: GonaviMonacoTypography;
+  pinkHunkDBTypography?: PinkHunkDBMonacoTypography;
+  /** @deprecated 使用 pinkHunkDBTypography */
+  gonaviTypography?: PinkHunkDBMonacoTypography;
 }
 
 const MonacoEditor: React.FC<MonacoEditorProps> = ({
   beforeMount,
-  gonaviTypography = 'code',
+  pinkHunkDBTypography,
+  gonaviTypography,
   loading,
   options,
   ...props
 }) => {
+  const typography = pinkHunkDBTypography ?? gonaviTypography ?? 'code';
   const [ready, setReady] = useState(isTestRuntime);
   const dataTableFontSize = useStore((state) => state.appearance.dataTableFontSize);
   const dataTableFontSizeFollowGlobal = useStore((state) => state.appearance.dataTableFontSizeFollowGlobal);
@@ -106,7 +115,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   }, []);
 
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
-    registerGonaviMonacoThemes(monaco);
+    registerPinkHunkDBMonacoThemes(monaco);
     beforeMount?.(monaco);
   }, [beforeMount]);
 
@@ -118,7 +127,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
     const effectiveDataTableFontSize = dataTableFontSizeFollowGlobal !== false
       ? effectiveGlobalFontSize
       : (sanitizeDataTableFontSize(dataTableFontSize) ?? effectiveGlobalFontSize);
-    const resolvedFontSize = gonaviTypography === 'data'
+    const resolvedFontSize = typography === 'data'
       ? effectiveDataTableFontSize
       : Math.max(10, Math.round(effectiveDataTableFontSize * 0.92));
 
@@ -133,7 +142,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
     dataTableFontSize,
     dataTableFontSizeFollowGlobal,
     globalFontSize,
-    gonaviTypography,
+    typography,
     monoFontFamily,
     options,
   ]);

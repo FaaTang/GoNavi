@@ -1051,7 +1051,7 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
                     </div>
                     <Editor
                         height="calc(100% - 72px)"
-                        gonaviTypography="data"
+                        pinkHunkDBTypography="data"
                         language={isJson ? 'json' : 'plaintext'}
                         theme={darkMode ? 'transparent-dark' : 'transparent-light'}
                         value={displayValue}
@@ -2006,7 +2006,7 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
             >
                 <Editor
                     height="450px"
-                    gonaviTypography="data"
+                    pinkHunkDBTypography="data"
                     language={formatRedisStringValue(editValue).isJson ? 'json' : 'plaintext'}
                     theme={darkMode ? 'transparent-dark' : 'transparent-light'}
                     value={editValue}
@@ -2097,7 +2097,7 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
             >
                 <Editor
                     height="450px"
-                    gonaviTypography="data"
+                    pinkHunkDBTypography="data"
                     language={jsonEditConfig?.isJson ? 'json' : 'plaintext'}
                     theme={darkMode ? 'transparent-dark' : 'transparent-light'}
                     defaultValue={jsonEditConfig?.value || ''}
