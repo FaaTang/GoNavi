@@ -1,4 +1,4 @@
-﻿import Modal from './components/common/ResizableDraggableModal';
+import Modal from './components/common/ResizableDraggableModal';
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Layout, Button, ConfigProvider, theme, message, Spin, Slider, Progress, Switch, Input, InputNumber, Select, Segmented, Tooltip } from 'antd';
 import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, BugOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined, ThunderboltOutlined } from '@ant-design/icons';
@@ -434,10 +434,10 @@ function App() {
     switch(windowState){
         case 'fullscreen':
         case 'maximized':
-            document.body.style.setProperty('--gonavi-border-radius', '0px');
+            document.body.style.setProperty('--GoNavi-Lite-border-radius', '0px');
             break;
         default:
-            document.body.style.setProperty('--gonavi-border-radius', `${windowCornerRadius}px`);
+            document.body.style.setProperty('--GoNavi-Lite-border-radius', `${windowCornerRadius}px`);
             break;
     }
   }, [windowState]);
@@ -2036,7 +2036,7 @@ function App() {
       setIsToolsModalOpen(true);
   }, [toolCenterBackGroupKey]);
   const handleFocusSidebarSearch = useCallback(() => {
-      window.dispatchEvent(new CustomEvent('gonavi:focus-sidebar-search'));
+      window.dispatchEvent(new CustomEvent('GoNavi-Lite:focus-sidebar-search'));
   }, []);
   const loadDataRootInfo = useCallback(async () => {
       setDataRootLoading(true);
@@ -2118,7 +2118,7 @@ function App() {
 
 
   const handleToggleLogPanel = useCallback(() => {
-      window.dispatchEvent(new CustomEvent('gonavi:show-sql-execution-log'));
+      window.dispatchEvent(new CustomEvent('GoNavi-Lite:show-sql-execution-log'));
   }, []);
   
   const handleCreateConnection = useCallback(() => {
@@ -2449,7 +2449,7 @@ function App() {
     document.body.style.fontSize = `${effectiveFontSize}px`;
     document.body.style.setProperty('--gn-font-sans', resolvedUiFontFamily);
     document.body.style.setProperty('--gn-font-mono', resolvedMonoFontFamily);
-    document.documentElement.style.setProperty('--gonavi-font-size', `${effectiveFontSize}px`);
+    document.documentElement.style.setProperty('--GoNavi-Lite-font-size', `${effectiveFontSize}px`);
     document.documentElement.style.setProperty('--gn-font-sans', resolvedUiFontFamily);
     document.documentElement.style.setProperty('--gn-font-mono', resolvedMonoFontFamily);
     document.documentElement.style.setProperty('--gn-ui-scale', `${effectiveUiScale}`);
@@ -2478,9 +2478,9 @@ function App() {
       const handleOpenShortcutSettingsEvent = () => {
           setIsShortcutModalOpen(true);
       };
-      window.addEventListener('gonavi:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
+      window.addEventListener('GoNavi-Lite:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
+          window.removeEventListener('GoNavi-Lite:open-shortcut-settings', handleOpenShortcutSettingsEvent as EventListener);
       };
   }, []);
 
@@ -2489,9 +2489,9 @@ function App() {
           setIsSnippetModalOpen(false);
           handleOpenToolCenterPane('workspace', 'snippet-settings');
       };
-      window.addEventListener('gonavi:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
+      window.addEventListener('GoNavi-Lite:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
+          window.removeEventListener('GoNavi-Lite:open-snippet-settings', handleOpenSnippetSettingsEvent as EventListener);
       };
   }, [handleOpenToolCenterPane]);
 
@@ -2502,9 +2502,9 @@ function App() {
           setIsThemeModalOpen(true);
           setTabDisplaySettingsFocusRequest((current) => current + 1);
       };
-      window.addEventListener('gonavi:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
+      window.addEventListener('GoNavi-Lite:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
+          window.removeEventListener('GoNavi-Lite:open-tab-display-settings', handleOpenTabDisplaySettingsEvent as EventListener);
       };
   }, []);
 
@@ -2513,9 +2513,9 @@ function App() {
           setIsSettingsModalOpen(false);
           setIsPerformanceModalOpen(true);
       };
-      window.addEventListener('gonavi:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+      window.addEventListener('GoNavi-Lite:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
+          window.removeEventListener('GoNavi-Lite:open-advanced-settings', handleOpenAdvancedSettingsEvent as EventListener);
       };
   }, []);
 
@@ -2523,9 +2523,9 @@ function App() {
       const handleCreateQueryTabEvent = () => {
           handleNewQuery();
       };
-      window.addEventListener('gonavi:create-query-tab', handleCreateQueryTabEvent as EventListener);
+      window.addEventListener('GoNavi-Lite:create-query-tab', handleCreateQueryTabEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:create-query-tab', handleCreateQueryTabEvent as EventListener);
+          window.removeEventListener('GoNavi-Lite:create-query-tab', handleCreateQueryTabEvent as EventListener);
       };
   }, [handleNewQuery]);
 
@@ -2580,10 +2580,10 @@ function App() {
 
           switch (matchedAction) {
               case 'runQuery':
-                  window.dispatchEvent(new CustomEvent('gonavi:run-active-query'));
+                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:run-active-query'));
                   break;
               case 'focusSidebarSearch':
-                  window.dispatchEvent(new CustomEvent('gonavi:focus-sidebar-search'));
+                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:focus-sidebar-search'));
                   break;
               case 'switchToNextTab':
                   switchActiveTabByOffset(1);
@@ -2593,7 +2593,7 @@ function App() {
                   break;
               case 'closeCurrentTab':
                   if (activeTabId) {
-                      window.dispatchEvent(new CustomEvent('gonavi:close-active-tab'));
+                      window.dispatchEvent(new CustomEvent('GoNavi-Lite:close-active-tab'));
                   }
                   break;
               case 'newConnection':
@@ -2704,7 +2704,7 @@ function App() {
   } as any;
 
   const showLinuxResizeHandles = isLinuxRuntime;
-  const resizeGuideColor = 'var(--gn-accent, #16a34a)';
+  const resizeGuideColor = 'var(--gn-accent, #ff4da6)';
   const antdTheme = useMemo(() => ({
       algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
       token: {
@@ -2726,20 +2726,20 @@ function App() {
           colorFillAlter: darkMode
               ? `rgba(38, 38, 38, ${effectiveOpacity})`
               : `rgba(250, 250, 250, ${effectiveOpacity})`,
-          colorPrimary: darkMode ? '#f6c453' : '#1677ff',
-          colorPrimaryHover: darkMode ? '#ffd666' : '#4096ff',
-          colorPrimaryActive: darkMode ? '#d8a93b' : '#0958d9',
-          colorInfo: darkMode ? '#f6c453' : '#1677ff',
-          colorLink: darkMode ? '#ffd666' : '#1677ff',
-          colorLinkHover: darkMode ? '#ffe58f' : '#4096ff',
-          colorLinkActive: darkMode ? '#d8a93b' : '#0958d9',
-          colorPrimaryBg: darkMode ? 'rgba(246, 196, 83, 0.22)' : '#e6f4ff',
-          colorPrimaryBgHover: darkMode ? 'rgba(246, 196, 83, 0.30)' : '#bae0ff',
-          colorPrimaryBorder: darkMode ? 'rgba(246, 196, 83, 0.45)' : '#91caff',
-          colorPrimaryBorderHover: darkMode ? 'rgba(246, 196, 83, 0.60)' : '#69b1ff',
-          controlItemBgActive: darkMode ? 'rgba(246, 196, 83, 0.20)' : 'rgba(22, 119, 255, 0.12)',
-          controlItemBgActiveHover: darkMode ? 'rgba(246, 196, 83, 0.28)' : 'rgba(22, 119, 255, 0.18)',
-          controlOutline: darkMode ? 'rgba(246, 196, 83, 0.50)' : 'rgba(5, 145, 255, 0.24)',
+          colorPrimary: darkMode ? '#ff8fc7' : '#ff4da6',
+          colorPrimaryHover: darkMode ? '#ffb3dc' : '#ff6eb8',
+          colorPrimaryActive: darkMode ? '#ff4da6' : '#e6005c',
+          colorInfo: darkMode ? '#ff8fc7' : '#ff4da6',
+          colorLink: darkMode ? '#ffb3dc' : '#ff4da6',
+          colorLinkHover: darkMode ? '#ffd6ea' : '#ff6eb8',
+          colorLinkActive: darkMode ? '#ff4da6' : '#e6005c',
+          colorPrimaryBg: darkMode ? 'rgba(255, 77, 166, 0.22)' : '#ffe4f0',
+          colorPrimaryBgHover: darkMode ? 'rgba(255, 77, 166, 0.30)' : '#ffd6ea',
+          colorPrimaryBorder: darkMode ? 'rgba(255, 77, 166, 0.45)' : '#ffb3dc',
+          colorPrimaryBorderHover: darkMode ? 'rgba(255, 77, 166, 0.60)' : '#ff8fc7',
+          controlItemBgActive: darkMode ? 'rgba(255, 77, 166, 0.20)' : 'rgba(255, 77, 166, 0.12)',
+          controlItemBgActiveHover: darkMode ? 'rgba(255, 77, 166, 0.28)' : 'rgba(255, 77, 166, 0.18)',
+          controlOutline: darkMode ? 'rgba(255, 77, 166, 0.50)' : 'rgba(255, 77, 166, 0.24)',
       },
       components: {
           Layout: {
@@ -2754,10 +2754,10 @@ function App() {
           },
           Tabs: {
               cardBg: 'transparent',
-              itemActiveColor: darkMode ? '#ffd666' : '#1890ff',
-              itemHoverColor: darkMode ? '#ffe58f' : '#40a9ff',
-              itemSelectedColor: darkMode ? '#ffd666' : '#1677ff',
-              inkBarColor: darkMode ? '#ffd666' : '#1677ff',
+              itemActiveColor: darkMode ? '#ffb3dc' : '#ff4da6',
+              itemHoverColor: darkMode ? '#ffd6ea' : '#ff6eb8',
+              itemSelectedColor: darkMode ? '#ffb3dc' : '#ff4da6',
+              inkBarColor: darkMode ? '#ffb3dc' : '#ff4da6',
           }
       }
   }), [
@@ -2806,8 +2806,8 @@ function App() {
             display: 'flex', 
             flexDirection: 'column',
             background: 'transparent',
-            borderRadius: showLinuxResizeHandles ? 0 : 'var(--gonavi-border-radius)',
-            clipPath: showLinuxResizeHandles ? 'none' : 'inset(0 round var(--gonavi-border-radius))',
+            borderRadius: showLinuxResizeHandles ? 0 : 'var(--GoNavi-Lite-border-radius)',
+            clipPath: showLinuxResizeHandles ? 'none' : 'inset(0 round var(--GoNavi-Lite-border-radius))',
             backdropFilter: blurFilter,
             WebkitBackdropFilter: blurFilter,
         }}>
@@ -2832,7 +2832,7 @@ function App() {
           >
               <div style={{ display: 'flex', alignItems: 'center', gap: Math.max(6, Math.round(8 * effectiveUiScale)), fontWeight: 600, minWidth: 0 }}>
                   {/* Logo can be added here if available */}
-                  GoNavi
+                  GoNavi-Lite
               </div>
               {useNativeMacWindowControls ? (
                   <div style={{ minWidth: Math.max(40, Math.round(48 * effectiveUiScale)) }} />
@@ -4463,7 +4463,7 @@ function App() {
                                                                           : (darkMode ? 'rgba(34,197,94,0.14)' : 'rgba(22,163,74,0.08)'),
                                                                       color: row === 'secondary'
                                                                           ? (darkMode ? '#7dd3fc' : '#0369a1')
-                                                                          : (darkMode ? '#86efac' : '#15803d'),
+                                                                          : (darkMode ? '#ffd6ea' : '#e6005c'),
                                                                   }}>
                                                                       {row === 'secondary'
                                                                           ? t('app.theme.tab_display.row.secondary')
@@ -4769,7 +4769,7 @@ function App() {
                   </Button>,
               ]}
           >
-              <div data-gonavi-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>
+              <div data-GoNavi-Lite-shortcut-modal-scroll="true" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8, paddingRight: 8 }}>
                   <div style={utilityPanelStyle}>
                       <div style={{ fontSize: 12, color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(16,24,40,0.55)' }}>
                            {t('app.shortcuts.capture_hint')}

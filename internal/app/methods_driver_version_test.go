@@ -163,17 +163,17 @@ func TestResolveOptionalDriverBundleDownloadURLsUsesDriverReleaseRepo(t *testing
 func TestDriverReleaseAssetAPIURLUsesReleaseAssetEndpoint(t *testing.T) {
 	asset := githubAsset{
 		Name:               "kingbase-driver-agent-darwin-arm64",
-		BrowserDownloadURL: "https://github.com/FaaTang/GoNavi/releases/download/dev-latest/kingbase-driver-agent-darwin-arm64",
-		URL:                "https://api.github.com/repos/FaaTang/GoNavi/releases/assets/123456",
+		BrowserDownloadURL: "https://github.com/FaaTang/PinkHunkDB/releases/download/dev-latest/kingbase-driver-agent-darwin-arm64",
+		URL:                "https://api.github.com/repos/FaaTang/PinkHunkDB/releases/assets/123456",
 		Size:               18 << 20,
 	}
-	if got := driverReleaseAssetAPIURL(asset); got != "https://api.github.com/repos/FaaTang/GoNavi/releases/assets/123456#kingbase-driver-agent-darwin-arm64" {
+	if got := driverReleaseAssetAPIURL(asset); got != "https://api.github.com/repos/FaaTang/PinkHunkDB/releases/assets/123456#kingbase-driver-agent-darwin-arm64" {
 		t.Fatalf("expected release asset API URL, got %q", got)
 	}
 }
 
 func TestOptionalDriverDownloadZipURLAcceptsAssetAPIFragment(t *testing.T) {
-	urlText := "https://api.github.com/repos/FaaTang/GoNavi/releases/assets/123456#duckdb-driver.zip"
+	urlText := "https://api.github.com/repos/FaaTang/PinkHunkDB/releases/assets/123456#duckdb-driver.zip"
 	if !isOptionalDriverDownloadZipURL(urlText) {
 		t.Fatalf("expected asset API URL with zip fragment to be treated as zip download: %q", urlText)
 	}
@@ -517,7 +517,7 @@ func TestShouldUseOptionalDriverBundleFallbackKeepsBundleWhenDirectAssetMissing(
 }
 
 func TestFormatOptionalDriverAttemptErrorRemovesDuplicatedSourcePrefix(t *testing.T) {
-	source := "https://github.com/FaaTang/GoNavi/releases/download/dev-latest/kingbase-driver-agent-darwin-arm64"
+	source := "https://github.com/FaaTang/PinkHunkDB/releases/download/dev-latest/kingbase-driver-agent-darwin-arm64"
 	err := fmt.Errorf("%s: kingbase 驱动代理 revision 不匹配（已安装：src-old，当前需要：src-new），请安装当前版本对应的 driver-agent", source)
 
 	got := formatOptionalDriverAttemptError(nil, source, err)
@@ -652,7 +652,7 @@ func TestVerifyInstalledOptionalDriverAgentRevisionUsesI18nWrappers(t *testing.T
 }
 
 func TestAppendOptionalDriverAttemptErrorDeduplicatesIdenticalEntries(t *testing.T) {
-	source := "https://github.com/FaaTang/GoNavi/releases/latest/download/GoNavi-DriverAgents.zip#MacOS/kingbase-driver-agent-darwin-arm64"
+	source := "https://github.com/FaaTang/PinkHunkDB/releases/latest/download/GoNavi-DriverAgents.zip#MacOS/kingbase-driver-agent-darwin-arm64"
 	err := fmt.Errorf("kingbase 驱动代理 revision 不匹配（已安装：src-old，当前需要：src-new），请安装当前版本对应的 driver-agent")
 
 	entries := appendOptionalDriverAttemptError(nil, nil, source, err)

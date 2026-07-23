@@ -9,17 +9,17 @@ package app
 #import <Cocoa/Cocoa.h>
 #import <dispatch/dispatch.h>
 
-static inline BOOL gonaviBoolYES() { return YES; }
-static inline BOOL gonaviBoolNO()  { return NO; }
+static inline BOOL GoNavi-LiteBoolYES() { return YES; }
+static inline BOOL GoNavi-LiteBoolNO()  { return NO; }
 
-static char *gonaviNativeLogPath = NULL;
-static BOOL gonaviNativeObserverInstalled = NO;
+static char *GoNavi-LiteNativeLogPath = NULL;
+static BOOL GoNavi-LiteNativeObserverInstalled = NO;
 
-static void gonaviWriteNativeWindowLogLine(NSString *line) {
-	if (line == nil || gonaviNativeLogPath == NULL) {
+static void GoNavi-LiteWriteNativeWindowLogLine(NSString *line) {
+	if (line == nil || GoNavi-LiteNativeLogPath == NULL) {
 		return;
 	}
-	NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:[NSString stringWithUTF8String:gonaviNativeLogPath]];
+	NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:[NSString stringWithUTF8String:GoNavi-LiteNativeLogPath]];
 	if (handle == nil) {
 		return;
 	}
@@ -33,7 +33,7 @@ static void gonaviWriteNativeWindowLogLine(NSString *line) {
 	}
 }
 
-static NSString *gonaviWindowDiagnosticLine(NSString *eventName, NSWindow *window) {
+static NSString *GoNavi-LiteWindowDiagnosticLine(NSString *eventName, NSWindow *window) {
 	NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
 	[formatter setDateFormat:@"yyyy/MM/dd HH:mm:ss.SSSSSS"];
 	NSString *timestamp = [formatter stringFromDate:[NSDate date]];
@@ -71,10 +71,10 @@ static NSString *gonaviWindowDiagnosticLine(NSString *eventName, NSWindow *windo
 		[window title] ?: @""];
 }
 
-@interface GoNaviNativeWindowObserver : NSObject
+@interface GoNavi-LiteNativeWindowObserver : NSObject
 @end
 
-@implementation GoNaviNativeWindowObserver
+@implementation GoNavi-LiteNativeWindowObserver
 
 - (void)logNotification:(NSNotification *)notification {
 	NSString *name = [notification name] ?: @"unknown";
@@ -84,19 +84,19 @@ static NSString *gonaviWindowDiagnosticLine(NSString *eventName, NSWindow *windo
 	} else {
 		window = [NSApp keyWindow] ?: [NSApp mainWindow];
 	}
-	gonaviWriteNativeWindowLogLine(gonaviWindowDiagnosticLine(name, window));
+	GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(name, window));
 }
 
 @end
 
-static GoNaviNativeWindowObserver *gonaviNativeWindowObserver = nil;
+static GoNavi-LiteNativeWindowObserver *GoNavi-LiteNativeWindowObserver = nil;
 
-static void gonaviInstallNativeWindowObserver(void) {
-	if (gonaviNativeObserverInstalled) {
+static void GoNavi-LiteInstallNativeWindowObserver(void) {
+	if (GoNavi-LiteNativeObserverInstalled) {
 		return;
 	}
-	gonaviNativeObserverInstalled = YES;
-	gonaviNativeWindowObserver = [[GoNaviNativeWindowObserver alloc] init];
+	GoNavi-LiteNativeObserverInstalled = YES;
+	GoNavi-LiteNativeWindowObserver = [[GoNavi-LiteNativeWindowObserver alloc] init];
 	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
 	NSArray<NSString *> *windowNotifications = @[
 		NSWindowDidBecomeKeyNotification,
@@ -112,7 +112,7 @@ static void gonaviInstallNativeWindowObserver(void) {
 		NSWindowDidChangeOcclusionStateNotification,
 	];
 	for (NSString *notificationName in windowNotifications) {
-		[center addObserver:gonaviNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
+		[center addObserver:GoNavi-LiteNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
 	}
 	NSArray<NSString *> *appNotifications = @[
 		NSApplicationDidHideNotification,
@@ -121,28 +121,28 @@ static void gonaviInstallNativeWindowObserver(void) {
 		NSApplicationDidResignActiveNotification,
 	];
 	for (NSString *notificationName in appNotifications) {
-		[center addObserver:gonaviNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
+		[center addObserver:GoNavi-LiteNativeWindowObserver selector:@selector(logNotification:) name:notificationName object:nil];
 	}
 	for (NSWindow *window in [NSApp windows]) {
-		gonaviWriteNativeWindowLogLine(gonaviWindowDiagnosticLine(@"observer:snapshot", window));
+		GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(@"observer:snapshot", window));
 	}
 }
 
-static void gonaviConfigureNativeWindowDiagnostics(const char *logPath) {
+static void GoNavi-LiteConfigureNativeWindowDiagnostics(const char *logPath) {
 	if (logPath == NULL || logPath[0] == '\0') {
 		return;
 	}
-	if (gonaviNativeLogPath != NULL) {
-		free(gonaviNativeLogPath);
-		gonaviNativeLogPath = NULL;
+	if (GoNavi-LiteNativeLogPath != NULL) {
+		free(GoNavi-LiteNativeLogPath);
+		GoNavi-LiteNativeLogPath = NULL;
 	}
-	gonaviNativeLogPath = strdup(logPath);
+	GoNavi-LiteNativeLogPath = strdup(logPath);
 	dispatch_async(dispatch_get_main_queue(), ^{
-		gonaviInstallNativeWindowObserver();
+		GoNavi-LiteInstallNativeWindowObserver();
 	});
 }
 
-static void gonaviSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
+static void GoNavi-LiteSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
 	if (window == nil) {
 		return;
 	}
@@ -155,7 +155,7 @@ static void gonaviSetWindowButtonsVisible(NSWindow *window, BOOL visible) {
 	}
 }
 
-static BOOL gonaviShouldApplyMacWindowStyle(NSWindow *window) {
+static BOOL GoNavi-LiteShouldApplyMacWindowStyle(NSWindow *window) {
 	if (window == nil) {
 		return NO;
 	}
@@ -167,17 +167,17 @@ static BOOL gonaviShouldApplyMacWindowStyle(NSWindow *window) {
 	if ([className isEqualToString:@"WailsWindow"] || [delegateClassName isEqualToString:@"WindowDelegate"]) {
 		return YES;
 	}
-	return [title isEqualToString:@"GoNavi"];
+	return [title isEqualToString:@"GoNavi-Lite"];
 }
 
-static void gonaviApplyMacWindowStyle(BOOL enabled) {
+static void GoNavi-LiteApplyMacWindowStyle(BOOL enabled) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		for (NSWindow *window in [NSApp windows]) {
 			if (window == nil) {
 				continue;
 			}
-			if (!gonaviShouldApplyMacWindowStyle(window)) {
-				gonaviWriteNativeWindowLogLine(gonaviWindowDiagnosticLine(@"style:skip-non-app-window", window));
+			if (!GoNavi-LiteShouldApplyMacWindowStyle(window)) {
+				GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(@"style:skip-non-app-window", window));
 				continue;
 			}
 
@@ -194,7 +194,7 @@ static void gonaviApplyMacWindowStyle(BOOL enabled) {
 				[window setTitlebarAppearsTransparent:YES];
 				[window setMovableByWindowBackground:YES];
 				[window setCollectionBehavior:[window collectionBehavior] | NSWindowCollectionBehaviorFullScreenPrimary];
-				gonaviSetWindowButtonsVisible(window, YES);
+				GoNavi-LiteSetWindowButtonsVisible(window, YES);
 			} else {
 				styleMask &= ~NSWindowStyleMaskTitled;
 				styleMask &= ~NSWindowStyleMaskFullSizeContentView;
@@ -202,12 +202,12 @@ static void gonaviApplyMacWindowStyle(BOOL enabled) {
 				[window setTitleVisibility:NSWindowTitleVisible];
 				[window setTitlebarAppearsTransparent:NO];
 				[window setMovableByWindowBackground:YES];
-				gonaviSetWindowButtonsVisible(window, NO);
+				GoNavi-LiteSetWindowButtonsVisible(window, NO);
 			}
 
 			[[window contentView] setNeedsDisplay:YES];
 			[window invalidateShadow];
-			gonaviWriteNativeWindowLogLine(gonaviWindowDiagnosticLine(enabled ? @"style:enable-native-controls" : @"style:disable-native-controls", window));
+			GoNavi-LiteWriteNativeWindowLogLine(GoNavi-LiteWindowDiagnosticLine(enabled ? @"style:enable-native-controls" : @"style:disable-native-controls", window));
 		}
 	});
 }
@@ -222,14 +222,14 @@ func installMacNativeWindowDiagnostics(logPath string) {
 	}
 	cLogPath := C.CString(logPath)
 	defer C.free(unsafe.Pointer(cLogPath))
-	C.gonaviConfigureNativeWindowDiagnostics(cLogPath)
+	C.GoNavi-LiteConfigureNativeWindowDiagnostics(cLogPath)
 }
 
 func setMacNativeWindowControls(enabled bool) {
 	state := resolveMacNativeWindowControlState(enabled)
 	if state.ShowNativeButtons {
-		C.gonaviApplyMacWindowStyle(C.gonaviBoolYES())
+		C.GoNavi-LiteApplyMacWindowStyle(C.GoNavi-LiteBoolYES())
 	} else {
-		C.gonaviApplyMacWindowStyle(C.gonaviBoolNO())
+		C.GoNavi-LiteApplyMacWindowStyle(C.GoNavi-LiteBoolNO())
 	}
 }

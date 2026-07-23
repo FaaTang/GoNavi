@@ -1,34 +1,34 @@
-# GoNavi - A Modern Lightweight Database Client
+# GoNavi-Lite - A Modern Lightweight Database Client
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/FaaTang/GoNavi)](https://go.dev/)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/FaaTang/PinkHunkDB)](https://go.dev/)
 [![Wails Version](https://img.shields.io/badge/Wails-v2-red)](https://wails.io)
 [![React Version](https://img.shields.io/badge/React-v18-blue)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/FaaTang/GoNavi/release.yml?label=Build)](https://github.com/FaaTang/GoNavi/actions)
-[![Stars](https://img.shields.io/github/stars/FaaTang/GoNavi?style=social)](https://github.com/FaaTang/GoNavi/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/FaaTang/GoNavi/total?color=blue&label=downloads)](https://github.com/FaaTang/GoNavi/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/FaaTang/PinkHunkDB/release.yml?label=Build)](https://github.com/FaaTang/PinkHunkDB/actions)
+[![Stars](https://img.shields.io/github/stars/FaaTang/PinkHunkDB?style=social)](https://github.com/FaaTang/PinkHunkDB/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/FaaTang/PinkHunkDB/total?color=blue&label=downloads)](https://github.com/FaaTang/PinkHunkDB/releases)
 
 **Language**: English | [简体中文](README.zh-CN.md)
 
 > **Fork Notice**
 >
-> This repository ([FaaTang/GoNavi](https://github.com/FaaTang/GoNavi)) is a **personal fork** of the upstream project [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi), maintained for **customized development** and personal use.
+> This repository ([FaaTang/PinkHunkDB](https://github.com/FaaTang/PinkHunkDB)) is a **personal fork** of the upstream project [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi), maintained for **customized development** and personal use.
 >
 > - Copyright and trademarks of the upstream project belong to the original [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) authors. This fork modifies and redistributes code under the [Apache-2.0](LICENSE) license.
 > - Releases, issues, and custom changes in **this fork are maintained independently** and are **not affiliated with** the upstream project.
 > - **No guarantee of long-term maintenance**: updates, bug fixes, and feature support depend on personal availability and needs. There is no commitment to permanently track upstream or fix every issue.
 > - For the official upstream project, stable releases, or upstream contributions, please visit [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi).
 
-GoNavi is a modern, high-performance, cross-platform database client built with **Wails (Go)** and **React**.
+GoNavi-Lite is a modern, high-performance, cross-platform database client built with **Wails (Go)** and **React**.
 It delivers native-like responsiveness with low resource usage.
 
-Compared with many Electron-based clients, GoNavi is typically smaller in binary size (around 10MB class), starts faster, and uses less memory.
+Compared with many Electron-based clients, GoNavi-Lite is typically smaller in binary size (around 10MB class), starts faster, and uses less memory.
 
 ---
 
 ## Project Overview
 
-GoNavi is designed for developers and DBAs who need a unified desktop experience across multiple databases.
+GoNavi-Lite is designed for developers and DBAs who need a unified desktop experience across multiple databases.
 
 - **Native-performance architecture**: Wails (Go + WebView) with lightweight runtime overhead.
 - **Large dataset usability**: virtualized rendering and optimized DataGrid workflows for high-volume tables.
@@ -150,8 +150,8 @@ GoNavi is designed for developers and DBAs who need a unified desktop experience
 
 ```shell
 # Clone this fork
-git clone https://github.com/FaaTang/GoNavi.git
-cd GoNavi
+git clone https://github.com/FaaTang/PinkHunkDB.git
+cd PinkHunkDB
 
 # Start development with hot reload
 wails dev
@@ -207,19 +207,19 @@ Target artifacts include:
 
 Without Apple notarization, Gatekeeper may block startup.
 
-1. Move `GoNavi.app` to **Applications**.
+1. Move `GoNavi-Lite.app` to **Applications**.
 2. Open **Terminal**.
 3. Run:
 
 ```bash
-sudo xattr -rd com.apple.quarantine /Applications/GoNavi.app
+sudo xattr -rd com.apple.quarantine /Applications/GoNavi-Lite.app
 ```
 
 Or right-click the app in Finder and choose **Open** with Control key flow.
 
 ### Linux: missing `libwebkit2gtk` / `libjavascriptcoregtk`
 
-GoNavi depends on WebKitGTK runtime libraries.
+GoNavi-Lite depends on WebKitGTK runtime libraries.
 
 ```bash
 # Debian 13 / Ubuntu 24.04+
@@ -235,7 +235,7 @@ If you use Linux artifacts with the `-WebKit41` suffix, prefer Debian 13 / Ubunt
 
 ### Linux: Chinese text appears as square boxes
 
-Minimal Ubuntu 24.04 LTS desktop/server environments may not include Chinese CJK fonts. Install Noto / WenQuanYi fonts and restart GoNavi:
+Minimal Ubuntu 24.04 LTS desktop/server environments may not include Chinese CJK fonts. Install Noto / WenQuanYi fonts and restart GoNavi-Lite:
 
 ```bash
 sudo apt-get update
@@ -257,11 +257,11 @@ Local notes (may differ from upstream):
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=FaaTang%2FGoNavi&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=FaaTang%2FGoNavi-Lite&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=FaaTang/GoNavi&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=FaaTang/PinkHunkDB&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=FaaTang/PinkHunkDB&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=FaaTang/PinkHunkDB&type=date&legend=top-left" />
  </picture>
 </a>
 

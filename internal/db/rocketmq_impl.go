@@ -27,9 +27,9 @@ const (
 	defaultRocketMQPullBatchSize  = 32
 	maxRocketMQPullBatchSize      = 256
 	rocketMQSyntheticDatabase     = "topics"
-	rocketMQDefaultProducerGroup  = "GoNaviRocketMQProducer"
-	rocketMQDefaultConsumerGroup  = "GoNaviRocketMQPreview"
-	rocketMQDefaultInstancePrefix = "GoNavi"
+	rocketMQDefaultProducerGroup  = "GoNavi-LiteRocketMQProducer"
+	rocketMQDefaultConsumerGroup  = "GoNavi-LiteRocketMQPreview"
+	rocketMQDefaultInstancePrefix = "GoNavi-Lite"
 )
 
 type rocketmqRuntime interface {

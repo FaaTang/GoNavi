@@ -38,10 +38,10 @@ func TestResolveMacNativeWindowControlStateDisabled(t *testing.T) {
 
 func TestShouldApplyMacNativeWindowStyleAcceptsMainWailsWindow(t *testing.T) {
 	tests := []macWindowIdentity{
-		{ClassName: "WailsWindow", DelegateClassName: "WindowDelegate", Title: "GoNavi"},
+		{ClassName: "WailsWindow", DelegateClassName: "WindowDelegate", Title: "GoNavi-Lite"},
 		{ClassName: "WailsWindow", DelegateClassName: "", Title: ""},
 		{ClassName: "", DelegateClassName: "WindowDelegate", Title: ""},
-		{ClassName: "", DelegateClassName: "", Title: "GoNavi"},
+		{ClassName: "", DelegateClassName: "", Title: "GoNavi-Lite"},
 	}
 
 	for _, tt := range tests {

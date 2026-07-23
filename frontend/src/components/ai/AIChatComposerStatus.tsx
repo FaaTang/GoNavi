@@ -30,13 +30,13 @@ const resolvePalette = (
       ? {
         background: 'rgba(34,197,94,0.12)',
         borderColor: 'rgba(34,197,94,0.24)',
-        iconColor: '#4ade80',
-        labelColor: '#86efac',
+        iconColor: '#ffb3dc',
+        labelColor: '#ffd6ea',
       }
       : {
         background: 'rgba(34,197,94,0.08)',
         borderColor: 'rgba(34,197,94,0.16)',
-        iconColor: '#16a34a',
+        iconColor: '#ff4da6',
         labelColor: '#166534',
       };
   }

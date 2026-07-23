@@ -232,8 +232,8 @@ const TableDesignerSqlPreview: React.FC<TableDesignerSqlPreviewProps> = ({
 }
 .gonavi-sql-preview-change-line-add,
 .gonavi-sql-preview-change-line-create {
-  background: rgba(22, 163, 74, 0.14);
-  border-left-color: #16a34a;
+  background: rgba(230, 0, 92, 0.14);
+  border-left-color: #ff4da6;
 }
 .gonavi-sql-preview-change-line-drop {
   background: rgba(220, 38, 38, 0.14);
@@ -253,7 +253,7 @@ const TableDesignerSqlPreview: React.FC<TableDesignerSqlPreviewProps> = ({
 }
 .gonavi-sql-preview-change-marker-add,
 .gonavi-sql-preview-change-marker-create {
-  background: #16a34a;
+  background: #ff4da6;
 }
 .gonavi-sql-preview-change-marker-drop {
   background: #dc2626;

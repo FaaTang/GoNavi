@@ -30,8 +30,8 @@ body[data-ui-version="v2"][data-theme="light"] {
   --gn-bg-panel-2:  #fafaf8;
   --gn-bg-hover:    rgba(15, 23, 42, 0.045);
   --gn-bg-active:   rgba(15, 23, 42, 0.075);
-  --gn-bg-selected: rgba(34, 197, 94, 0.10);
-  --gn-bg-selected-sidebar: rgba(34, 197, 94, 0.20);
+  --gn-bg-selected: rgba(255, 77, 166, 0.10);
+  --gn-bg-selected-sidebar: rgba(255, 77, 166, 0.20);
   --gn-bg-input:    #ffffff;
 
   --gn-fg-1: #0c1322;
@@ -44,9 +44,9 @@ body[data-ui-version="v2"][data-theme="light"] {
   --gn-br-2: rgba(15, 23, 42, 0.12);
   --gn-br-3: rgba(15, 23, 42, 0.18);
 
-  --gn-accent:      #16a34a;
-  --gn-accent-2:    #15803d;
-  --gn-accent-soft: #dcfce7;
+  --gn-accent:      #ff4da6;
+  --gn-accent-2:    #e6005c;
+  --gn-accent-soft: #ffe4f0;
   --gn-info:        #0284c7;
   --gn-info-soft:   #e0f2fe;
   --gn-warn:        #d97706;
@@ -73,8 +73,8 @@ body[data-ui-version="v2"][data-theme="dark"] {
   --gn-bg-panel-2:  #1b1f27;
   --gn-bg-hover:    rgba(255, 255, 255, 0.05);
   --gn-bg-active:   rgba(255, 255, 255, 0.08);
-  --gn-bg-selected: rgba(34, 197, 94, 0.14);
-  --gn-bg-selected-sidebar: rgba(34, 197, 94, 0.28);
+  --gn-bg-selected: rgba(255, 77, 166, 0.14);
+  --gn-bg-selected-sidebar: rgba(255, 77, 166, 0.28);
   --gn-bg-input:    #0f1217;
 
   --gn-fg-1: #f1f3f5;
@@ -87,9 +87,9 @@ body[data-ui-version="v2"][data-theme="dark"] {
   --gn-br-2: rgba(255, 255, 255, 0.10);
   --gn-br-3: rgba(255, 255, 255, 0.16);
 
-  --gn-accent:      #22c55e;
-  --gn-accent-2:    #16a34a;
-  --gn-accent-soft: rgba(34, 197, 94, 0.16);
+  --gn-accent:      #ff8fc7;
+  --gn-accent-2:    #ff4da6;
+  --gn-accent-soft: rgba(255, 77, 166, 0.16);
   --gn-info:        #38bdf8;
   --gn-info-soft:   rgba(56, 189, 248, 0.14);
   --gn-warn:        #f59e0b;
@@ -529,7 +529,7 @@ body[data-ui-version="v2"] .ant-badge-status-dot {
 }
 
 body[data-ui-version="v2"] .ant-badge-status-success {
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 77, 166, 0.18);
 }
 
 /* ─── Segmented (used in some places like density picker) ─ */
@@ -1595,7 +1595,7 @@ body[data-ui-version="v2"] .ant-alert-info {
 }
 body[data-ui-version="v2"] .ant-alert-success {
   background: var(--gn-accent-soft) !important;
-  border-color: rgba(34, 197, 94, 0.3) !important;
+  border-color: rgba(255, 77, 166, 0.3) !important;
 }
 body[data-ui-version="v2"] .ant-alert-warning {
   background: var(--gn-warn-soft) !important;
@@ -2094,7 +2094,7 @@ body[data-ui-version="v2"] .gn-v2-rail-status {
 }
 
 body[data-ui-version="v2"] .gn-v2-rail-status.is-live {
-  background: #22c55e;
+  background: var(--gn-accent);
 }
 
 body[data-ui-version="v2"] .gn-v2-rail-status.is-error {
@@ -2179,8 +2179,8 @@ body[data-ui-version="v2"] .gn-v2-live-dot {
 }
 
 body[data-ui-version="v2"] .gn-v2-live-dot.is-live {
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  background: var(--gn-accent);
+  box-shadow: 0 0 0 3px rgba(255, 77, 166, 0.18);
 }
 
 body[data-ui-version="v2"] .gn-v2-live-dot.is-loading {
@@ -2859,8 +2859,8 @@ body[data-ui-version="v2"] .gn-v2-tree-status::before {
 }
 
 body[data-ui-version="v2"] .gn-v2-tree-status.is-success::before {
-  background: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+  background: var(--gn-accent);
+  box-shadow: 0 0 0 4px rgba(255, 77, 166, 0.18);
 }
 
 body[data-ui-version="v2"] .gn-v2-tree-status.is-loading::before {
@@ -3765,7 +3765,7 @@ body[data-ui-version="v2"] .gn-v2-data-grid .gn-v2-commit-button:disabled {
 
 body[data-ui-version="v2"] .gn-v2-data-grid .gn-v2-commit-button .gn-v2-toolbar-kbd {
   border: none;
-  background: rgba(22, 163, 74, 0.18);
+  background: rgba(230, 0, 92, 0.18);
   color: var(--gn-accent-2);
 }
 

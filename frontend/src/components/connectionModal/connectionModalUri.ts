@@ -32,20 +32,20 @@ const MAX_CONNECTION_PARAMS_LENGTH = 4096;
 const MAX_URI_HOSTS = 32;
 const MAX_TIMEOUT_SECONDS = 3600;
 
-export const normalizeClickHouseProtocolValue = (
-  value: unknown,
-): ClickHouseProtocolChoice => {
-  const text = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (text === "http" || text === "https") return "http";
-  if (text === "native" || text === "tcp") return "native";
-  return "auto";
-};
-export const normalizeOceanBaseProtocolValue = (
-  value: unknown,
-): OceanBaseProtocolChoice => {
-  return normalizeOceanBaseProtocol(value) || "mysql";
+export const normalizeClickHouseProtocolValue = (
+  value: unknown,
+): ClickHouseProtocolChoice => {
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (text === "http" || text === "https") return "http";
+  if (text === "native" || text === "tcp") return "native";
+  return "auto";
+};
+export const normalizeOceanBaseProtocolValue = (
+  value: unknown,
+): OceanBaseProtocolChoice => {
+  return normalizeOceanBaseProtocol(value) || "mysql";
 };
 
 export const parseHostPort = (
@@ -1275,7 +1275,7 @@ export const buildUriFromValues = (values: any) => {
       params.delete("schema");
     }
     if (!String(params.get("source") || "").trim()) {
-      params.set("source", "GoNavi");
+      params.set("source", "GoNavi-Lite");
     }
 
     if (values.useSSL) {

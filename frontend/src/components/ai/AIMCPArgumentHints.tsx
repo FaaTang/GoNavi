@@ -119,7 +119,7 @@ const AIMCPArgumentHints: React.FC<AIMCPArgumentHintsProps> = ({
               borderRadius: 999,
               fontSize: 12,
               border: `1px solid ${cardBorder}`,
-              color: step.satisfied ? '#16a34a' : (step.required ? '#b45309' : overlayTheme.mutedText),
+              color: step.satisfied ? '#ff4da6' : (step.required ? '#b45309' : overlayTheme.mutedText),
               background: step.satisfied
                 ? (darkMode ? 'rgba(34,197,94,0.14)' : 'rgba(34,197,94,0.10)')
                 : (darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.82)'),

@@ -13,7 +13,7 @@ const SAFETY_OPTIONS: {
   color: string;
   icon: string;
 }[] = [
-  { labelKey: 'ai_settings.safety.readonly.label', value: 'readonly', descKey: 'ai_settings.safety.readonly.desc', color: '#22c55e', icon: '🔒' },
+  { labelKey: 'ai_settings.safety.readonly.label', value: 'readonly', descKey: 'ai_settings.safety.readonly.desc', color: '#ff8fc7', icon: '🔒' },
   { labelKey: 'ai_settings.safety.readwrite.label', value: 'readwrite', descKey: 'ai_settings.safety.readwrite.desc', color: '#f59e0b', icon: '⚠️' },
   { labelKey: 'ai_settings.safety.full.label', value: 'full', descKey: 'ai_settings.safety.full.desc', color: '#ef4444', icon: '🔓' },
 ];

@@ -403,7 +403,7 @@ const AISettingsProvidersSection: React.FC<AISettingsProvidersSectionProps> = ({
             onClick={onTestProvider}
             loading={loading}
             style={{ borderRadius: 10 }}
-            icon={testStatus === 'success' ? <CheckOutlined style={{ color: '#22c55e' }} /> : undefined}
+            icon={testStatus === 'success' ? <CheckOutlined style={{ color: '#ff8fc7' }} /> : undefined}
           >
             {testStatus === 'success' ? copy('ai_settings.action.connection_ok') : testStatus === 'error' ? copy('ai_settings.action.retest') : copy('ai_settings.action.test')}
           </Button>

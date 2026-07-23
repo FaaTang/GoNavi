@@ -101,7 +101,7 @@ const AIMCPEnvHints: React.FC<AIMCPEnvHintsProps> = ({
                 {copy(categoryLabel[item.category])}
               </span>
               {item.known ? (
-                <span style={buildMCPHintStyle('#16a34a')}>
+                <span style={buildMCPHintStyle('#ff4da6')}>
                   {copy('ai_settings.mcp_server.env_hints.recognized')}
                 </span>
               ) : null}

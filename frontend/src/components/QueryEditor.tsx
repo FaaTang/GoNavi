@@ -1,4 +1,4 @@
-﻿import Modal from './common/ResizableDraggableModal';
+import Modal from './common/ResizableDraggableModal';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Editor, { type OnMount } from './MonacoEditor';
 import { message, Input, Form, MenuProps } from 'antd';
@@ -136,7 +136,7 @@ export {
 } from './queryEditor/QueryEditorHelpers';
 
 const buildQueryEditorMonacoActionLabel = (key: string): string =>
-    `GoNavi: ${translate(key)}`;
+    `GoNavi-Lite: ${translate(key)}`;
 
 const QUERY_EDITOR_SQL_PROMPT_PLACEHOLDER = '{SQL}';
 
@@ -697,10 +697,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           if (!hoverTarget) continue;
 
           const inlineClassName = hoverTarget.kind === 'column'
-              ? 'gonavi-query-editor-column-token'
+              ? 'GoNavi-Lite-query-editor-column-token'
               : hoverTarget.kind === 'database'
-                  ? 'gonavi-query-editor-db-token'
-                  : 'gonavi-query-editor-object-token';
+                  ? 'GoNavi-Lite-query-editor-db-token'
+                  : 'GoNavi-Lite-query-editor-object-token';
           const key = `${candidate.lineNumber}:${hoverTarget.range.startColumn}:${hoverTarget.range.endColumn}:${inlineClassName}`;
           if (seen.has(key)) continue;
           seen.add(key);
@@ -769,7 +769,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           lineNumber: normalizedPosition.lineNumber,
           column: hoverTarget.range.startColumn,
       });
-      editor.trigger?.('gonavi-hover', 'editor.action.showHover', null);
+      editor.trigger?.('GoNavi-Lite-hover', 'editor.action.showHover', null);
       return true;
   }, []);
 
@@ -785,7 +785,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           ? [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyQ]
           : undefined;
       objectHoverActionRef.current = editor.addAction({
-          id: 'gonavi.queryEditor.showObjectInfo',
+          id: 'GoNavi-Lite.queryEditor.showObjectInfo',
           label: buildQueryEditorMonacoActionLabel('query_editor.action.show_object_info'),
           keybindings: showObjectInfoKeybinding,
           run: () => {
@@ -793,7 +793,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               const shown = showObjectInfoAtPosition(preferredPosition);
               if (!shown) {
                   void message.info({
-                      key: 'gonavi-query-editor-object-info-miss',
+                      key: 'GoNavi-Lite-query-editor-object-info-miss',
                       content: translate('query_editor.message.object_info_target_not_found'),
                   });
               }
@@ -820,7 +820,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
       editor.focus?.();
       editor.setPosition?.(targetPosition);
-      editor.executeEdits?.('gonavi-sidebar-drop', [{
+      editor.executeEdits?.('GoNavi-Lite-sidebar-drop', [{
           range: new monaco.Range(
               targetPosition.lineNumber,
               targetPosition.column,
@@ -944,7 +944,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               selection.endLineNumber,
               selection.endColumn,
           );
-          editor.executeEdits?.('gonavi.duplicateSelectionOrLine', [{
+          editor.executeEdits?.('GoNavi-Lite.duplicateSelectionOrLine', [{
               range: insertRange,
               text: selectedText,
               forceMoveMarkers: true,
@@ -962,7 +962,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       }
       const lineEndColumn = Number(model.getLineMaxColumn?.(lineNumber) || 1);
       const insertRange = new monaco.Range(lineNumber, lineEndColumn, lineNumber, lineEndColumn);
-      editor.executeEdits?.('gonavi.duplicateSelectionOrLine', [{
+      editor.executeEdits?.('GoNavi-Lite.duplicateSelectionOrLine', [{
           range: insertRange,
           text: `\n${lineContent}`,
           forceMoveMarkers: true,
@@ -1027,7 +1027,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   if (!store.aiPanelVisible) {
                       store.setAIPanelVisible(true);
                   }
-                  window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt } }));
+                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:ai:inject-prompt', { detail: { prompt } }));
               },
           })
       ));
@@ -1628,7 +1628,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                       item.endColumn,
                   ),
                   options: {
-                      inlineClassName: 'gonavi-query-editor-link-hint',
+                      inlineClassName: 'GoNavi-Lite-query-editor-link-hint',
                   },
               })),
           );
@@ -1747,7 +1747,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   return;
               }
 
-              editor.executeEdits?.('gonavi-ime-composition-fallback', [{
+              editor.executeEdits?.('GoNavi-Lite-ime-composition-fallback', [{
                   range: fallbackRange,
                   text: committedText,
                   forceMoveMarkers: true,
@@ -1789,7 +1789,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           ? [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyQ]
           : undefined;
       objectHoverActionRef.current = editor.addAction({
-          id: 'gonavi.queryEditor.showObjectInfo',
+          id: 'GoNavi-Lite.queryEditor.showObjectInfo',
           label: buildQueryEditorMonacoActionLabel('query_editor.action.show_object_info'),
           keybindings: showObjectInfoKeybinding,
           run: () => {
@@ -1797,7 +1797,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               const shown = showObjectInfoAtPosition(preferredPosition);
               if (!shown) {
                   void message.info({
-                      key: 'gonavi-query-editor-object-info-miss',
+                      key: 'GoNavi-Lite-query-editor-object-info-miss',
                       content: translate('query_editor.message.object_info_target_not_found'),
                   });
               }
@@ -2100,11 +2100,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           );
           if (keyBinding) {
               runQueryActionRef.current = editor.addAction({
-                  id: 'gonavi.runQuery',
+                  id: 'GoNavi-Lite.runQuery',
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.runQuery.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: () => {
-                      window.dispatchEvent(new CustomEvent('gonavi:run-active-query'));
+                      window.dispatchEvent(new CustomEvent('GoNavi-Lite:run-active-query'));
                   },
               });
           }
@@ -2117,7 +2117,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           );
           if (keyBinding) {
               selectCurrentStatementActionRef.current = editor.addAction({
-                  id: 'gonavi.selectCurrentStatement',
+                  id: 'GoNavi-Lite.selectCurrentStatement',
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.selectCurrentStatement.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: handleSelectCurrentStatement,
@@ -2132,11 +2132,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           );
           if (keyBinding) {
               saveQueryActionRef.current = editor.addAction({
-                  id: 'gonavi.saveQuery',
+                  id: 'GoNavi-Lite.saveQuery',
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.saveQuery.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: () => {
-                      window.dispatchEvent(new CustomEvent('gonavi:save-active-query'));
+                      window.dispatchEvent(new CustomEvent('GoNavi-Lite:save-active-query'));
                   },
               });
           }
@@ -2151,7 +2151,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           );
           if (keyBinding) {
               toggleQueryResultsPanelActionRef.current = editor.addAction({
-                  id: 'gonavi.toggleQueryResultsPanel',
+                  id: 'GoNavi-Lite.toggleQueryResultsPanel',
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.toggleQueryResultsPanel.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: toggleResultPanelVisibility,
@@ -2166,7 +2166,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           );
           if (keyBinding) {
               duplicateSelectionOrLineActionRef.current = editor.addAction({
-                  id: 'gonavi.duplicateSelectionOrLine',
+                  id: 'GoNavi-Lite.duplicateSelectionOrLine',
                   label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.duplicateSelectionOrLine.label'),
                   keybindings: [keyBinding.keyMod | keyBinding.keyCode],
                   run: handleDuplicateSelectionOrLine,
@@ -2176,11 +2176,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
       if (monaco.KeyMod?.Shift != null && monaco.KeyCode?.Enter != null) {
           insertLineBelowActionRef.current = editor.addAction({
-              id: 'gonavi.insertLineBelow',
+              id: 'GoNavi-Lite.insertLineBelow',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.reserved.editor_insert_line_after'),
               keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.Enter],
               run: (ed: any) => {
-                  ed?.trigger?.('gonavi', 'editor.action.insertLineAfter', null);
+                  ed?.trigger?.('GoNavi-Lite', 'editor.action.insertLineAfter', null);
               },
           });
       }
@@ -2914,7 +2914,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               store.setAIPanelVisible(true);
           }
           setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt: finalPrompt } }));
+              window.dispatchEvent(new CustomEvent('GoNavi-Lite:ai:inject-prompt', { detail: { prompt: finalPrompt } }));
           }, store.aiPanelVisible ? 0 : 350);
       });
   };
@@ -2964,7 +2964,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   },
               });
               editor.pushUndoStop?.();
-              editor.executeEdits?.('gonavi-format-sql', [{
+              editor.executeEdits?.('GoNavi-Lite-format-sql', [{
                   range: targetRange,
                   text: nextSql,
                   forceMoveMarkers: true,
@@ -3032,7 +3032,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       if (!store.aiPanelVisible) {
           store.setAIPanelVisible(true);
       }
-      window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt: prompts[action] } }));
+      window.dispatchEvent(new CustomEvent('GoNavi-Lite:ai:inject-prompt', { detail: { prompt: prompts[action] } }));
   };
 
   const formatSettingsMenu: MenuProps['items'] = [
@@ -3067,12 +3067,12 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       {
           key: 'snippet-settings',
           label: translate('query_editor.format.snippet_settings'),
-          onClick: () => window.dispatchEvent(new CustomEvent('gonavi:open-snippet-settings')),
+          onClick: () => window.dispatchEvent(new CustomEvent('GoNavi-Lite:open-snippet-settings')),
       },
       {
           key: 'shortcut-settings',
           label: translate('query_editor.format.shortcut_settings'),
-          onClick: () => window.dispatchEvent(new CustomEvent('gonavi:open-shortcut-settings')),
+          onClick: () => window.dispatchEvent(new CustomEvent('GoNavi-Lite:open-shortcut-settings')),
       },
   ];
 
@@ -4252,7 +4252,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           onCancel: closeSqlExecutionChooser,
           onOpenSettings: () => {
               closeSqlExecutionChooser();
-              window.dispatchEvent(new CustomEvent('gonavi:open-query-execution-settings'));
+              window.dispatchEvent(new CustomEvent('GoNavi-Lite:open-query-execution-settings'));
           },
           translate,
       });
@@ -4393,11 +4393,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
       if (keyBinding) {
           runQueryActionRef.current = editor.addAction({
-              id: 'gonavi.runQuery',
+              id: 'GoNavi-Lite.runQuery',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.runQuery.label'),
               keybindings: [keyBinding.keyMod | keyBinding.keyCode],
               run: () => {
-                  window.dispatchEvent(new CustomEvent('gonavi:run-active-query'));
+                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:run-active-query'));
               },
           });
       }
@@ -4426,7 +4426,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
       if (keyBinding) {
           selectCurrentStatementActionRef.current = editor.addAction({
-              id: 'gonavi.selectCurrentStatement',
+              id: 'GoNavi-Lite.selectCurrentStatement',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.selectCurrentStatement.label'),
               keybindings: [keyBinding.keyMod | keyBinding.keyCode],
               run: handleSelectCurrentStatement,
@@ -4457,11 +4457,11 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
       if (keyBinding) {
           saveQueryActionRef.current = editor.addAction({
-              id: 'gonavi.saveQuery',
+              id: 'GoNavi-Lite.saveQuery',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.saveQuery.label'),
               keybindings: [keyBinding.keyMod | keyBinding.keyCode],
               run: () => {
-                  window.dispatchEvent(new CustomEvent('gonavi:save-active-query'));
+                  window.dispatchEvent(new CustomEvent('GoNavi-Lite:save-active-query'));
               },
           });
       }
@@ -4505,7 +4505,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
       if (keyBinding) {
           toggleQueryResultsPanelActionRef.current = editor.addAction({
-              id: 'gonavi.toggleQueryResultsPanel',
+              id: 'GoNavi-Lite.toggleQueryResultsPanel',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.toggleQueryResultsPanel.label'),
               keybindings: [keyBinding.keyMod | keyBinding.keyCode],
               run: toggleResultPanelVisibility,
@@ -4536,7 +4536,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const keyBinding = comboToMonacoKeyBinding(binding.combo, monaco.KeyMod, monaco.KeyCode);
       if (keyBinding) {
           duplicateSelectionOrLineActionRef.current = editor.addAction({
-              id: 'gonavi.duplicateSelectionOrLine',
+              id: 'GoNavi-Lite.duplicateSelectionOrLine',
               label: buildQueryEditorMonacoActionLabel('app.shortcuts.action.duplicateSelectionOrLine.label'),
               keybindings: [keyBinding.keyMod | keyBinding.keyCode],
               run: handleDuplicateSelectionOrLine,
@@ -4559,9 +4559,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           requestRun();
       };
 
-      window.addEventListener('gonavi:run-active-query', handleRunActiveQuery as EventListener);
+      window.addEventListener('GoNavi-Lite:run-active-query', handleRunActiveQuery as EventListener);
       return () => {
-          window.removeEventListener('gonavi:run-active-query', handleRunActiveQuery as EventListener);
+          window.removeEventListener('GoNavi-Lite:run-active-query', handleRunActiveQuery as EventListener);
       };
   }, [isActive, requestRun]);
 
@@ -4648,8 +4648,8 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               message.success(translate('query_editor.message.append_success'));
           }
       };
-      window.addEventListener('gonavi:insert-sql-to-tab', handleInsertSql as EventListener);
-      return () => window.removeEventListener('gonavi:insert-sql-to-tab', handleInsertSql as EventListener);
+      window.addEventListener('GoNavi-Lite:insert-sql-to-tab', handleInsertSql as EventListener);
+      return () => window.removeEventListener('GoNavi-Lite:insert-sql-to-tab', handleInsertSql as EventListener);
   }, [tab.id, requestRun]);
 
   const resolveDefaultQueryName = () => {
@@ -4948,9 +4948,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           void handleQuickSave();
       };
 
-      window.addEventListener('gonavi:save-active-query', handleSaveActiveQuery as EventListener);
+      window.addEventListener('GoNavi-Lite:save-active-query', handleSaveActiveQuery as EventListener);
       return () => {
-          window.removeEventListener('gonavi:save-active-query', handleSaveActiveQuery as EventListener);
+          window.removeEventListener('GoNavi-Lite:save-active-query', handleSaveActiveQuery as EventListener);
       };
   }, [isActive, handleQuickSave]);
 
@@ -4959,9 +4959,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           handleShowSqlExecutionLog();
       };
 
-      window.addEventListener('gonavi:show-sql-execution-log', handleOpenSqlExecutionLog as EventListener);
+      window.addEventListener('GoNavi-Lite:show-sql-execution-log', handleOpenSqlExecutionLog as EventListener);
       return () => {
-          window.removeEventListener('gonavi:show-sql-execution-log', handleOpenSqlExecutionLog as EventListener);
+          window.removeEventListener('GoNavi-Lite:show-sql-execution-log', handleOpenSqlExecutionLog as EventListener);
       };
   }, [handleShowSqlExecutionLog]);
 
@@ -4982,12 +4982,12 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       };
 
       window.addEventListener(
-          'gonavi:open-query-execution-settings',
+          'GoNavi-Lite:open-query-execution-settings',
           handleOpenQueryExecutionSettings as EventListener,
       );
       return () => {
           window.removeEventListener(
-              'gonavi:open-query-execution-settings',
+              'GoNavi-Lite:open-query-execution-settings',
               handleOpenQueryExecutionSettings as EventListener,
           );
       };
@@ -5134,7 +5134,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const wasClosed = !store.aiPanelVisible;
       if (wasClosed) store.setAIPanelVisible(true);
       setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt } }));
+          window.dispatchEvent(new CustomEvent('GoNavi-Lite:ai:inject-prompt', { detail: { prompt } }));
       }, wasClosed ? 350 : 0);
   };
 
@@ -5209,7 +5209,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       >
         <Editor
           height="100%"
-          gonaviTypography="code"
+          GoNavi-LiteTypography="code"
           defaultLanguage="sql"
           theme={darkMode ? "transparent-dark" : "transparent-light"}
           defaultValue={query}

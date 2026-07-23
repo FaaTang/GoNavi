@@ -1,18 +1,18 @@
-# GoNavi - 现代化轻量级数据库客户端
+# GoNavi-Lite - 现代化轻量级数据库客户端
 
 [Go Version](https://go.dev/)
 [Wails Version](https://wails.io)
 [React Version](https://reactjs.org/)
 [License](LICENSE)
-[Build Status](https://github.com/FaaTang/GoNavi/actions)
-[Stars](https://github.com/FaaTang/GoNavi/stargazers)
-[Downloads](https://github.com/FaaTang/GoNavi/releases)
+[Build Status](https://github.com/FaaTang/PinkHunkDB/actions)
+[Stars](https://github.com/FaaTang/PinkHunkDB/stargazers)
+[Downloads](https://github.com/FaaTang/PinkHunkDB/releases)
 
 **语言**: [English](README.md) | 简体中文
 
 > **Fork 说明**
 >
-> 本仓库（[FaaTang/GoNavi](https://github.com/FaaTang/GoNavi)
+> 本仓库（[FaaTang/PinkHunkDB](https://github.com/FaaTang/PinkHunkDB)
 > ）是基于上游项目 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) 的 **个人 fork**，用于**定制化开发**与个人使用。
 >
 > - 上游项目的版权与商标归 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi) 原作者所有；本 fork
@@ -21,9 +21,9 @@
 >   > - **不提供永久维护承诺**：更新节奏、缺陷修复与功能支持视个人时间与需求而定，不保证长期跟进上游或持续修复所有问题。
 >   > - 如需官方上游版本、稳定发布或参与上游贡献，请访问 [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi)。
 
-GoNavi 是基于 **Wails (Go)** 与 **React** 构建的跨平台数据库管理工具，强调原生性能、低资源占用与多数据源统一工作流。
+GoNavi-Lite 是基于 **Wails (Go)** 与 **React** 构建的跨平台数据库管理工具，强调原生性能、低资源占用与多数据源统一工作流。
 
-相比常见 Electron 客户端，GoNavi 在体积、启动速度和内存占用上更轻量。
+相比常见 Electron 客户端，GoNavi-Lite 在体积、启动速度和内存占用上更轻量。
 
 ---
 
@@ -31,7 +31,7 @@ GoNavi 是基于 **Wails (Go)** 与 **React** 构建的跨平台数据库管理�
 
 ## 项目简介
 
-GoNavi 面向开发者与 DBA，核心目标是让数据库操作在桌面端做到“快、稳、统一”。
+GoNavi-Lite 面向开发者与 DBA，核心目标是让数据库操作在桌面端做到“快、稳、统一”。
 
 - **原生性能架构**：Wails（Go + WebView），降低运行时开销。
 - **大数据可用性**：虚拟滚动 + DataGrid 交互优化，提升大结果集可操作性。
@@ -180,8 +180,8 @@ GoNavi 面向开发者与 DBA，核心目标是让数据库操作在桌面端做
 
 ```shell
 # 克隆本 fork
-git clone https://github.com/FaaTang/GoNavi.git
-cd GoNavi
+git clone https://github.com/FaaTang/PinkHunkDB.git
+cd PinkHunkDB
 
 # 启动开发（热重载）
 wails dev
@@ -251,7 +251,7 @@ Release 更新说明会基于已合并 Pull Request 自动生成，并按 `.gith
 在未进行 Apple Notarization 时，Gatekeeper 可能拦截应用。
 
 ```bash
-sudo xattr -rd com.apple.quarantine /Applications/GoNavi.app
+sudo xattr -rd com.apple.quarantine /Applications/GoNavi-Lite.app
 ```
 
 
@@ -272,8 +272,8 @@ sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.0-37 libjavascriptcoregtk-4.0
 
 ### Linux 中文显示为方框
 
-Ubuntu 24.04 LTS 的最小化桌面或服务器环境可能没有安装中文 CJK 字体，GoNavi 打开后中文会显示为方框。安装 Noto / 文泉驿字体后重启
-GoNavi：
+Ubuntu 24.04 LTS 的最小化桌面或服务器环境可能没有安装中文 CJK 字体，GoNavi-Lite 打开后中文会显示为方框。安装 Noto / 文泉驿字体后重启
+GoNavi-Lite：
 
 ```bash
 sudo apt-get update

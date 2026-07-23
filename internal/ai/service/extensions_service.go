@@ -264,7 +264,7 @@ func (s *Service) withMCPClientSession(localizer *i18n.Localizer, serverConfig a
 	command.Env = append(os.Environ(), formatMCPEnv(serverConfig.Env)...)
 
 	client := mcp.NewClient(&mcp.Implementation{
-		Name:    "GoNavi",
+		Name:    "GoNavi-Lite",
 		Version: "dev",
 	}, nil)
 

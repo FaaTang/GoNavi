@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	updateRepo                  = "FaaTang/GoNavi"
+	updateRepo                  = "FaaTang/PinkHunkDB"
 	updateAPIURL                = "https://api.github.com/repos/" + updateRepo + "/releases/latest"
 	updateChecksumAsset         = "SHA256SUMS"
 	updateDownloadProgressEvent = "update:download-progress"
@@ -360,7 +360,7 @@ func (a *App) downloadAndStageUpdate(info UpdateInfo) connection.QueryResult {
 	}
 
 	// 使用版本号命名的工作目录，便于识别和调试
-	stagedDir := filepath.Join(workspaceDir, fmt.Sprintf(".gonavi-update-%s-%s", stdRuntime.GOOS, info.LatestVersion))
+	stagedDir := filepath.Join(workspaceDir, fmt.Sprintf(".GoNavi-Lite-update-%s-%s", stdRuntime.GOOS, info.LatestVersion))
 	// 清理可能残留的旧目录（上次下载失败后未清理）
 	// Windows 上文件可能被杀毒软件/索引服务占用，需要重试
 	for retry := 0; retry < 5; retry++ {
@@ -372,7 +372,7 @@ func (a *App) downloadAndStageUpdate(info UpdateInfo) connection.QueryResult {
 			time.Sleep(time.Duration(retry+1) * 500 * time.Millisecond)
 		} else {
 			// 最后一次仍然失败，换一个带时间戳的目录名避免冲突
-			stagedDir = filepath.Join(workspaceDir, fmt.Sprintf(".gonavi-update-%s-%s-%d", stdRuntime.GOOS, info.LatestVersion, time.Now().UnixNano()))
+			stagedDir = filepath.Join(workspaceDir, fmt.Sprintf(".GoNavi-Lite-update-%s-%s-%d", stdRuntime.GOOS, info.LatestVersion, time.Now().UnixNano()))
 		}
 	}
 	if err := os.MkdirAll(stagedDir, 0o755); err != nil {
@@ -530,7 +530,7 @@ func fetchLatestRelease() (*githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Updater")
+	req.Header.Set("User-Agent", "GoNavi-Lite-Updater")
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := client.Do(req)
@@ -577,21 +577,21 @@ func expectedAssetNameForExecutable(goos, goarch, version, executablePath string
 	switch goos {
 	case "windows":
 		if goarch == "amd64" {
-			return fmt.Sprintf("GoNavi-%s-Windows-Amd64.exe", version), nil
+			return fmt.Sprintf("GoNavi-Lite-%s-Windows-Amd64.exe", version), nil
 		}
 		if goarch == "arm64" {
-			return fmt.Sprintf("GoNavi-%s-Windows-Arm64.exe", version), nil
+			return fmt.Sprintf("GoNavi-Lite-%s-Windows-Arm64.exe", version), nil
 		}
 	case "darwin":
 		if goarch == "amd64" {
-			return fmt.Sprintf("GoNavi-%s-MacOS-Amd64.dmg", version), nil
+			return fmt.Sprintf("GoNavi-Lite-%s-MacOS-Amd64.dmg", version), nil
 		}
 		if goarch == "arm64" {
-			return fmt.Sprintf("GoNavi-%s-MacOS-Arm64.dmg", version), nil
+			return fmt.Sprintf("GoNavi-Lite-%s-MacOS-Arm64.dmg", version), nil
 		}
 	case "linux":
 		if goarch == "amd64" {
-			return fmt.Sprintf("GoNavi-%s-Linux-Amd64%s.tar.gz", version, resolveLinuxReleaseArtifactSuffix(executablePath)), nil
+			return fmt.Sprintf("GoNavi-Lite-%s-Linux-Amd64%s.tar.gz", version, resolveLinuxReleaseArtifactSuffix(executablePath)), nil
 		}
 	}
 	return "", localizedUpdateError{
@@ -643,7 +643,7 @@ func fetchReleaseSHA256(assets []githubAsset) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Updater")
+	req.Header.Set("User-Agent", "GoNavi-Lite-Updater")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -724,7 +724,7 @@ func downloadFileWithHashWithTimeout(url, filePath string, onProgress func(downl
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "GoNavi-Updater")
+	req.Header.Set("User-Agent", "GoNavi-Lite-Updater")
 	if isGitHubReleaseAssetAPIURL(url) {
 		req.Header.Set("Accept", "application/octet-stream")
 	}
@@ -854,18 +854,18 @@ func sanitizeVersionForPath(version string) string {
 }
 
 var resolveLegacyUpdateWorkspaceDir = func() string {
-	return filepath.Join(os.TempDir(), "gonavi-updates")
+	return filepath.Join(os.TempDir(), "GoNavi-Lite-updates")
 }
 
 func resolveUpdateWorkspaceDir(version string) string {
 	// 默认使用系统临时目录作为更新工作区，避免目录权限与锁冲突。
-	// macOS 用户要求更新包默认保存在桌面：Desktop/GoNavi-<version>/。
+	// macOS 用户要求更新包默认保存在桌面：Desktop/GoNavi-Lite-<version>/。
 	if stdRuntime.GOOS == "darwin" {
 		homeDir, err := os.UserHomeDir()
 		if err == nil && strings.TrimSpace(homeDir) != "" {
 			desktopDir := filepath.Join(homeDir, "Desktop")
 			if st, statErr := os.Stat(desktopDir); statErr == nil && st.IsDir() {
-				return filepath.Join(desktopDir, fmt.Sprintf("GoNavi-%s", sanitizeVersionForPath(version)))
+				return filepath.Join(desktopDir, fmt.Sprintf("GoNavi-Lite-%s", sanitizeVersionForPath(version)))
 			}
 		}
 	}
@@ -917,7 +917,7 @@ func resolveReusableStagedUpdate(info UpdateInfo, current *stagedUpdate) *staged
 		stagedDir    string
 		assetPath    string
 	}
-	stagedDirName := fmt.Sprintf(".gonavi-update-%s-%s", stdRuntime.GOOS, version)
+	stagedDirName := fmt.Sprintf(".GoNavi-Lite-update-%s-%s", stdRuntime.GOOS, version)
 	workspaceCandidates := []string{
 		resolveUpdateWorkspaceDir(version),
 		resolveLegacyUpdateWorkspaceDir(),
@@ -1235,7 +1235,7 @@ if [ ! -f "$NEWBIN" ]; then
   NEWBIN=$(find "$TMPDIR" -type f -name "$TARGET_NAME" | head -n 1)
 fi
 if [ -z "$NEWBIN" ] || [ ! -f "$NEWBIN" ]; then
-  NEWBIN=$(find "$TMPDIR" -type f -name "GoNavi" | head -n 1)
+  NEWBIN=$(find "$TMPDIR" -type f -name "GoNavi-Lite" | head -n 1)
 fi
 if [ -z "$NEWBIN" ] || [ ! -f "$NEWBIN" ]; then
   exit 1
@@ -1265,13 +1265,13 @@ func detectMacAppPath(exePath string) string {
 func resolveMacUpdateTarget(exePath string) string {
 	targetApp := detectMacAppPath(exePath)
 	if targetApp == "" {
-		return "/Applications/GoNavi.app"
+		return "/Applications/GoNavi-Lite.app"
 	}
 	targetApp = filepath.Clean(targetApp)
 	// Gatekeeper App Translocation 路径不可用于稳定覆盖更新，统一回退到 /Applications。
 	if strings.Contains(targetApp, string(filepath.Separator)+"AppTranslocation"+string(filepath.Separator)) {
-		logger.Warnf("检测到 AppTranslocation 运行路径，更新目标回退至 /Applications/GoNavi.app：%s", targetApp)
-		return "/Applications/GoNavi.app"
+		logger.Warnf("检测到 AppTranslocation 运行路径，更新目标回退至 /Applications/GoNavi-Lite.app：%s", targetApp)
+		return "/Applications/GoNavi-Lite.app"
 	}
 	return targetApp
 }

@@ -149,7 +149,7 @@ describe('tool center menu entries', () => {
   });
 
   it('uses the v2 green accent for sidebar resize guide lines', () => {
-    expect(appSource).toContain("const resizeGuideColor = 'var(--gn-accent, #16a34a)'");
+    expect(appSource).toContain("const resizeGuideColor = 'var(--gn-accent, #ff4da6)'");
     expect(appSource).not.toContain("darkMode ? 'rgba(246, 196, 83, 0.55)' : 'rgba(24, 144, 255, 0.5)'");
   });
 

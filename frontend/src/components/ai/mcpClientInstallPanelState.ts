@@ -43,7 +43,7 @@ export const getMCPClientStatusTone = (
   if (status?.matchesCurrent) {
     return {
       label: copy('ai_chat.mcp_client.install.status_tone.connected', 'Connected'),
-      color: '#16a34a',
+      color: '#ff4da6',
       bg: darkMode ? 'rgba(34,197,94,0.18)' : 'rgba(34,197,94,0.12)',
     };
   }

@@ -23,7 +23,7 @@ import (
 
 const (
 	defaultTrinoPort   = 8080
-	defaultTrinoSource = "GoNavi"
+	defaultTrinoSource = "GoNavi-Lite"
 )
 
 type TrinoDB struct {
@@ -239,7 +239,7 @@ func (t *TrinoDB) registerTrinoCustomClient(config connection.ConnectionConfig) 
 	if err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("gonavi-trino-%d", time.Now().UnixNano())
+	name := fmt.Sprintf("GoNavi-Lite-trino-%d", time.Now().UnixNano())
 	if err := trinodriver.RegisterCustomClient(name, client); err != nil {
 		return "", err
 	}

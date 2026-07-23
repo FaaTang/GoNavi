@@ -50,11 +50,11 @@ export const buildOverlayWorkbenchTheme = (
         sectionBorder: '0.5px solid rgba(255,255,255,0.06)',
         mutedText: '#80868f',
         titleText: '#f1f3f5',
-        iconBg: 'rgba(34, 197, 94, 0.16)',
-        iconColor: '#22c55e',
+        iconBg: 'rgba(255, 77, 166, 0.16)',
+        iconColor: '#ff8fc7',
         hoverBg: 'rgba(255,255,255,0.05)',
-        selectedBg: 'rgba(34, 197, 94, 0.14)',
-        selectedText: '#4ade80',
+        selectedBg: 'rgba(255, 77, 166, 0.14)',
+        selectedText: '#ffb3dc',
         divider: 'rgba(255,255,255,0.06)',
       };
     }
@@ -68,11 +68,11 @@ export const buildOverlayWorkbenchTheme = (
       sectionBorder: '0.5px solid rgba(15,23,42,0.08)',
       mutedText: '#6b7280',
       titleText: '#0c1322',
-      iconBg: '#dcfce7',
-      iconColor: '#16a34a',
+      iconBg: '#ffe4f0',
+      iconColor: '#ff4da6',
       hoverBg: 'rgba(15,23,42,0.045)',
-      selectedBg: 'rgba(34, 197, 94, 0.10)',
-      selectedText: '#15803d',
+      selectedBg: 'rgba(255, 77, 166, 0.10)',
+      selectedText: '#e6005c',
       divider: 'rgba(15,23,42,0.08)',
     };
   }

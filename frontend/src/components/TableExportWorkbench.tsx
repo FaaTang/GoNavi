@@ -139,7 +139,7 @@ const resolveStatusMeta = (status: ExportProgressStatus): { label: string; borde
     start: { label: t('data_export.progress.status.start'), border: 'rgba(59, 130, 246, 0.3)', bg: 'rgba(59, 130, 246, 0.12)', text: '#1d4ed8' },
     running: { label: t('data_export.progress.status.running'), border: 'rgba(16, 185, 129, 0.3)', bg: 'rgba(16, 185, 129, 0.14)', text: '#047857' },
     finalizing: { label: t('data_export.progress.status.finalizing'), border: 'rgba(249, 115, 22, 0.3)', bg: 'rgba(249, 115, 22, 0.12)', text: '#c2410c' },
-    done: { label: t('data_export.progress.status.done'), border: 'rgba(34, 197, 94, 0.3)', bg: 'rgba(34, 197, 94, 0.14)', text: '#15803d' },
+    done: { label: t('data_export.progress.status.done'), border: 'rgba(255, 77, 166, 0.3)', bg: 'rgba(255, 77, 166, 0.14)', text: '#e6005c' },
     error: { label: t('data_export.progress.status.error'), border: 'rgba(239, 68, 68, 0.32)', bg: 'rgba(239, 68, 68, 0.12)', text: '#dc2626' },
   };
   return meta[status] || meta.idle;

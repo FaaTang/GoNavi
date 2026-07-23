@@ -51,5 +51,5 @@ func shouldApplyMacNativeWindowStyle(identity macWindowIdentity) bool {
 	}
 
 	// 兜底只接受明确命名的主应用窗口，避免把无标题系统辅助窗口纳入样式改写范围。
-	return title == "GoNavi"
+	return title == "GoNavi-Lite"
 }

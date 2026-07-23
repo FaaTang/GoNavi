@@ -295,7 +295,7 @@ func normalizeHTTPServerOptions(options HTTPServerOptions) (HTTPServerOptions, e
 func bearerTokenAuthHandler(token string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !hasBearerToken(req, token) {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="GoNavi MCP"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="GoNavi-Lite MCP"`)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
