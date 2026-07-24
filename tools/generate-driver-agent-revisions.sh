@@ -19,7 +19,7 @@ usage() {
   --platform <GOOS/GOARCH>  按目标平台解析 Go build tags，默认使用当前 Go 环境
   --drivers <列表>          只更新指定驱动（逗号分隔），并保留其他已生成 revision
   --skip-if-unchanged-since <ref>
-                            若已有同平台指纹，且相对 ref 无驱动相关源码变更，则跳过重算
+                            若已有同平台指纹，且相对 ref..HEAD 无已提交驱动相关源码变更，则跳过重算
   --decide-skip-only        仅输出是否跳过并退出（0=跳过，1=需要重算）；需配合上一选项
   -h, --help                显示帮助
 EOF
@@ -295,11 +295,16 @@ generated_platform_stamp() {
 }
 
 revision_inputs_changed_since() {
+  # 只对比 base..HEAD 的已提交差异，忽略 CI 工作区脏文件（避免误判全量重算）。
   local base_ref="$1"
   local file
   local -a changed=()
+  local base_commit head_commit
 
-  if ! git rev-parse --verify "${base_ref}^{commit}" >/dev/null 2>&1; then
+  if ! base_commit="$(git rev-parse --verify "${base_ref}^{commit}" 2>/dev/null)"; then
+    return 0
+  fi
+  if ! head_commit="$(git rev-parse --verify "HEAD^{commit}" 2>/dev/null)"; then
     return 0
   fi
 
@@ -309,13 +314,20 @@ revision_inputs_changed_since() {
       continue
     fi
     changed+=("$file")
-  done < <(git diff --name-only "${base_ref}^{commit}" -- "${REVISION_INPUT_PATHSPECS[@]}" 2>/dev/null || true)
+  done < <(git diff --name-only "$base_commit" "$head_commit" -- "${REVISION_INPUT_PATHSPECS[@]}" 2>/dev/null || true)
 
-  [[ ${#changed[@]} -gt 0 ]]
+  if [[ ${#changed[@]} -eq 0 ]]; then
+    return 1
+  fi
+
+  printf '%s\n' "${changed[@]}"
+  return 0
 }
 
 maybe_skip_unchanged_generation() {
   local existing_platform
+  local changed_files
+  local preview
 
   [[ -n "$skip_unchanged_since" ]] || return 1
   if [[ -n "$driver_csv" ]]; then
@@ -333,15 +345,20 @@ maybe_skip_unchanged_generation() {
     return 1
   fi
 
-  if revision_inputs_changed_since "$skip_unchanged_since"; then
-    echo "🧭 相对 ${skip_unchanged_since} 检测到驱动相关源码变更，需要重算 revision" >&2
+  if changed_files="$(revision_inputs_changed_since "$skip_unchanged_since")"; then
+    if [[ -z "$changed_files" ]]; then
+      echo "🧭 无法解析 ${skip_unchanged_since}/HEAD 提交，保守重算 revision" >&2
+    else
+      preview="$(printf '%s\n' "$changed_files" | head -n 8 | tr '\n' ' ')"
+      echo "🧭 相对 ${skip_unchanged_since}..HEAD 检测到驱动相关已提交变更，需要重算 revision：${preview}" >&2
+    fi
     return 1
   fi
 
   if [[ -z "$existing_platform" ]]; then
-    echo "⏭️ 相对 ${skip_unchanged_since} 驱动相关源码未变，沿用仓库已有 revision（无平台戳）"
+    echo "⏭️ 相对 ${skip_unchanged_since}..HEAD 驱动相关源码未变，跳过重算（沿用仓库已有 revision，无平台戳）"
   else
-    echo "⏭️ 相对 ${skip_unchanged_since} 驱动相关源码未变，且已是 ${target_platform} 指纹，跳过重算"
+    echo "⏭️ 相对 ${skip_unchanged_since}..HEAD 驱动相关源码未变，且已是 ${target_platform} 指纹，跳过重算"
   fi
   return 0
 }

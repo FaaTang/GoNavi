@@ -109,17 +109,32 @@ copy_repo_to_tmp "$tmpdir_skip"
     exit 1
   fi
 
-  printf '\n' >>cmd/optional-driver-agent/main.go
+  # 仅弄脏工作区、未提交时，不应误判为需要重算。
+  printf '\n' >>internal/db/sqlite_impl.go
+  dirty_skip_output="$(GONAVI_DRIVER_REVISION_JOBS=1 bash ./tools/generate-driver-agent-revisions.sh --platform windows/amd64 --skip-if-unchanged-since HEAD)"
+  if [[ "$dirty_skip_output" != *"跳过"* ]]; then
+    echo "expected dirty working tree alone not to force regeneration, got: $dirty_skip_output" >&2
+    exit 1
+  fi
+
+  base_before_change="$(git rev-parse HEAD)"
+  git add internal/db/sqlite_impl.go
+  git commit -q -m "touch sqlite driver source"
   if GONAVI_DRIVER_REVISION_JOBS=1 bash ./tools/generate-driver-agent-revisions.sh \
       --platform windows/amd64 \
-      --skip-if-unchanged-since HEAD \
+      --skip-if-unchanged-since "$base_before_change" \
       --decide-skip-only >/tmp/gonavi-rev-decide.log 2>&1; then
-    echo "expected driver source change to require regeneration" >&2
+    echo "expected committed driver source change to require regeneration" >&2
     cat /tmp/gonavi-rev-decide.log >&2
     exit 1
   fi
   if ! grep -q "需要重算" /tmp/gonavi-rev-decide.log; then
-    echo "expected regeneration decision after driver source change" >&2
+    echo "expected regeneration decision after committed driver source change" >&2
+    cat /tmp/gonavi-rev-decide.log >&2
+    exit 1
+  fi
+  if ! grep -q "internal/db/sqlite_impl.go" /tmp/gonavi-rev-decide.log; then
+    echo "expected changed file list in regeneration decision log" >&2
     cat /tmp/gonavi-rev-decide.log >&2
     exit 1
   fi
