@@ -271,22 +271,6 @@ jobs:
             RELEASE_SOURCE="all"
           fi
           DRIVERS="$(bash ./tools/detect-changed-driver-agents.sh --base "$BASE_REF" --head "$GITHUB_SHA")"
-          if [[ "$BASE_REF" != "all" ]]; then
-            REVISION_DRIVERS=""
-            for PLATFORM in darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 linux/amd64; do
-              PLATFORM_DRIVERS="$(bash ./tools/diff-driver-agent-revisions.sh --base "$BASE_REF" --head "$GITHUB_SHA" --platform "$PLATFORM")" || {
-                echo "⚠️ 平台 revision 差异对比失败（${PLATFORM}），保守回退为全量驱动重建"
-                DRIVERS="$(bash ./tools/detect-changed-driver-agents.sh --base all --head "$GITHUB_SHA")"
-                REVISION_DRIVERS=""
-                break
-              }
-              REVISION_DRIVERS="$(merge_csv "$REVISION_DRIVERS" "$PLATFORM_DRIVERS")"
-            done
-            if [[ -n "$REVISION_DRIVERS" ]]; then
-              echo "🧭 Revision diff union drivers: $REVISION_DRIVERS"
-              DRIVERS="$(merge_csv "$DRIVERS" "$REVISION_DRIVERS")"
-            fi
-          fi
           FORCE_GLOBAL_DRIVER_BUILDS="$(bash ./tools/should-force-global-driver-builds.sh --base "$BASE_REF" --head "$GITHUB_SHA")"
           echo "drivers=${DRIVERS}" >> "$GITHUB_OUTPUT"
           echo "release_source=${RELEASE_SOURCE}" >> "$GITHUB_OUTPUT"
@@ -641,15 +625,7 @@ jobs:
           GOFLAGS: -mod=readonly
         run: |
           set -euo pipefail
-          git fetch --force --tags 2>/dev/null || true
-          PREV_TAG="$(git describe --tags --match 'v*' --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)"
-          if [[ -n "$PREV_TAG" ]]; then
-            echo "🧭 生成 ${{ matrix.platform }} driver-agent revision（相对 ${PREV_TAG} 驱动源码未变则跳过）"
-            ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}" --skip-if-unchanged-since "$PREV_TAG"
-          else
-            echo "🧭 无历史稳定 tag，全量生成 ${{ matrix.platform }} driver-agent revision"
-            ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}"
-          fi
+          # 主程序不再构建期重算 driver-agent revision；驱动管理页对照已发布 Manifest。
           if [ -n "${{ matrix.wails_tags }}" ]; then
             wails build -s -skipbindings -platform ${{ matrix.platform }} -clean -o ${{ matrix.build_name }} -tags "${{ matrix.wails_tags }}" -ldflags "-s -w -X GoNavi-Wails/internal/app.AppVersion=${{ github.ref_name }}"
           else
@@ -662,32 +638,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BASE_REF="${{ needs.driver_agents.outputs.compare_base }}"
-          FALLBACK_DRIVERS="${{ needs.driver_agents.outputs.drivers }}"
-          FORCE_GLOBAL_DRIVER_BUILDS="${{ needs.driver_agents.outputs.force_global_driver_builds }}"
-
-          if [[ -z "$BASE_REF" || "$BASE_REF" == "all" || "$FORCE_GLOBAL_DRIVER_BUILDS" == "true" ]]; then
-            if [[ "$FORCE_GLOBAL_DRIVER_BUILDS" == "true" && -n "$BASE_REF" && "$BASE_REF" != "all" ]]; then
-              echo "⚠️ 当前提交涉及 driver 构建/发布链路，保留全局驱动重建结果：${FALLBACK_DRIVERS}"
-            else
-              echo "⚠️ 未拿到可比对的历史 release 基线，回退使用全局检测结果：${FALLBACK_DRIVERS}"
-            fi
-            echo "drivers=${FALLBACK_DRIVERS}" >> "$GITHUB_OUTPUT"
-          else
-            echo "🧭 对比当前平台 revision：base=${BASE_REF} head=${GITHUB_SHA} platform=${{ matrix.platform }}"
-            if DRIVERS="$(bash ./tools/diff-driver-agent-revisions.sh --base "$BASE_REF" --head "$GITHUB_SHA" --platform "${{ matrix.platform }}")"; then
-              echo "🧭 当前平台实际需要重建的 driver agents: ${DRIVERS:-<empty>}"
-              echo "drivers=${DRIVERS}" >> "$GITHUB_OUTPUT"
-            else
-              echo "⚠️ revision 差异对比失败，保守回退为全量重建"
-              ALL_DRIVERS="$(bash ./tools/detect-changed-driver-agents.sh --base all --head "$GITHUB_SHA")"
-              echo "drivers=${ALL_DRIVERS}" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
-          DRIVERS="$(sed -n 's/^drivers=//p' "$GITHUB_OUTPUT" | tail -n 1)"
+          # 指纹 revision diff 已废弃；按 detect-changed-driver-agents 的文件变更结果重建。
+          DRIVERS="${{ needs.driver_agents.outputs.drivers }}"
+          echo "drivers=${DRIVERS}" >> "$GITHUB_OUTPUT"
           if [[ -n "$DRIVERS" ]]; then
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "🧭 当前平台按文件变更重建 driver agents: ${DRIVERS}"
           else
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           fi
@@ -859,11 +815,6 @@ jobs:
               fi
             done
           done
-
-          bash ./tools/verify-driver-agent-revisions.sh \
-            --assets-dir drivers \
-            --platform "$TARGET_PLATFORM" \
-            --drivers "$CHANGED_DRIVER_AGENTS"
 
       # macOS Packaging
       - name: Package macOS DMG

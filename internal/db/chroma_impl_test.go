@@ -1,3 +1,5 @@
+//go:build gonavi_full_drivers || gonavi_chroma_driver
+
 package db
 
 import (

@@ -3,6 +3,14 @@
 package db
 
 func registerOptionalDatabaseFactories() {
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("goldendb"), "goldendb", "greatdb", "gdb")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("oracle"), "oracle")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("chroma"), "chroma", "chromadb", "chroma-db")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("qdrant"), "qdrant", "qdrantdb", "qdrant-db")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("rocketmq"), "rocketmq", "rocket-mq", "rocket_mq", "apache-rocketmq", "apache_rocketmq", "rmq")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("mqtt"), "mqtt", "mqtts")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("kafka"), "kafka", "apache-kafka", "apache_kafka")
+	registerDatabaseFactory(newOptionalDriverAgentDatabase("rabbitmq"), "rabbitmq", "rabbit-mq", "rabbit_mq")
 	registerDatabaseFactory(newOptionalDriverAgentDatabase("mariadb"), "mariadb")
 	registerDatabaseFactory(newOptionalDriverAgentDatabase("oceanbase"), "oceanbase")
 	registerDatabaseFactory(newOptionalDriverAgentDatabase("diros"), "diros", "doris")

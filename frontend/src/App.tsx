@@ -4014,14 +4014,6 @@ function App() {
                     <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
                 ) : null,
                 lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
-                ) : null,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
-                ) : null,
-                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
-                <Button key="close" onClick={() => setIsAboutOpen(false)}>{t('common.close')}</Button>,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
                     <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={() => downloadUpdate(lastUpdateInfo, false)}>{t('app.about.action.download_update')}</Button>
                 ) : null,
                 isLatestUpdateDownloaded ? (
@@ -4029,6 +4021,14 @@ function App() {
                         {t('app.about.action.install_update')}
                     </Button>
                 ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
+                ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
+                ) : null,
+                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
+                <Button key="close" onClick={() => setIsAboutOpen(false)}>{t('common.close')}</Button>,
             ].filter(Boolean)}
           >
             {aboutLoading ? (

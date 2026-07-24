@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -42,13 +41,6 @@ def infer_driver_and_platform(file_name: str):
     return None, None
 
 
-def normalize_driver(driver: str):
-    value = str(driver or "").strip().lower()
-    if value == "doris":
-        return "diros"
-    return value
-
-
 def repo_root():
     return Path(__file__).resolve().parent.parent
 
@@ -65,61 +57,6 @@ def resolve_head_commit(root: Path):
     return proc.stdout.strip()
 
 
-def parse_revision_file(path: Path):
-    revisions = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped.startswith('"'):
-            continue
-        try:
-            driver, revision = stripped.rstrip(",").split(":", 1)
-        except ValueError:
-            continue
-        revisions[driver.strip().strip('"')] = revision.strip().strip('"')
-    return revisions
-
-
-def generate_platform_revisions(root: Path, drivers_by_platform):
-    if not drivers_by_platform:
-        return {}
-
-    with tempfile.TemporaryDirectory(prefix="gonavi-driver-release-manifest-") as tmp:
-        worktree = Path(tmp) / "worktree"
-        subprocess.run(
-            ["git", "worktree", "add", "--detach", str(worktree), "HEAD"],
-            cwd=root,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True,
-        )
-        try:
-            revision_file = worktree / "internal/db/driver_agent_revisions_gen.go"
-            result = {}
-            for platform in sorted(drivers_by_platform):
-                drivers = sorted({normalize_driver(driver) for driver in drivers_by_platform[platform] if normalize_driver(driver)})
-                command = ["bash", "./tools/generate-driver-agent-revisions.sh", "--platform", platform]
-                if drivers:
-                    command.extend(["--drivers", ",".join(drivers)])
-                subprocess.run(
-                    command,
-                    cwd=worktree,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    check=True,
-                )
-                result[platform] = parse_revision_file(revision_file)
-            return result
-        finally:
-            subprocess.run(
-                ["git", "worktree", "remove", "--force", str(worktree)],
-                cwd=root,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-            )
-
-
 def main():
     args = parse_args()
     assets_dir = Path(args.assets_dir).resolve()
@@ -127,7 +64,6 @@ def main():
     root = repo_root()
 
     asset_entries = []
-    drivers_by_platform = {}
     for child in sorted(assets_dir.rglob("*")):
         if not child.is_file():
             continue
@@ -137,9 +73,6 @@ def main():
         if child.stat().st_size == 0:
             raise RuntimeError(f"{child.name}: asset is empty")
         asset_entries.append((child, driver, platform))
-        drivers_by_platform.setdefault(platform, set()).add(driver)
-
-    revisions_by_platform = generate_platform_revisions(root, drivers_by_platform)
 
     manifest = {
         "schemaVersion": 1,
@@ -148,15 +81,12 @@ def main():
     }
 
     for child, driver, platform in asset_entries:
-        normalized_driver = normalize_driver(driver)
-        revision = str((revisions_by_platform.get(platform) or {}).get(normalized_driver) or "").strip()
-        if not revision:
-            raise RuntimeError(f"{child.name}: missing revision for {platform}/{normalized_driver}")
+        # 指纹 revision 已废弃：Manifest 只保留资产元数据（size/sha256），不再重算 src-*。
         manifest["assets"][child.name] = {
             "driver": driver,
             "driverType": driver,
             "platform": platform,
-            "revision": revision,
+            "revision": "",
             "size": child.stat().st_size,
             "sha256": hashlib.sha256(child.read_bytes()).hexdigest(),
         }
@@ -171,10 +101,6 @@ def main():
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except subprocess.CalledProcessError as exc:
-        command = exc.cmd if isinstance(exc.cmd, str) else " ".join(exc.cmd)
-        stderr = (exc.stderr or "").strip()
-        if stderr:
-            print(stderr, file=sys.stderr)
-        print(f"error: command failed: {command}", file=sys.stderr)
-        raise
+    except Exception as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc

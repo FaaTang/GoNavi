@@ -1,3 +1,5 @@
+//go:build gonavi_full_drivers || gonavi_oracle_driver
+
 package db
 
 import (
@@ -124,5 +126,28 @@ func TestAnnotateOracleValidationErrorAddsClosedConnectionHint(t *testing.T) {
 	err := annotateOracleValidationError(errors.New("read tcp 127.0.0.1:1->127.0.0.1:2: use of closed network connection"))
 	if err == nil || !strings.Contains(err.Error(), "Service Name") {
 		t.Fatalf("expected closed connection hint, got %v", err)
+	}
+}
+
+func TestOracleDSN_EscapesUserAndPassword(t *testing.T) {
+	o := &OracleDB{}
+	cfg := connection.ConnectionConfig{
+		Type:     "oracle",
+		Host:     "127.0.0.1",
+		Port:     1521,
+		User:     "u@ser",
+		Password: "p@ss:wo/rd",
+		Database: "svc/name",
+	}
+
+	dsn := o.getDSN(cfg)
+	if strings.Contains(dsn, cfg.Password) {
+		t.Fatalf("dsn contains raw password: %s", dsn)
+	}
+	if !strings.Contains(dsn, "u%40ser") || !strings.Contains(dsn, "p%40ss%3Awo%2Frd") {
+		t.Fatalf("dsn did not escape user/password: %s", dsn)
+	}
+	if !strings.Contains(dsn, "/svc%2Fname") {
+		t.Fatalf("dsn did not escape service: %s", dsn)
 	}
 }

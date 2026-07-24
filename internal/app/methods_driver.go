@@ -186,15 +186,16 @@ type driverDefinition struct {
 }
 
 type installedDriverPackage struct {
-	DriverType     string `json:"driverType"`
-	Version        string `json:"version,omitempty"`
-	AgentRevision  string `json:"agentRevision,omitempty"`
-	FilePath       string `json:"filePath"`
-	FileName       string `json:"fileName"`
-	ExecutablePath string `json:"executablePath,omitempty"`
-	DownloadURL    string `json:"downloadUrl,omitempty"`
-	SHA256         string `json:"sha256,omitempty"`
-	DownloadedAt   string `json:"downloadedAt"`
+	DriverType       string `json:"driverType"`
+	Version          string `json:"version,omitempty"`
+	AgentRevision    string `json:"agentRevision,omitempty"`
+	SourceReleaseTag string `json:"sourceReleaseTag,omitempty"`
+	FilePath         string `json:"filePath"`
+	FileName         string `json:"fileName"`
+	ExecutablePath   string `json:"executablePath,omitempty"`
+	DownloadURL      string `json:"downloadUrl,omitempty"`
+	SHA256           string `json:"sha256,omitempty"`
+	DownloadedAt     string `json:"downloadedAt"`
 }
 
 type driverStatusItem struct {
@@ -215,7 +216,8 @@ type driverStatusItem struct {
 	ExecutablePath      string `json:"executablePath,omitempty"`
 	DownloadedAt        string `json:"downloadedAt,omitempty"`
 	AgentRevision       string `json:"agentRevision,omitempty"`
-	ExpectedRevision    string `json:"expectedRevision,omitempty"`
+	ExpectedRevision    string `json:"expectedRevision,omitempty"` // 复用：展示最新驱动包 release tag
+	SourceReleaseTag    string `json:"sourceReleaseTag,omitempty"`
 	NeedsUpdate         bool   `json:"needsUpdate,omitempty"`
 	UpdateReason        string `json:"updateReason,omitempty"`
 	AffectedConnections int    `json:"affectedConnections,omitempty"`
@@ -322,6 +324,29 @@ type driverReleaseAssetSizeCacheEntry struct {
 	Err             string
 }
 
+type publishedDriverPackCacheEntry struct {
+	LoadedAt      time.Time
+	Tag           string
+	Published     map[string]bool
+	SHA256ByAsset map[string]string
+	Err           string
+}
+
+type publishedDriverPackInfo struct {
+	Tag           string
+	Published     map[string]bool
+	SHA256ByAsset map[string]string
+}
+
+type driverBundleAssetManifest struct {
+	Assets map[string]driverBundleAssetManifestEntry `json:"assets"`
+}
+
+type driverBundleAssetManifestEntry struct {
+	SHA256 string `json:"sha256"`
+	Size   int64  `json:"size"`
+}
+
 type goModuleLatestVersionCacheEntry struct {
 	LoadedAt time.Time
 	Version  string
@@ -349,49 +374,60 @@ type driverBundleAssetIndex struct {
 
 const (
 	// 默认使用内置 manifest，避免依赖网络与外部仓库 404。
-	defaultDriverManifestURLValue       = "builtin://manifest"
-	driverReleaseRepo                   = updateRepo
-	driverReleaseLatestAPIURL           = "https://api.github.com/repos/" + driverReleaseRepo + "/releases/latest"
-	driverReleaseDevTag                 = "dev-latest"
-	optionalDriverBundleAssetName       = "PinkHunkDB-DriverAgents.zip"
-	duckDBWindowsDriverZipAssetName     = "duckdb-driver.zip"
-	optionalDriverBundleIndexAssetName  = "PinkHunkDB-DriverAgents-Index.json"
-	optionalDriverBundleDownloadTimeout = 15 * time.Minute
-	optionalDriverBundleCacheMaxAge     = 7 * 24 * time.Hour
-	optionalDriverBundleCacheMaxFiles   = 4
-	driverManifestCacheTTL              = 5 * time.Minute
-	driverReleaseAssetSizeCacheTTL      = 30 * time.Minute
-	driverReleaseAssetSizeErrorCacheTTL = 30 * time.Second
-	driverReleaseAssetSizeProbeTimeout  = 4 * time.Second
-	driverReleaseListProbeTimeout       = 6 * time.Second
-	driverModuleLatestCacheTTL          = 6 * time.Hour
-	driverModuleLatestErrorCacheTTL     = 2 * time.Minute
-	driverModuleLatestProbeTimeout      = 4 * time.Second
-	driverModuleVersionInspectLimit     = 30
-	driverModuleVersionListMaxSize      = 4 << 20
-	driverRecentVersionLimit            = 5
-	driverModuleVersionFetchLimit       = 64
-	driverVersionWarmupMinInterval      = 30 * time.Second
-	driverBundleIndexMaxSize            = 1 << 20
-	driverManifestMaxSize               = 2 << 20
-	driverNetworkProbeTimeout           = 4 * time.Second
-	driverNetworkProbeTCPTimeout        = 3 * time.Second
-	localDriverDirectoryScanMaxEntries  = 20000
-	driverChecksumPolicyStrict          = "strict"
-	driverChecksumPolicyWarn            = "warn"
-	driverChecksumPolicyOff             = "off"
-	driverEngineGo                      = "go"
-	driverEngineExternal                = "external"
-	duckDBWindowsLibraryVersion         = "v1.4.4"
-	duckDBWindowsLibraryArchiveURL      = "https://github.com/duckdb/duckdb/releases/download/" + duckDBWindowsLibraryVersion + "/libduckdb-windows-amd64.zip"
-	duckDBWindowsSupportDLLName         = "duckdb.dll"
+	defaultDriverManifestURLValue         = "builtin://manifest"
+	driverReleaseRepo                     = updateRepo
+	driverReleaseLatestAPIURL             = "https://api.github.com/repos/" + driverReleaseRepo + "/releases/latest"
+	driverReleaseDevTag                   = "dev-latest"
+	optionalDriverBundleAssetName         = "PinkHunkDB-DriverAgents.zip"
+	duckDBWindowsDriverZipAssetName       = "duckdb-driver.zip"
+	optionalDriverBundleIndexAssetName    = "PinkHunkDB-DriverAgents-Index.json"
+	optionalDriverBundleDownloadTimeout   = 15 * time.Minute
+	optionalDriverBundleCacheMaxAge       = 7 * 24 * time.Hour
+	optionalDriverBundleCacheMaxFiles     = 4
+	driverManifestCacheTTL                = 5 * time.Minute
+	driverReleaseAssetSizeCacheTTL        = 30 * time.Minute
+	driverReleaseAssetSizeErrorCacheTTL   = 30 * time.Second
+	driverReleaseAssetSizeProbeTimeout    = 4 * time.Second
+	driverReleasePackCacheTTL             = 5 * time.Minute
+	driverReleasePackErrorCacheTTL        = 30 * time.Second
+	driverReleaseListProbeTimeout         = 6 * time.Second
+	driverModuleLatestCacheTTL            = 6 * time.Hour
+	driverModuleLatestErrorCacheTTL       = 2 * time.Minute
+	driverModuleLatestProbeTimeout        = 4 * time.Second
+	driverModuleVersionInspectLimit       = 30
+	driverModuleVersionListMaxSize        = 4 << 20
+	driverRecentVersionLimit              = 5
+	driverModuleVersionFetchLimit         = 64
+	driverVersionWarmupMinInterval        = 30 * time.Second
+	driverBundleIndexMaxSize              = 1 << 20
+	driverBundleManifestMaxSize           = 4 << 20
+	driverManifestMaxSize                 = 2 << 20
+	driverNetworkProbeTimeout             = 4 * time.Second
+	optionalDriverBundleManifestAssetName = "PinkHunkDB-DriverAgents-Manifest.json"
+	driverNetworkProbeTCPTimeout          = 3 * time.Second
+	localDriverDirectoryScanMaxEntries    = 20000
+	driverChecksumPolicyStrict            = "strict"
+	driverChecksumPolicyWarn              = "warn"
+	driverChecksumPolicyOff               = "off"
+	driverEngineGo                        = "go"
+	driverEngineExternal                  = "external"
+	duckDBWindowsLibraryVersion           = "v1.4.4"
+	duckDBWindowsLibraryArchiveURL        = "https://github.com/duckdb/duckdb/releases/download/" + duckDBWindowsLibraryVersion + "/libduckdb-windows-amd64.zip"
+	duckDBWindowsSupportDLLName           = "duckdb.dll"
 )
 
 const builtinDriverManifestJSON = `{
   "engine": "go",
   "drivers": {
     "mysql":     { "engine": "go", "version": "1.9.3", "checksumPolicy": "off" },
-    "goldendb":  { "engine": "go", "version": "1.9.3", "checksumPolicy": "off" },
+    "goldendb":  { "engine": "go", "version": "1.9.3", "checksumPolicy": "off", "downloadUrl": "builtin://activate/goldendb" },
+    "oracle":    { "engine": "go", "version": "2.9.0", "checksumPolicy": "off", "downloadUrl": "builtin://activate/oracle" },
+    "chroma":    { "engine": "go", "version": "1.0.0", "checksumPolicy": "off", "downloadUrl": "builtin://activate/chroma" },
+    "qdrant":    { "engine": "go", "version": "1.0.0", "checksumPolicy": "off", "downloadUrl": "builtin://activate/qdrant" },
+    "rocketmq":  { "engine": "go", "version": "2.1.2", "checksumPolicy": "off", "downloadUrl": "builtin://activate/rocketmq" },
+    "mqtt":      { "engine": "go", "version": "1.5.0", "checksumPolicy": "off", "downloadUrl": "builtin://activate/mqtt" },
+    "kafka":     { "engine": "go", "version": "0.4.47", "checksumPolicy": "off", "downloadUrl": "builtin://activate/kafka" },
+    "rabbitmq":  { "engine": "go", "version": "1.0.0", "checksumPolicy": "off", "downloadUrl": "builtin://activate/rabbitmq" },
     "mariadb":   { "engine": "go", "version": "1.9.3", "checksumPolicy": "off", "downloadUrl": "builtin://activate/mariadb" },
     "oceanbase": { "engine": "go", "version": "1.9.3", "checksumPolicy": "off", "downloadUrl": "builtin://activate/oceanbase" },
     "doris":     { "engine": "go", "version": "1.9.3", "checksumPolicy": "off", "downloadUrl": "builtin://activate/doris" },
@@ -421,6 +457,9 @@ var (
 	driverManifestCache          = make(map[string]driverManifestCacheEntry)
 	driverReleaseSizeMu          sync.RWMutex
 	driverReleaseSizeMap         = make(map[string]driverReleaseAssetSizeCacheEntry)
+	publishedDriverPackMu        sync.RWMutex
+	publishedDriverPackCache     = publishedDriverPackCacheEntry{}
+	resolvePublishedDriverPackFn = resolvePublishedDriverPack
 	driverReleaseListMu          sync.RWMutex
 	driverReleaseList            = driverManifestReleaseListCache{}
 	driverModuleLatestMu         sync.RWMutex
@@ -461,6 +500,13 @@ var pinnedDriverPackageMap = map[string]pinnedDriverPackage{
 var latestDriverVersionMap = map[string]string{
 	"mysql":         "1.9.3",
 	"goldendb":      "1.9.3",
+	"oracle":        "2.9.0",
+	"chroma":        "1.0.0",
+	"qdrant":        "1.0.0",
+	"rocketmq":      "2.1.2",
+	"mqtt":          "1.5.0",
+	"kafka":         "0.4.47",
+	"rabbitmq":      "1.0.0",
 	"mariadb":       "1.9.3",
 	"oceanbase":     "1.9.3",
 	"diros":         "1.9.3",
@@ -482,13 +528,16 @@ var latestDriverVersionMap = map[string]string{
 	"clickhouse":    "2.43.1",
 	"elasticsearch": "8.19.6",
 	"trino":         "0.333.0",
-	"oracle":        "2.9.0",
 	"postgres":      "1.11.2",
 	"redis":         "9.17.3",
 }
 
 var driverGoModulePathMap = map[string]string{
 	"goldendb":      "github.com/go-sql-driver/mysql",
+	"oracle":        "github.com/sijms/go-ora/v2",
+	"rocketmq":      "github.com/apache/rocketmq-client-go/v2",
+	"mqtt":          "github.com/eclipse/paho.mqtt.golang",
+	"kafka":         "github.com/segmentio/kafka-go",
 	"mariadb":       "github.com/go-sql-driver/mysql",
 	"oceanbase":     "github.com/go-sql-driver/mysql",
 	"diros":         "github.com/go-sql-driver/mysql",
@@ -1201,6 +1250,8 @@ func (a *App) GetDriverStatusList(downloadDir string, manifestURL string) connec
 	definitions := allDriverDefinitionsWithPackages(effectivePackages)
 	triggerDriverVersionMetadataWarmup(definitions)
 	packageSizeBytesMap := preloadOptionalDriverPackageSizes(definitions)
+	// 预热「含 DriverAgents 的最新 release」，避免每个驱动重复请求。
+	_, _ = resolvePublishedDriverPackFn()
 	usageCounts := a.savedConnectionDriverUsageCounts()
 	items := make([]driverStatusItem, 0, len(definitions))
 	for _, definition := range definitions {
@@ -1228,6 +1279,7 @@ func (a *App) GetDriverStatusList(downloadDir string, manifestURL string) connec
 			InstallDir:          driverInstallDir(resolvedDir, definition.Type),
 			AgentRevision:       strings.TrimSpace(pkg.AgentRevision),
 			ExpectedRevision:    expectedRevision,
+			SourceReleaseTag:    strings.TrimSpace(pkg.SourceReleaseTag),
 			NeedsUpdate:         needsUpdate,
 			UpdateReason:        updateReason,
 			AffectedConnections: usageCounts[normalizeDriverType(definition.Type)],
@@ -1243,7 +1295,18 @@ func (a *App) GetDriverStatusList(downloadDir string, manifestURL string) connec
 		}
 		runtimeReason = a.localizeDriverRuntimeReason(definition, runtimeReason)
 		if needsUpdate {
-			item.UpdateReason, item.Message = a.localizedDriverNeedsUpdateTexts(item.AgentRevision, expectedRevision, item.AffectedConnections)
+			if strings.TrimSpace(updateReason) != "" {
+				item.UpdateReason = updateReason
+				messageParts := []string{updateReason}
+				if item.AffectedConnections > 0 {
+					messageParts = append(messageParts, a.appText("driver_manager.backend.status.affected_connections", map[string]any{
+						"count": item.AffectedConnections,
+					}))
+				}
+				item.Message = strings.Join(messageParts, " ")
+			} else {
+				item.UpdateReason, item.Message = a.localizedDriverNeedsUpdateTexts(item.SourceReleaseTag, expectedRevision, item.AffectedConnections)
+			}
 		}
 
 		switch {
@@ -1499,13 +1562,14 @@ func (a *App) DownloadDriverPackage(driverType string, version string, downloadU
 
 	a.emitDriverDownloadProgress(definition.Type, "start", 0, 0, a.appText("driver_manager.progress.install_start", nil))
 	meta := installedDriverPackage{
-		DriverType:   definition.Type,
-		Version:      selectedVersion,
-		FilePath:     "",
-		FileName:     "embedded-go-driver",
-		DownloadURL:  urlText,
-		SHA256:       "",
-		DownloadedAt: time.Now().Format(time.RFC3339),
+		DriverType:       definition.Type,
+		Version:          selectedVersion,
+		SourceReleaseTag: resolveSourceReleaseTagFromDownloadURL(urlText),
+		FilePath:         "",
+		FileName:         "embedded-go-driver",
+		DownloadURL:      urlText,
+		SHA256:           "",
+		DownloadedAt:     time.Now().Format(time.RFC3339),
 	}
 	if err := writeInstalledDriverPackage(resolvedDir, definition.Type, meta); err != nil {
 		errText := localizedDriverBackendErrorMessage(a, err)
@@ -1898,16 +1962,18 @@ func resolveDriverDefinitionWithPackages(driverType string, packages map[string]
 func allDriverDefinitionsWithPackages(packages map[string]pinnedDriverPackage) []driverDefinition {
 	return []driverDefinition{
 		{Type: "mysql", Name: "MySQL", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "goldendb", Name: "GoldenDB", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "oracle", Name: "Oracle", Engine: driverEngineGo, BuiltIn: true},
 		{Type: "redis", Name: "Redis", Engine: driverEngineGo, BuiltIn: true},
 		{Type: "postgres", Name: "PostgreSQL", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "rocketmq", Name: "RocketMQ", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "mqtt", Name: "MQTT", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "kafka", Name: "Kafka", Engine: driverEngineGo, BuiltIn: true},
-		{Type: "rabbitmq", Name: "RabbitMQ", Engine: driverEngineGo, BuiltIn: true},
 
 		// 其他数据源需要先在驱动管理中“安装启用”。
+		buildOptionalGoDriverDefinition("goldendb", "GoldenDB", packages),
+		buildOptionalGoDriverDefinition("oracle", "Oracle", packages),
+		buildOptionalGoDriverDefinition("rocketmq", "RocketMQ", packages),
+		buildOptionalGoDriverDefinition("mqtt", "MQTT", packages),
+		buildOptionalGoDriverDefinition("kafka", "Kafka", packages),
+		buildOptionalGoDriverDefinition("rabbitmq", "RabbitMQ", packages),
+		buildOptionalGoDriverDefinition("chroma", "Chroma", packages),
+		buildOptionalGoDriverDefinition("qdrant", "Qdrant", packages),
 		buildOptionalGoDriverDefinition("mariadb", "MariaDB", packages),
 		buildOptionalGoDriverDefinition("oceanbase", "OceanBase", packages),
 		buildOptionalGoDriverDefinition("diros", "Doris", packages),
@@ -3252,45 +3318,88 @@ func readInstalledDriverPackage(downloadDir string, driverType string) (installe
 }
 
 func optionalDriverAgentRevisionStatus(driverType string, pkg installedDriverPackage, packageMetaExists bool) (bool, string, string) {
-	expected := db.OptionalDriverAgentRevision(driverType)
-	if strings.TrimSpace(expected) == "" || !packageMetaExists || !db.IsOptionalGoDriver(driverType) || !shouldVerifyOptionalDriverAgentRevision(driverType, pkg.Version) {
-		return false, "", expected
-	}
-	actual := strings.TrimSpace(pkg.AgentRevision)
-	if actual == expected {
-		return false, "", expected
-	}
-	displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
-	if definition, ok := resolveDriverDefinition(driverType); ok {
-		displayName = resolveDriverDisplayName(definition)
-	}
-	if actual == "" {
-		return true, localizedDriverBackendText(nil, "driver_manager.backend.status.agent_revision_update_detail", map[string]any{
-			"name":     displayName,
-			"expected": expected,
-		}), expected
-	}
-	return true, localizedDriverBackendText(nil, "driver_manager.backend.status.agent_revision_update_detail_with_actual", map[string]any{
-		"name":     displayName,
-		"actual":   actual,
-		"expected": expected,
-	}), expected
+	// 已废弃指纹 revision 对比：驱动是否需更新不再看 src-* 指纹。
+	_ = driverType
+	_ = pkg
+	_ = packageMetaExists
+	return false, "", ""
 }
 
 func optionalDriverPackageUpdateStatus(definition driverDefinition, pkg installedDriverPackage, packageMetaExists bool) (bool, string, string) {
-	needsUpdate, reason, expected := optionalDriverAgentRevisionStatus(definition.Type, pkg, packageMetaExists)
-	if needsUpdate {
-		return true, reason, expected
-	}
 	if mongoDriverNeedsLegacyCompatibilityUpdate(definition, pkg, packageMetaExists) {
 		pinned := strings.TrimSpace(definition.PinnedVersion)
 		installed := strings.TrimSpace(pkg.Version)
 		return true, localizedDriverBackendText(nil, "driver_manager.backend.status.mongodb_compatibility_update_detail", map[string]any{
 			"recommended": pinned,
 			"installed":   installed,
-		}), expected
+		}), ""
 	}
-	return false, "", expected
+	if definition.BuiltIn || !packageMetaExists {
+		return false, "", ""
+	}
+	normalizedType := normalizeDriverType(definition.Type)
+	if normalizedType == "" || !db.IsOptionalGoDriver(normalizedType) {
+		return false, "", ""
+	}
+
+	pack, err := resolvePublishedDriverPackFn()
+	if err != nil || strings.TrimSpace(pack.Tag) == "" {
+		return false, "", ""
+	}
+	latestTag := strings.TrimSpace(pack.Tag)
+	assetName, hasAsset := resolvePublishedDriverAssetName(pack, normalizedType, pkg.Version)
+	if !hasAsset {
+		return false, "", latestTag
+	}
+
+	displayName := resolveDriverDisplayName(definition)
+	sourceTag := strings.TrimSpace(pkg.SourceReleaseTag)
+	if sourceTag != "" {
+		if compareVersion(sourceTag, latestTag) < 0 {
+			return true, localizedDriverBackendText(nil, "driver_manager.backend.status.package_release_update_detail", map[string]any{
+				"name":    displayName,
+				"current": sourceTag,
+				"latest":  latestTag,
+			}), latestTag
+		}
+		return false, "", latestTag
+	}
+
+	installedSHA := strings.ToLower(strings.TrimSpace(pkg.SHA256))
+	publishedSHA := strings.ToLower(strings.TrimSpace(pack.SHA256ByAsset[assetName]))
+	if installedSHA == "" || publishedSHA == "" {
+		return false, "", latestTag
+	}
+	if installedSHA != publishedSHA {
+		return true, localizedDriverBackendText(nil, "driver_manager.backend.status.package_release_update_detail", map[string]any{
+			"name":    displayName,
+			"current": localizedDriverBackendText(nil, "driver_manager.backend.status.package_release_current_unknown", nil),
+			"latest":  latestTag,
+		}), latestTag
+	}
+	return false, "", latestTag
+}
+
+func resolvePublishedDriverAssetName(pack publishedDriverPackInfo, driverType string, selectedVersion string) (string, bool) {
+	normalizedType := normalizeDriverType(driverType)
+	if normalizedType == "" || strings.TrimSpace(pack.Tag) == "" {
+		return "", false
+	}
+	if shouldUseDuckDBWindowsDynamicLibrary(normalizedType) {
+		if pack.Published[duckDBWindowsDriverZipAssetName] {
+			return duckDBWindowsDriverZipAssetName, true
+		}
+	}
+	for _, assetName := range optionalDriverReleaseAssetNamesForVersion(normalizedType, selectedVersion) {
+		name := strings.TrimSpace(assetName)
+		if name == "" {
+			continue
+		}
+		if pack.Published[name] {
+			return name, true
+		}
+	}
+	return "", false
 }
 
 func mongoDriverNeedsLegacyCompatibilityUpdate(definition driverDefinition, pkg installedDriverPackage, packageMetaExists bool) bool {
@@ -3305,78 +3414,35 @@ func mongoDriverNeedsLegacyCompatibilityUpdate(definition driverDefinition, pkg 
 	return resolveMongoDriverMajorFromVersion(installed) == 2 && resolveMongoDriverMajorFromVersion(pinned) == 1
 }
 
-func optionalDriverAgentRevisionCurrent(driverType string, executablePath string) (string, bool, error) {
-	expected := strings.TrimSpace(db.OptionalDriverAgentRevision(driverType))
-	if expected == "" {
-		return "", true, nil
-	}
+func optionalDriverAgentRevisionCurrent(driverType string, executablePath string, selectedVersion ...string) (string, bool, error) {
+	_ = selectedVersion
 	metadata, err := optionalDriverAgentMetadataProbe(driverType, executablePath)
 	if err != nil {
-		return "", false, fmt.Errorf("%w: %v", errOptionalDriverAgentMetadataUnavailable, err)
+		return "", true, fmt.Errorf("%w: %v", errOptionalDriverAgentMetadataUnavailable, err)
 	}
-	actual := strings.TrimSpace(metadata.AgentRevision)
-	return actual, actual == expected, nil
+	return strings.TrimSpace(metadata.AgentRevision), true, nil
 }
 
 func verifyInstalledOptionalDriverAgentRevision(driverType string, executablePath string, selectedVersion ...string) (string, error) {
-	version := ""
-	if len(selectedVersion) > 0 {
-		version = selectedVersion[0]
-	}
-	if !shouldVerifyOptionalDriverAgentRevision(driverType, version) {
-		return "", nil
-	}
-	expected := strings.TrimSpace(db.OptionalDriverAgentRevision(driverType))
-	actual, current, err := optionalDriverAgentRevisionCurrent(driverType, executablePath)
-	if expected == "" {
-		return actual, nil
-	}
-	displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
-	if err != nil {
-		return "", newLocalizedDriverBackendError("driver_manager.backend.error.agent_metadata_unavailable", map[string]any{"name": displayName}, err)
-	}
-	if !current {
-		actualLabel := strings.TrimSpace(actual)
-		if actualLabel == "" {
-			return "", newLocalizedDriverBackendError("driver_manager.backend.error.agent_revision_mismatch_empty_actual", map[string]any{
-				"name":     displayName,
-				"expected": expected,
-			}, nil)
-		}
-		return "", newLocalizedDriverBackendError("driver_manager.backend.error.agent_revision_mismatch", map[string]any{
-			"name":     displayName,
-			"actual":   actualLabel,
-			"expected": expected,
-		}, nil)
-	}
-	return actual, nil
+	// 不再用指纹 revision 硬拦截安装/导出。
+	_ = driverType
+	_ = executablePath
+	_ = selectedVersion
+	return "", nil
 }
 
 func observeInstalledOptionalDriverAgentRevision(driverType string, executablePath string, selectedVersion string) string {
 	if !shouldVerifyOptionalDriverAgentRevision(driverType, selectedVersion) {
 		return ""
 	}
-	expected := strings.TrimSpace(db.OptionalDriverAgentRevision(driverType))
-	actual, current, err := optionalDriverAgentRevisionCurrent(driverType, executablePath)
-	if expected == "" {
-		return strings.TrimSpace(actual)
-	}
-	displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
+	metadata, err := optionalDriverAgentMetadataProbe(driverType, executablePath)
 	if err != nil {
-		logger.Warnf("%s 驱动代理版本元数据不可用，已保留安装：path=%s version=%s err=%v；建议在驱动管理中重装",
+		displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
+		logger.Warnf("%s 驱动代理版本元数据不可用，已保留安装：path=%s version=%s err=%v",
 			displayName, executablePath, normalizeVersion(selectedVersion), err)
 		return ""
 	}
-	actual = strings.TrimSpace(actual)
-	if !current {
-		actualLabel := actual
-		if actualLabel == "" {
-			actualLabel = "空"
-		}
-		logger.Warnf("%s 驱动代理 revision 不匹配，已保留安装：已安装=%s 当前需要=%s path=%s version=%s；建议在驱动管理中重装",
-			displayName, actualLabel, expected, executablePath, normalizeVersion(selectedVersion))
-	}
-	return actual
+	return strings.TrimSpace(metadata.AgentRevision)
 }
 
 func shouldVerifyOptionalDriverAgentRevision(driverType string, selectedVersion string) bool {
@@ -3475,16 +3541,18 @@ func installOptionalDriverAgentPackage(a *App, definition driverDefinition, sele
 		downloadSource = strings.TrimSpace(downloadURL)
 	}
 	agentRevision := observeInstalledOptionalDriverAgentRevision(driverType, runtimePath, selectedVersion)
+	downloadSource = strings.TrimSpace(downloadSource)
 	return installedDriverPackage{
-		DriverType:     driverType,
-		Version:        strings.TrimSpace(selectedVersion),
-		AgentRevision:  agentRevision,
-		FilePath:       installPath,
-		FileName:       filepath.Base(installPath),
-		ExecutablePath: runtimePath,
-		DownloadURL:    strings.TrimSpace(downloadSource),
-		SHA256:         hash,
-		DownloadedAt:   time.Now().Format(time.RFC3339),
+		DriverType:       driverType,
+		Version:          strings.TrimSpace(selectedVersion),
+		AgentRevision:    agentRevision,
+		SourceReleaseTag: resolveSourceReleaseTagFromDownloadURL(downloadSource),
+		FilePath:         installPath,
+		FileName:         filepath.Base(installPath),
+		ExecutablePath:   runtimePath,
+		DownloadURL:      downloadSource,
+		SHA256:           hash,
+		DownloadedAt:     time.Now().Format(time.RFC3339),
 	}, nil
 }
 
@@ -3566,16 +3634,12 @@ func installOptionalDriverAgentFromLocalPath(definition driverDefinition, filePa
 }
 
 func probeInstalledOptionalDriverAgentRevision(driverType string, executablePath string) string {
-	expectedRevision := db.OptionalDriverAgentRevision(driverType)
-	if strings.TrimSpace(expectedRevision) == "" {
-		return ""
-	}
-	actualRevision, _, err := optionalDriverAgentRevisionCurrent(driverType, executablePath)
+	metadata, err := optionalDriverAgentMetadataProbe(driverType, executablePath)
 	if err != nil {
 		logger.Warnf("%s 驱动代理未返回版本元数据：%v", resolveDriverDisplayName(driverDefinition{Type: driverType}), err)
 		return ""
 	}
-	return strings.TrimSpace(actualRevision)
+	return strings.TrimSpace(metadata.AgentRevision)
 }
 
 type localDriverCandidate struct {
@@ -4544,6 +4608,22 @@ func optionalDriverBuildTag(driverType string, selectedVersion string) (string, 
 	switch normalizeDriverType(driverType) {
 	case "mysql":
 		return "gonavi_mysql_driver", nil
+	case "goldendb":
+		return "gonavi_goldendb_driver", nil
+	case "oracle":
+		return "gonavi_oracle_driver", nil
+	case "chroma":
+		return "gonavi_chroma_driver", nil
+	case "qdrant":
+		return "gonavi_qdrant_driver", nil
+	case "rocketmq":
+		return "gonavi_rocketmq_driver", nil
+	case "mqtt":
+		return "gonavi_mqtt_driver", nil
+	case "kafka":
+		return "gonavi_kafka_driver", nil
+	case "rabbitmq":
+		return "gonavi_rabbitmq_driver", nil
 	case "mariadb":
 		return "gonavi_mariadb_driver", nil
 	case "oceanbase":

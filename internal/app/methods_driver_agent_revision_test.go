@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -9,31 +10,12 @@ import (
 	"GoNavi-Wails/shared/i18n"
 )
 
-func TestOptionalDriverAgentRevisionStatusDetectsStaleClickHouseAgent(t *testing.T) {
-	app := NewApp()
-	app.SetLanguage(string(i18n.LanguageZhCN))
-
-	needsUpdate, reason, expected := optionalDriverAgentRevisionStatus("clickhouse", installedDriverPackage{}, true)
-	if !needsUpdate {
-		t.Fatal("expected missing ClickHouse agent revision to require update")
-	}
-	if expected == "" {
-		t.Fatal("expected ClickHouse to define an agent revision")
-	}
-	if reason == "" {
-		t.Fatal("expected update reason")
-	}
-	if !strings.Contains(reason, "原因：") || !strings.Contains(reason, "影响：") {
-		t.Fatalf("expected reason to explain cause and impact, got %q", reason)
-	}
-	if !strings.Contains(reason, "强烈建议重装") {
-		t.Fatalf("expected reason to strongly recommend reinstall, got %q", reason)
-	}
-
-	current := installedDriverPackage{AgentRevision: expected}
-	needsUpdate, reason, _ = optionalDriverAgentRevisionStatus("clickhouse", current, true)
-	if needsUpdate {
-		t.Fatalf("expected current ClickHouse agent revision to be accepted, reason=%q", reason)
+func TestOptionalDriverAgentRevisionStatusNoLongerFlagsUpdates(t *testing.T) {
+	needsUpdate, reason, expected := optionalDriverAgentRevisionStatus("clickhouse", installedDriverPackage{
+		AgentRevision: "src-stale",
+	}, true)
+	if needsUpdate || reason != "" || expected != "" {
+		t.Fatalf("expected fingerprint revision comparison to be disabled, needsUpdate=%v reason=%q expected=%q", needsUpdate, reason, expected)
 	}
 }
 
@@ -62,6 +44,10 @@ func TestOptionalDriverPackageUpdateStatusDetectsMongoV2WhenLegacyDefault(t *tes
 func TestOptionalDriverPackageUpdateStatusAcceptsMongoV1WithoutRevision(t *testing.T) {
 	app := NewApp()
 	app.SetLanguage(string(i18n.LanguageZhCN))
+	restore := swapResolvePublishedDriverPackFn(func() (publishedDriverPackInfo, error) {
+		return publishedDriverPackInfo{}, errors.New("network unavailable")
+	})
+	t.Cleanup(restore)
 
 	definition, ok := resolveDriverDefinition("mongodb")
 	if !ok {
@@ -78,35 +64,132 @@ func TestOptionalDriverPackageUpdateStatusAcceptsMongoV1WithoutRevision(t *testi
 	}
 }
 
-func TestOptionalDriverAgentRevisionCurrentRejectsStaleMetadata(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		return db.OptionalDriverAgentMetadata{
-			DriverType:    driverType,
-			AgentRevision: "src-stale-agent",
-		}, nil
+func TestOptionalDriverPackageUpdateStatusByReleaseTag(t *testing.T) {
+	app := NewApp()
+	app.SetLanguage(string(i18n.LanguageZhCN))
+
+	definition, ok := resolveDriverDefinition("clickhouse")
+	if !ok {
+		t.Fatal("expected clickhouse driver definition")
+	}
+	assetNames := optionalDriverReleaseAssetNamesForVersion(definition.Type, "")
+	if len(assetNames) == 0 {
+		t.Fatal("expected clickhouse release asset names")
+	}
+	published := map[string]bool{}
+	for _, name := range assetNames {
+		published[name] = true
 	}
 
-	for _, driverType := range optionalDriverAgentRevisionTestDrivers(t) {
-		t.Run(driverType, func(t *testing.T) {
-			actual, current, err := optionalDriverAgentRevisionCurrent(driverType, "fake-driver-agent")
-			if err != nil {
-				t.Fatalf("expected stale metadata to be comparable, got error: %v", err)
-			}
-			if current {
-				t.Fatalf("expected stale %s agent revision to be rejected", driverType)
-			}
-			if actual != "src-stale-agent" {
-				t.Fatalf("unexpected actual revision: %q", actual)
-			}
-		})
+	restore := swapResolvePublishedDriverPackFn(func() (publishedDriverPackInfo, error) {
+		return publishedDriverPackInfo{
+			Tag:       "v1.3.2",
+			Published: published,
+		}, nil
+	})
+	t.Cleanup(restore)
+
+	needsUpdate, reason, expected := optionalDriverPackageUpdateStatus(definition, installedDriverPackage{
+		Version:          "2.5.0",
+		SourceReleaseTag: "v1.2.0",
+	}, true)
+	if !needsUpdate {
+		t.Fatal("expected older source release tag to require update")
+	}
+	if expected != "v1.3.2" {
+		t.Fatalf("expected latest tag in ExpectedRevision field, got %q", expected)
+	}
+	if !strings.Contains(reason, "v1.2.0") || !strings.Contains(reason, "v1.3.2") {
+		t.Fatalf("expected reason to mention current/latest tags, got %q", reason)
+	}
+
+	needsUpdate, _, _ = optionalDriverPackageUpdateStatus(definition, installedDriverPackage{
+		Version:          "2.5.0",
+		SourceReleaseTag: "v1.3.2",
+	}, true)
+	if needsUpdate {
+		t.Fatal("expected matching source release tag to skip update")
 	}
 }
 
-func TestVerifyInstalledOptionalDriverAgentRevisionRejectsProbeFailure(t *testing.T) {
+func TestOptionalDriverPackageUpdateStatusIgnoresReleaseFetchFailure(t *testing.T) {
+	definition, ok := resolveDriverDefinition("clickhouse")
+	if !ok {
+		t.Fatal("expected clickhouse driver definition")
+	}
+	restore := swapResolvePublishedDriverPackFn(func() (publishedDriverPackInfo, error) {
+		return publishedDriverPackInfo{}, errors.New("release fetch failed")
+	})
+	t.Cleanup(restore)
+
+	needsUpdate, reason, expected := optionalDriverPackageUpdateStatus(definition, installedDriverPackage{
+		Version:          "2.5.0",
+		SourceReleaseTag: "v1.2.0",
+	}, true)
+	if needsUpdate || reason != "" || expected != "" {
+		t.Fatalf("expected no update prompt when release fetch fails, needsUpdate=%v reason=%q expected=%q", needsUpdate, reason, expected)
+	}
+}
+
+func TestOptionalDriverPackageUpdateStatusFallsBackToSHA256(t *testing.T) {
+	app := NewApp()
+	app.SetLanguage(string(i18n.LanguageZhCN))
+
+	definition, ok := resolveDriverDefinition("clickhouse")
+	if !ok {
+		t.Fatal("expected clickhouse driver definition")
+	}
+	assetNames := optionalDriverReleaseAssetNamesForVersion(definition.Type, "")
+	if len(assetNames) == 0 {
+		t.Fatal("expected clickhouse release asset names")
+	}
+	assetName := assetNames[0]
+	published := map[string]bool{assetName: true}
+	shaByAsset := map[string]string{assetName: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+
+	restore := swapResolvePublishedDriverPackFn(func() (publishedDriverPackInfo, error) {
+		return publishedDriverPackInfo{
+			Tag:           "v1.3.2",
+			Published:     published,
+			SHA256ByAsset: shaByAsset,
+		}, nil
+	})
+	t.Cleanup(restore)
+
+	needsUpdate, reason, expected := optionalDriverPackageUpdateStatus(definition, installedDriverPackage{
+		Version: "2.5.0",
+		SHA256:  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+	}, true)
+	if !needsUpdate {
+		t.Fatal("expected sha mismatch without source tag to require update")
+	}
+	if expected != "v1.3.2" {
+		t.Fatalf("expected latest tag, got %q", expected)
+	}
+	if !strings.Contains(reason, "v1.3.2") {
+		t.Fatalf("expected reason to mention latest tag, got %q", reason)
+	}
+
+	needsUpdate, _, _ = optionalDriverPackageUpdateStatus(definition, installedDriverPackage{
+		Version: "2.5.0",
+		SHA256:  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}, true)
+	if needsUpdate {
+		t.Fatal("expected matching sha to skip update")
+	}
+}
+
+func TestParseReleaseTagFromDownloadURL(t *testing.T) {
+	got := parseReleaseTagFromDownloadURL("https://github.com/FaaTang/PinkHunkDB/releases/download/v1.3.2/clickhouse-driver-agent-windows-amd64.exe")
+	if got != "v1.3.2" {
+		t.Fatalf("expected v1.3.2, got %q", got)
+	}
+	if got := parseReleaseTagFromDownloadURL("https://github.com/FaaTang/PinkHunkDB/releases/latest/download/clickhouse-driver-agent-windows-amd64.exe"); got != "" {
+		t.Fatalf("expected empty tag for latest download URL, got %q", got)
+	}
+}
+
+func TestVerifyInstalledOptionalDriverAgentRevisionNoLongerHardFails(t *testing.T) {
 	originalProbe := optionalDriverAgentMetadataProbe
 	t.Cleanup(func() {
 		optionalDriverAgentMetadataProbe = originalProbe
@@ -115,140 +198,15 @@ func TestVerifyInstalledOptionalDriverAgentRevisionRejectsProbeFailure(t *testin
 		return db.OptionalDriverAgentMetadata{}, errOptionalDriverAgentMetadataUnavailable
 	}
 
-	for _, driverType := range optionalDriverAgentRevisionTestDrivers(t) {
-		t.Run(driverType, func(t *testing.T) {
-			if _, err := verifyInstalledOptionalDriverAgentRevision(driverType, "fake-driver-agent"); err == nil {
-				t.Fatalf("expected %s install verification to fail when metadata probe fails", driverType)
-			}
-		})
+	if _, err := verifyInstalledOptionalDriverAgentRevision("sqlserver", "fake-driver-agent"); err != nil {
+		t.Fatalf("expected install verification to skip fingerprint checks, got %v", err)
 	}
 }
 
-func TestVerifyRuntimeOptionalDriverAgentRevisionAllowsStaleOceanBaseMySQLAgent(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		return db.OptionalDriverAgentMetadata{
-			DriverType:    driverType,
-			AgentRevision: "src-stale-agent",
-		}, nil
+func TestVerifyRuntimeOptionalDriverAgentRevisionIsNoop(t *testing.T) {
+	if err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{Type: "sqlserver"}); err != nil {
+		t.Fatalf("expected runtime revision check to be disabled, got %v", err)
 	}
-
-	err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{Type: "oceanbase"})
-	if err != nil {
-		t.Fatalf("runtime revision mismatch should warn and continue, got %v", err)
-	}
-}
-
-func TestVerifyRuntimeOptionalDriverAgentRevisionAllowsStaleOceanBaseOracleAgent(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		return db.OptionalDriverAgentMetadata{
-			DriverType:    driverType,
-			AgentRevision: "src-stale-agent",
-		}, nil
-	}
-
-	err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{
-		Type:             "oceanbase",
-		ConnectionParams: "protocol=oracle",
-	})
-	if err != nil {
-		t.Fatalf("runtime revision mismatch should stay in driver manager only, got %v", err)
-	}
-}
-
-func TestVerifyRuntimeOptionalDriverAgentRevisionAllowsUnknownOceanBaseOracleAgent(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		return db.OptionalDriverAgentMetadata{}, errOptionalDriverAgentMetadataUnavailable
-	}
-
-	err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{
-		Type:              "oceanbase",
-		OceanBaseProtocol: "oracle",
-	})
-	if err != nil {
-		t.Fatalf("runtime metadata probe failure should stay in driver manager only, got %v", err)
-	}
-}
-
-func TestVerifyRuntimeOptionalDriverAgentRevisionAllowsMetadataProbeFailure(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		return db.OptionalDriverAgentMetadata{}, errOptionalDriverAgentMetadataUnavailable
-	}
-
-	err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{Type: "sqlserver"})
-	if err != nil {
-		t.Fatalf("runtime metadata probe failure should warn and continue, got %v", err)
-	}
-}
-
-func TestVerifyRuntimeOptionalDriverAgentRevisionSkipsCustomDriver(t *testing.T) {
-	originalProbe := optionalDriverAgentMetadataProbe
-	t.Cleanup(func() {
-		optionalDriverAgentMetadataProbe = originalProbe
-	})
-	calls := 0
-	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		calls++
-		return db.OptionalDriverAgentMetadata{}, nil
-	}
-
-	if err := verifyRuntimeOptionalDriverAgentRevision(connection.ConnectionConfig{
-		Type:   "custom",
-		Driver: "oceanbase",
-	}); err != nil {
-		t.Fatalf("custom driver should skip optional agent runtime revision check: %v", err)
-	}
-	if calls != 0 {
-		t.Fatalf("custom driver should not probe optional agent metadata, got %d calls", calls)
-	}
-}
-
-func optionalDriverAgentRevisionTestDrivers(t *testing.T) []string {
-	t.Helper()
-	drivers := []string{
-		"mariadb",
-		"oceanbase",
-		"diros",
-		"starrocks",
-		"sphinx",
-		"sqlserver",
-		"sqlite",
-		"duckdb",
-		"dameng",
-		"kingbase",
-		"highgo",
-		"vastbase",
-		"opengauss",
-		"gaussdb",
-		"iris",
-		"mongodb",
-		"tdengine",
-		"iotdb",
-		"clickhouse",
-		"elasticsearch",
-		"trino",
-	}
-	for _, driverType := range drivers {
-		if db.OptionalDriverAgentRevision(driverType) == "" {
-			t.Fatalf("expected %s to define an agent revision", driverType)
-		}
-	}
-	return drivers
 }
 
 func TestSavedConnectionDriverUsageCountsIncludesOptionalAndCustomDrivers(t *testing.T) {

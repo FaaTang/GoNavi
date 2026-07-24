@@ -4,6 +4,14 @@ package db
 
 func init() {
 	optionalDriverAgentRevisions = map[string]string{
+		"goldendb":      "src-externalized-goldendb",
+		"oracle":        "src-externalized-oracle",
+		"chroma":        "src-externalized-chroma",
+		"qdrant":        "src-externalized-qdrant",
+		"rocketmq":      "src-externalized-rocketmq",
+		"mqtt":          "src-externalized-mqtt",
+		"kafka":         "src-externalized-kafka",
+		"rabbitmq":      "src-externalized-rabbitmq",
 		"mariadb":       "src-cc133d2524ceb634",
 		"oceanbase":     "src-ac17327184366ff0",
 		"diros":         "src-7d4fe439271d0c56",

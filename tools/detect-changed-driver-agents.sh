@@ -7,22 +7,22 @@ cd "$SCRIPT_DIR"
 SCRIPT_DIR_WINDOWS="$(pwd -W 2>/dev/null || true)"
 SCRIPT_DIR_WINDOWS="${SCRIPT_DIR_WINDOWS//\\//}"
 
-DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch)
+DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch trino goldendb oracle chroma qdrant rocketmq mqtt kafka rabbitmq)
 TARGET_PLATFORMS=(darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 linux/amd64)
 
 usage() {
   cat <<'EOF'
-用法：
+用法�?
   ./tools/detect-changed-driver-agents.sh --base <ref> [--head <ref>]
 
-输出：
-  逗号分隔的 driver-agent 列表；没有 driver-agent 相关变更时输出空行。
+输出�?
+  逗号分隔�?driver-agent 列表；没�?driver-agent 相关变更时输出空行�?
 
-说明：
-  通过 go list -deps 计算每个 driver-agent 的真实源码依赖，再与 git diff 文件求交集。
-  如果无法解析基准或依赖分析失败，会保守输出全部 driver。
-  如果 driver 构建 / 发布工作流本身发生变化，也会保守输出全部 driver，
-  避免新应用 revision 与旧 driver-assets 再次错配。
+说明�?
+  通过 go list -deps 计算每个 driver-agent 的真实源码依赖，再与 git diff 文件求交集�?
+  如果无法解析基准或依赖分析失败，会保守输出全�?driver�?
+  如果 driver 构建 / 发布工作流本身发生变化，也会保守输出全部 driver�?
+  避免新应�?revision 与旧 driver-assets 再次错配�?
 EOF
 }
 
@@ -54,7 +54,7 @@ normalize_driver() {
     open_gauss|open-gauss) echo "opengauss" ;;
     gaussdb|gauss_db|gauss-db) echo "gaussdb" ;;
     elastic|elasticsearch) echo "elasticsearch" ;;
-    mariadb|oceanbase|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|opengauss|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse)
+    mariadb|oceanbase|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|opengauss|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse|goldendb|oracle|chroma|qdrant|rocketmq|mqtt|kafka|rabbitmq|trino)
       echo "$value"
       ;;
     *)
@@ -451,7 +451,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "未知参数：$1" >&2
+      echo "未知参数�?1" >&2
       usage >&2
       exit 1
       ;;
@@ -459,7 +459,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$base_ref" ]]; then
-  echo "缺少 --base 参数。" >&2
+  echo "缺少 --base 参数�? >&2
   usage >&2
   exit 1
 fi
@@ -470,13 +470,13 @@ if [[ "$base_ref" == "all" ]]; then
 fi
 
 if ! git rev-parse --verify "${head_ref}^{commit}" >/dev/null 2>&1; then
-  echo "无法解析 head ref：$head_ref" >&2
+  echo "无法解析 head ref�?head_ref" >&2
   exit 1
 fi
 head_commit="$(git rev-parse "${head_ref}^{commit}")"
 
 if ! git rev-parse --verify "${base_ref}^{commit}" >/dev/null 2>&1; then
-  echo "无法解析 base ref：$base_ref；保守构建全部 driver-agent。" >&2
+  echo "无法解析 base ref�?base_ref；保守构建全�?driver-agent�? >&2
   all_drivers_csv
   exit 0
 fi
@@ -517,7 +517,7 @@ for file in "${!changed_file_set[@]}"; do
     internal/db/driver_agent_revisions_gen.go)
       revision_delta="$(revision_file_changed_drivers)"
       if [[ -z "$revision_delta" ]]; then
-        echo "检测到 driver-agent revision 文件存在无法归因的变更；保守构建全部 driver-agent：$file" >&2
+        echo "检测到 driver-agent revision 文件存在无法归因的变更；保守构建全部 driver-agent�?file" >&2
         all_drivers_csv
         exit 0
       fi
@@ -529,7 +529,7 @@ for file in "${!changed_file_set[@]}"; do
       shared_status=$?
       set -e
       if [[ "$shared_status" -ne 0 ]]; then
-        echo "检测到共享 driver-agent 输入存在无法归因的变更；保守构建全部 driver-agent：$file" >&2
+        echo "检测到共享 driver-agent 输入存在无法归因的变更；保守构建全部 driver-agent�?file" >&2
         all_drivers_csv
         exit 0
       fi
@@ -543,7 +543,7 @@ for file in "${!changed_file_set[@]}"; do
     tools/resolve-driver-release-source.py|\
     tools/validate-driver-release-manifest.sh|\
     tools/should-force-global-driver-builds.sh)
-      echo "检测到 driver-agent 构建/发布链路脚本变更；保守构建全部 driver-agent：$file" >&2
+      echo "检测到 driver-agent 构建/发布链路脚本变更；保守构建全�?driver-agent�?file" >&2
       all_drivers_csv
       exit 0
       ;;
@@ -554,12 +554,12 @@ for file in "${!changed_file_set[@]}"; do
       if [[ "$only_workflow_changes" == "true" && -f internal/db/driver_agent_revisions_gen.go ]]; then
         continue
       fi
-      echo "检测到 driver-agent 构建/发布工作流变更；保守构建全部 driver-agent：$file" >&2
+      echo "检测到 driver-agent 构建/发布工作流变更；保守构建全部 driver-agent�?file" >&2
       all_drivers_csv
       exit 0
       ;;
     tools/detect-changed-driver-agents.sh)
-      echo "检测到 driver-agent 变更检测脚本更新；保守构建全部 driver-agent：$file" >&2
+      echo "检测到 driver-agent 变更检测脚本更新；保守构建全部 driver-agent�?file" >&2
       all_drivers_csv
       exit 0
       ;;
@@ -596,7 +596,7 @@ while IFS= read -r -d '' file; do
     if attribute_source_file_change "$file"; then
       continue
     fi
-    echo "检测到源码依赖候选文件被删除；保守构建全部 driver-agent：$file" >&2
+    echo "检测到源码依赖候选文件被删除；保守构建全�?driver-agent�?file" >&2
     all_drivers_csv
     exit 0
   fi
@@ -617,7 +617,7 @@ case "$dependency_union_status" in
     fi
     ;;
   *)
-    echo "分析 driver-agent 依赖全集失败；保守构建全部 driver-agent。" >&2
+    echo "分析 driver-agent 依赖全集失败；保守构建全�?driver-agent�? >&2
     all_drivers_csv
     exit 0
     ;;
@@ -702,7 +702,7 @@ for driver in "${DEFAULT_DRIVERS[@]}"; do
       1)
         ;;
       *)
-        echo "分析 $driver driver-agent 依赖失败；保守构建全部 driver-agent。" >&2
+        echo "分析 $driver driver-agent 依赖失败；保守构建全�?driver-agent�? >&2
         all_drivers_csv
         exit 0
         ;;

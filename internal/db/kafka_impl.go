@@ -1,3 +1,5 @@
+//go:build gonavi_full_drivers || gonavi_kafka_driver
+
 package db
 
 import (
@@ -1326,16 +1328,3 @@ func errorsIsContextTimeout(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
 
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}

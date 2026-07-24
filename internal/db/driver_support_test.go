@@ -47,14 +47,24 @@ func TestBuiltinLikeDriversRemainAvailable(t *testing.T) {
 		t.Fatalf("redis 应始终可用，reason=%s", reason)
 	}
 
-	supported, reason = DriverRuntimeSupportStatus("kafka")
+	supported, reason = DriverRuntimeSupportStatus("mysql")
 	if !supported {
-		t.Fatalf("kafka 应始终可用，reason=%s", reason)
+		t.Fatalf("mysql 应始终可用，reason=%s", reason)
 	}
 
-	supported, reason = DriverRuntimeSupportStatus("goldendb")
+	supported, reason = DriverRuntimeSupportStatus("postgres")
 	if !supported {
-		t.Fatalf("goldendb 应始终可用，reason=%s", reason)
+		t.Fatalf("postgres 应始终可用，reason=%s", reason)
+	}
+
+	supported, _ = DriverRuntimeSupportStatus("kafka")
+	if supported {
+		t.Fatal("kafka 已改为外置可选，未安装时不应可用")
+	}
+
+	supported, _ = DriverRuntimeSupportStatus("goldendb")
+	if supported {
+		t.Fatal("goldendb 已改为外置可选，未安装时不应可用")
 	}
 }
 
@@ -174,14 +184,18 @@ func TestMySQLBuiltinRuntimeSupportAvailable(t *testing.T) {
 	}
 }
 
-func TestGoldenDBBuiltinDatabaseFactoryUsesMySQLImplementation(t *testing.T) {
+func TestGoldenDBUsesOptionalDriverAgentFactory(t *testing.T) {
 	dbInst, err := NewDatabase("goldendb")
 	if err != nil {
 		t.Fatalf("expected goldendb database factory, got err=%v", err)
 	}
-	if _, ok := dbInst.(*MySQLDB); !ok {
-		t.Fatalf("expected goldendb to reuse MySQLDB implementation, got %T", dbInst)
+	if IsBuiltinDriver("goldendb") {
+		t.Fatal("expected goldendb to no longer be a builtin driver")
 	}
+	if !IsOptionalGoDriver("goldendb") {
+		t.Fatal("expected goldendb to be an optional go driver")
+	}
+	_ = dbInst
 }
 
 func TestDriverRuntimeSupportStatusUsesCurrentLanguageForUnrecognizedDriverType(t *testing.T) {

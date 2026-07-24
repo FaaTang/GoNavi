@@ -7,21 +7,21 @@ cd "$SCRIPT_DIR"
 SCRIPT_DIR_WINDOWS="$(pwd -W 2>/dev/null || true)"
 SCRIPT_DIR_WINDOWS="${SCRIPT_DIR_WINDOWS//\\//}"
 
-DEFAULT_DRIVERS=(mariadb oceanbase diros starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch trino)
+DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch trino goldendb oracle chroma qdrant rocketmq mqtt kafka rabbitmq)
 OUTPUT_FILE="internal/db/driver_agent_revisions_gen.go"
 
 usage() {
   cat <<'EOF'
-用法：
-  ./tools/generate-driver-agent-revisions.sh [选项]
+鐢ㄦ硶锛?
+  ./tools/generate-driver-agent-revisions.sh [閫夐」]
 
-选项：
-  --platform <GOOS/GOARCH>  按目标平台解析 Go build tags，默认使用当前 Go 环境
-  --drivers <列表>          只更新指定驱动（逗号分隔），并保留其他已生成 revision
+閫夐」锛?
+  --platform <GOOS/GOARCH>  鎸夌洰鏍囧钩鍙拌В鏋?Go build tags锛岄粯璁や娇鐢ㄥ綋鍓?Go 鐜
+  --drivers <鍒楄〃>          鍙洿鏂版寚瀹氶┍鍔紙閫楀彿鍒嗛殧锛夛紝骞朵繚鐣欏叾浠栧凡鐢熸垚 revision
   --skip-if-unchanged-since <ref>
-                            若已有同平台指纹，且相对 ref..HEAD 无已提交驱动相关源码变更，则跳过重算
-  --decide-skip-only        仅输出是否跳过并退出（0=跳过，1=需要重算）；需配合上一选项
-  -h, --help                显示帮助
+                            鑻ュ凡鏈夊悓骞冲彴鎸囩汗锛屼笖鐩稿 ref..HEAD 鏃犲凡鎻愪氦椹卞姩鐩稿叧婧愮爜鍙樻洿锛屽垯璺宠繃閲嶇畻
+  --decide-skip-only        浠呰緭鍑烘槸鍚﹁烦杩囧苟閫€鍑猴紙0=璺宠繃锛?=闇€瑕侀噸绠楋級锛涢渶閰嶅悎涓婁竴閫夐」
+  -h, --help                鏄剧ず甯姪
 EOF
 }
 
@@ -34,7 +34,7 @@ normalize_driver() {
     opengauss|open_gauss|open-gauss) echo "opengauss" ;;
     gaussdb|gauss_db|gauss-db) echo "gaussdb" ;;
     elasticsearch|elastic) echo "elasticsearch" ;;
-    mariadb|diros|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse|trino)
+    mariadb|diros|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse|trino|goldendb|oracle|chroma|qdrant|rocketmq|mqtt|kafka|rabbitmq|oceanbase|opengauss)
       echo "$value"
       ;;
     *)
@@ -68,7 +68,7 @@ hash_file() {
     shasum -a 256 "$target" | awk '{print $1}'
     return
   fi
-  echo "未找到 sha256sum 或 shasum" >&2
+  echo "鏈壘鍒?sha256sum 鎴?shasum" >&2
   exit 1
 }
 
@@ -194,7 +194,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "未知参数：$1" >&2
+      echo "鏈煡鍙傛暟锛?1" >&2
       usage
       exit 1
       ;;
@@ -202,7 +202,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if ! command -v go >/dev/null 2>&1; then
-  echo "未找到 Go，请先安装 Go 并确保 go 在 PATH 中。" >&2
+  echo "鏈壘鍒?Go锛岃鍏堝畨瑁?Go 骞剁‘淇?go 鍦?PATH 涓€? >&2
   exit 1
 fi
 
@@ -210,7 +210,7 @@ if [[ -z "$target_platform" ]]; then
   target_platform="$(go env GOOS)/$(go env GOARCH)"
 fi
 if [[ "$target_platform" != */* ]]; then
-  echo "--platform 参数格式错误，应为 GOOS/GOARCH，例如 darwin/arm64" >&2
+  echo "--platform 鍙傛暟鏍煎紡閿欒锛屽簲涓?GOOS/GOARCH锛屼緥濡?darwin/arm64" >&2
   exit 1
 fi
 
@@ -277,8 +277,8 @@ detect_revision_jobs() {
   echo "$detected"
 }
 
-# 指纹输入相关路径（廉价 git diff，避免为“是否跳过”再跑 go list -deps）。
-# 宁可误判为需要重算，也不要在真正变更时漏算。
+# 鎸囩汗杈撳叆鐩稿叧璺緞锛堝粔浠?git diff锛岄伩鍏嶄负鈥滄槸鍚﹁烦杩団€濆啀璺?go list -deps锛夈€?
+# 瀹佸彲璇垽涓洪渶瑕侀噸绠楋紝涔熶笉瑕佸湪鐪熸鍙樻洿鏃舵紡绠椼€?
 REVISION_INPUT_PATHSPECS=(
   go.mod
   go.sum
@@ -295,7 +295,7 @@ generated_platform_stamp() {
 }
 
 revision_inputs_changed_since() {
-  # 只对比 base..HEAD 的已提交差异，忽略 CI 工作区脏文件（避免误判全量重算）。
+  # 鍙姣?base..HEAD 鐨勫凡鎻愪氦宸紓锛屽拷鐣?CI 宸ヤ綔鍖鸿剰鏂囦欢锛堥伩鍏嶈鍒ゅ叏閲忛噸绠楋級銆?
   local base_ref="$1"
   local file
   local -a changed=()
@@ -331,34 +331,34 @@ maybe_skip_unchanged_generation() {
 
   [[ -n "$skip_unchanged_since" ]] || return 1
   if [[ -n "$driver_csv" ]]; then
-    echo "ℹ️ 指定了 --drivers，忽略 --skip-if-unchanged-since" >&2
+    echo "鈩癸笍 鎸囧畾浜?--drivers锛屽拷鐣?--skip-if-unchanged-since" >&2
     return 1
   fi
   if [[ ! -f "$OUTPUT_FILE" ]]; then
-    echo "🧭 无已有 revision 文件，需要生成：$OUTPUT_FILE" >&2
+    echo "馃Л 鏃犲凡鏈?revision 鏂囦欢锛岄渶瑕佺敓鎴愶細$OUTPUT_FILE" >&2
     return 1
   fi
 
   existing_platform="$(generated_platform_stamp "$OUTPUT_FILE" || true)"
   if [[ -n "$existing_platform" && "$existing_platform" != "$target_platform" ]]; then
-    echo "🧭 已有 revision 平台不匹配（have=${existing_platform} want=${target_platform}），需要重算" >&2
+    echo "馃Л 宸叉湁 revision 骞冲彴涓嶅尮閰嶏紙have=${existing_platform} want=${target_platform}锛夛紝闇€瑕侀噸绠? >&2
     return 1
   fi
 
   if changed_files="$(revision_inputs_changed_since "$skip_unchanged_since")"; then
     if [[ -z "$changed_files" ]]; then
-      echo "🧭 无法解析 ${skip_unchanged_since}/HEAD 提交，保守重算 revision" >&2
+      echo "馃Л 鏃犳硶瑙ｆ瀽 ${skip_unchanged_since}/HEAD 鎻愪氦锛屼繚瀹堥噸绠?revision" >&2
     else
       preview="$(printf '%s\n' "$changed_files" | head -n 8 | tr '\n' ' ')"
-      echo "🧭 相对 ${skip_unchanged_since}..HEAD 检测到驱动相关已提交变更，需要重算 revision：${preview}" >&2
+      echo "馃Л 鐩稿 ${skip_unchanged_since}..HEAD 妫€娴嬪埌椹卞姩鐩稿叧宸叉彁浜ゅ彉鏇达紝闇€瑕侀噸绠?revision锛?{preview}" >&2
     fi
     return 1
   fi
 
   if [[ -z "$existing_platform" ]]; then
-    echo "⏭️ 相对 ${skip_unchanged_since}..HEAD 驱动相关源码未变，跳过重算（沿用仓库已有 revision，无平台戳）"
+    echo "鈴笍 鐩稿 ${skip_unchanged_since}..HEAD 椹卞姩鐩稿叧婧愮爜鏈彉锛岃烦杩囬噸绠楋紙娌跨敤浠撳簱宸叉湁 revision锛屾棤骞冲彴鎴筹級"
   else
-    echo "⏭️ 相对 ${skip_unchanged_since}..HEAD 驱动相关源码未变，且已是 ${target_platform} 指纹，跳过重算"
+    echo "鈴笍 鐩稿 ${skip_unchanged_since}..HEAD 椹卞姩鐩稿叧婧愮爜鏈彉锛屼笖宸叉槸 ${target_platform} 鎸囩汗锛岃烦杩囬噸绠?
   fi
   return 0
 }
@@ -415,7 +415,7 @@ fingerprint_driver() {
     file_hash="$(hash_file "$file")"
     printf '%s  %s\n' "$file_hash" "$identity"
   done < <(
-    # 尊重环境中的 GOTOOLCHAIN（CI 通常为 local），避免每次 auto 拉工具链。
+    # 灏婇噸鐜涓殑 GOTOOLCHAIN锛圕I 閫氬父涓?local锛夛紝閬垮厤姣忔 auto 鎷夊伐鍏烽摼銆?
     CGO_ENABLED="$cgo_enabled" GOOS="$goos" GOARCH="$goarch" GOTOOLCHAIN="${GOTOOLCHAIN:-local}" \
       go list -deps \
         -tags "$tag" \
@@ -434,10 +434,10 @@ fi
 
 if [[ "$decide_skip_only" -eq 1 ]]; then
   if [[ -z "$skip_unchanged_since" ]]; then
-    echo "--decide-skip-only 需要同时提供 --skip-if-unchanged-since" >&2
+    echo "--decide-skip-only 闇€瑕佸悓鏃舵彁渚?--skip-if-unchanged-since" >&2
     exit 2
   fi
-  echo "🧭 判定结果：需要重算 driver-agent revision（platform=${target_platform}）"
+  echo "馃Л 鍒ゅ畾缁撴灉锛氶渶瑕侀噸绠?driver-agent revision锛坧latform=${target_platform}锛?
   exit 1
 fi
 
@@ -458,7 +458,7 @@ wait_for_oldest_revision_job() {
   driver="${revision_pid_drivers[0]}"
 
   if ! wait "$pid"; then
-    echo "❌ 生成 driver-agent revision 失败：$driver ($goos/$goarch)" >&2
+    echo "鉂?鐢熸垚 driver-agent revision 澶辫触锛?driver ($goos/$goarch)" >&2
     revision_failed=1
   fi
 
@@ -529,4 +529,4 @@ else
   mv "$tmp_output" "$OUTPUT_FILE"
 fi
 
-echo "已生成 driver-agent revisions: $OUTPUT_FILE ($goos/$goarch)"
+echo "宸茬敓鎴?driver-agent revisions: $OUTPUT_FILE ($goos/$goarch)"

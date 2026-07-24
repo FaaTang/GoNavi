@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"GoNavi-Wails/internal/db"
-	"GoNavi-Wails/internal/logger"
 )
 
 func optionalDriverPublicTypeName(driverType string) string {
@@ -622,24 +621,9 @@ func findExistingOptionalDriverAgentCandidate(definition driverDefinition, targe
 }
 
 func isReusableOptionalDriverAgentCandidateRevisionAcceptable(driverType string, executablePath string) bool {
-	expected := strings.TrimSpace(db.OptionalDriverAgentRevision(driverType))
-	if expected == "" {
-		return true
-	}
-	actual, current, err := optionalDriverAgentRevisionCurrent(driverType, executablePath)
-	displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
-	if err != nil {
-		logger.Warnf("可复用 %s 驱动代理候选版本元数据不可用，仍允许安装：path=%s err=%v；建议在驱动管理中重装", displayName, executablePath, err)
-		return true
-	}
-	if !current {
-		actualLabel := strings.TrimSpace(actual)
-		if actualLabel == "" {
-			actualLabel = "空"
-		}
-		logger.Warnf("可复用 %s 驱动代理候选 revision 不匹配，仍允许安装：path=%s actual=%s expected=%s；建议在驱动管理中重装", displayName, executablePath, actualLabel, expected)
-		return true
-	}
+	// 指纹对比已废弃：本地可复用候选一律放行。
+	_ = driverType
+	_ = executablePath
 	return true
 }
 
@@ -1198,6 +1182,270 @@ func fetchDriverBundleAssetSizeIndex(release *githubRelease) (map[string]int64, 
 
 func fetchLatestReleaseForDriverAssets() (*githubRelease, error) {
 	return fetchDriverReleaseByURL(driverReleaseLatestAPIURL)
+}
+
+func resolveSourceReleaseTagFromDownloadURL(downloadURL string) string {
+	urlText := strings.TrimSpace(downloadURL)
+	if urlText == "" {
+		return ""
+	}
+	if tag := parseReleaseTagFromDownloadURL(urlText); tag != "" {
+		return tag
+	}
+	if !strings.Contains(strings.ToLower(urlText), "/releases/latest/download/") {
+		return ""
+	}
+	if pack, err := resolvePublishedDriverPackFn(); err == nil {
+		if tag := strings.TrimSpace(pack.Tag); tag != "" {
+			return tag
+		}
+	}
+	if release, err := fetchLatestReleaseForDriverAssets(); err == nil {
+		return strings.TrimSpace(release.TagName)
+	}
+	return ""
+}
+
+func parseReleaseTagFromDownloadURL(downloadURL string) string {
+	urlText := strings.TrimSpace(downloadURL)
+	if urlText == "" {
+		return ""
+	}
+	parsed, err := url.Parse(urlText)
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	// github.com/<owner>/<repo>/releases/download/<tag>/<asset>
+	for i := 0; i+2 < len(parts); i++ {
+		if !strings.EqualFold(parts[i], "releases") || !strings.EqualFold(parts[i+1], "download") {
+			continue
+		}
+		tag := strings.TrimSpace(parts[i+2])
+		if tag == "" || strings.EqualFold(tag, "latest") {
+			return ""
+		}
+		if unescaped, unescapeErr := url.PathUnescape(tag); unescapeErr == nil {
+			tag = strings.TrimSpace(unescaped)
+		}
+		return tag
+	}
+	return ""
+}
+
+func releaseHasDriverPackAssets(release *githubRelease) bool {
+	if release == nil {
+		return false
+	}
+	_, ok := findReleaseAssetByName(release, []string{
+		optionalDriverBundleAssetName,
+		optionalDriverBundleIndexAssetName,
+		optionalDriverBundleManifestAssetName,
+	})
+	return ok
+}
+
+func resolvePublishedDriverPack() (publishedDriverPackInfo, error) {
+	publishedDriverPackMu.RLock()
+	cached := publishedDriverPackCache
+	publishedDriverPackMu.RUnlock()
+	ttl := driverReleasePackCacheTTL
+	if strings.TrimSpace(cached.Err) != "" {
+		ttl = driverReleasePackErrorCacheTTL
+	}
+	if !cached.LoadedAt.IsZero() && time.Since(cached.LoadedAt) < ttl {
+		if strings.TrimSpace(cached.Err) != "" {
+			return publishedDriverPackInfo{}, errors.New(strings.TrimSpace(cached.Err))
+		}
+		return clonePublishedDriverPackInfo(publishedDriverPackInfo{
+			Tag:           cached.Tag,
+			Published:     cached.Published,
+			SHA256ByAsset: cached.SHA256ByAsset,
+		}), nil
+	}
+
+	release, err := selectLatestDriverPackRelease()
+	entry := publishedDriverPackCacheEntry{LoadedAt: time.Now()}
+	if err != nil {
+		entry.Err = err.Error()
+		publishedDriverPackMu.Lock()
+		publishedDriverPackCache = entry
+		publishedDriverPackMu.Unlock()
+		return publishedDriverPackInfo{}, err
+	}
+
+	info := buildPublishedDriverPackInfo(release)
+	entry.Tag = info.Tag
+	entry.Published = info.Published
+	entry.SHA256ByAsset = info.SHA256ByAsset
+	publishedDriverPackMu.Lock()
+	publishedDriverPackCache = entry
+	publishedDriverPackMu.Unlock()
+	return clonePublishedDriverPackInfo(info), nil
+}
+
+func clonePublishedDriverPackInfo(info publishedDriverPackInfo) publishedDriverPackInfo {
+	cloned := publishedDriverPackInfo{
+		Tag:           strings.TrimSpace(info.Tag),
+		Published:     make(map[string]bool, len(info.Published)),
+		SHA256ByAsset: make(map[string]string, len(info.SHA256ByAsset)),
+	}
+	for name, ok := range info.Published {
+		cloned.Published[name] = ok
+	}
+	for name, sha := range info.SHA256ByAsset {
+		cloned.SHA256ByAsset[name] = sha
+	}
+	return cloned
+}
+
+func selectLatestDriverPackRelease() (*githubRelease, error) {
+	if tag := currentDriverReleaseTag(); tag != "" {
+		if release, err := fetchReleaseByTag(tag); err == nil && releaseHasDriverPackAssets(release) {
+			return release, nil
+		}
+	}
+	if release, err := fetchLatestReleaseForDriverAssets(); err == nil && releaseHasDriverPackAssets(release) {
+		return release, nil
+	}
+	releases, err := loadDriverReleaseListCached()
+	if err != nil {
+		return nil, err
+	}
+	for i := range releases {
+		release := releases[i]
+		if release.Prerelease {
+			continue
+		}
+		if releaseHasDriverPackAssets(&release) {
+			cloned := release
+			return &cloned, nil
+		}
+	}
+	return nil, newLocalizedDriverBackendError("driver_manager.backend.error.bundle_index_asset_missing", nil, nil)
+}
+
+func buildPublishedDriverPackInfo(release *githubRelease) publishedDriverPackInfo {
+	info := publishedDriverPackInfo{
+		Tag:           "",
+		Published:     map[string]bool{},
+		SHA256ByAsset: map[string]string{},
+	}
+	if release == nil {
+		return info
+	}
+	info.Tag = strings.TrimSpace(release.TagName)
+	info.Published = buildReleaseAssetNameMap(release)
+	for _, asset := range release.Assets {
+		name := strings.TrimSpace(asset.Name)
+		if name == "" {
+			continue
+		}
+		if sha := parseGitHubAssetSHA256(asset.Digest); sha != "" {
+			info.SHA256ByAsset[name] = sha
+		}
+	}
+	if indexSizes, err := fetchDriverBundleAssetSizeIndex(release); err == nil {
+		for name, size := range indexSizes {
+			trimmed := strings.TrimSpace(name)
+			if trimmed == "" || size <= 0 {
+				continue
+			}
+			info.Published[trimmed] = true
+		}
+	}
+	if shaByAsset, err := fetchDriverBundleAssetSHA256Manifest(release); err == nil {
+		for name, sha := range shaByAsset {
+			trimmedName := strings.TrimSpace(name)
+			trimmedSHA := strings.ToLower(strings.TrimSpace(sha))
+			if trimmedName == "" || trimmedSHA == "" {
+				continue
+			}
+			info.Published[trimmedName] = true
+			info.SHA256ByAsset[trimmedName] = trimmedSHA
+		}
+	}
+	return info
+}
+
+func parseGitHubAssetSHA256(digest string) string {
+	value := strings.TrimSpace(digest)
+	if value == "" {
+		return ""
+	}
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, "sha256:") {
+		return strings.ToLower(strings.TrimSpace(value[len("sha256:"):]))
+	}
+	return ""
+}
+
+func fetchDriverBundleAssetSHA256Manifest(release *githubRelease) (map[string]string, error) {
+	if release == nil {
+		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.release_empty", nil, nil)
+	}
+	manifestURL := ""
+	for _, asset := range release.Assets {
+		if strings.EqualFold(strings.TrimSpace(asset.Name), optionalDriverBundleManifestAssetName) {
+			manifestURL = strings.TrimSpace(asset.BrowserDownloadURL)
+			break
+		}
+	}
+	if manifestURL == "" {
+		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.bundle_index_asset_missing", nil, nil)
+	}
+
+	client := newHTTPClientWithGlobalProxy(driverReleaseAssetSizeProbeTimeout)
+	req, err := http.NewRequest(http.MethodGet, manifestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "PinkHunkDB-DriverManager")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, newLocalizedDriverBackendError(
+			"driver_manager.backend.error.bundle_index_fetch_failed",
+			nil,
+			fmt.Errorf("HTTP %d", resp.StatusCode),
+		)
+	}
+
+	limited := io.LimitReader(resp.Body, driverBundleManifestMaxSize)
+	decoder := json.NewDecoder(limited)
+	var manifest driverBundleAssetManifest
+	if err := decoder.Decode(&manifest); err != nil {
+		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.bundle_index_parse_failed", nil, err)
+	}
+	if len(manifest.Assets) == 0 {
+		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.bundle_index_empty", nil, nil)
+	}
+	result := make(map[string]string, len(manifest.Assets))
+	for name, meta := range manifest.Assets {
+		trimmedName := strings.TrimSpace(name)
+		trimmedSHA := strings.ToLower(strings.TrimSpace(meta.SHA256))
+		if trimmedName == "" || trimmedSHA == "" {
+			continue
+		}
+		result[trimmedName] = trimmedSHA
+	}
+	if len(result) == 0 {
+		return nil, newLocalizedDriverBackendError("driver_manager.backend.error.bundle_index_empty", nil, nil)
+	}
+	return result, nil
+}
+
+func swapResolvePublishedDriverPackFn(next func() (publishedDriverPackInfo, error)) func() {
+	previous := resolvePublishedDriverPackFn
+	resolvePublishedDriverPackFn = next
+	return func() {
+		resolvePublishedDriverPackFn = previous
+	}
 }
 
 func resolveLatestPublishedDriverDownloadURL(definition driverDefinition) (string, bool) {

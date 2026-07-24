@@ -535,86 +535,28 @@ func TestVerifyInstalledOptionalDriverAgentRevisionLocalizesMetadataUnavailable(
 		optionalDriverAgentMetadataProbe = originalProbe
 	})
 	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-		if driverType != "sqlserver" {
-			t.Fatalf("unexpected driver type %q", driverType)
-		}
-		if executablePath != `C:\raw\driver-agent.exe` {
-			t.Fatalf("unexpected executable path %q", executablePath)
-		}
 		return db.OptionalDriverAgentMetadata{}, fmt.Errorf("probe raw detail")
 	}
 
-	_, err := verifyInstalledOptionalDriverAgentRevision("sqlserver", `C:\raw\driver-agent.exe`)
-	if err == nil {
-		t.Fatal("expected metadata unavailable error")
-	}
-
-	app := NewApp()
-	app.SetLanguage("en-US")
-	got := localizedDriverBackendErrorMessage(app, err)
-	if !strings.Contains(got, "driver-agent version metadata is unavailable") {
-		t.Fatalf("expected English metadata wrapper, got %q", got)
-	}
-	if !strings.Contains(got, "probe raw detail") {
-		t.Fatalf("expected raw probe detail to pass through, got %q", got)
-	}
-	for _, forbidden := range []string{"驱动代理", "不可用", "请安装"} {
-		if strings.Contains(got, forbidden) {
-			t.Fatalf("expected no Chinese wrapper fragment %q in %q", forbidden, got)
-		}
+	if _, err := verifyInstalledOptionalDriverAgentRevision("sqlserver", `C:\raw\driver-agent.exe`); err != nil {
+		t.Fatalf("expected fingerprint revision hard-check to be disabled, got %v", err)
 	}
 }
 
 func TestVerifyInstalledOptionalDriverAgentRevisionLocalizesRevisionMismatch(t *testing.T) {
-	expectedRevision := strings.TrimSpace(db.OptionalDriverAgentRevision("sqlserver"))
-	if expectedRevision == "" {
-		t.Fatal("expected sqlserver to define optional driver agent revision")
+	originalProbe := optionalDriverAgentMetadataProbe
+	t.Cleanup(func() {
+		optionalDriverAgentMetadataProbe = originalProbe
+	})
+	optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
+		return db.OptionalDriverAgentMetadata{
+			DriverType:    driverType,
+			AgentRevision: "src-old",
+		}, nil
 	}
 
-	cases := []struct {
-		name       string
-		revision   string
-		wantActual string
-	}{
-		{name: "raw actual revision", revision: "src-old", wantActual: "src-old"},
-		{name: "empty actual revision", revision: "", wantActual: "empty"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			originalProbe := optionalDriverAgentMetadataProbe
-			t.Cleanup(func() {
-				optionalDriverAgentMetadataProbe = originalProbe
-			})
-			optionalDriverAgentMetadataProbe = func(driverType string, executablePath string) (db.OptionalDriverAgentMetadata, error) {
-				return db.OptionalDriverAgentMetadata{
-					DriverType:    driverType,
-					AgentRevision: tc.revision,
-				}, nil
-			}
-
-			_, err := verifyInstalledOptionalDriverAgentRevision("sqlserver", `C:\raw\driver-agent.exe`)
-			if err == nil {
-				t.Fatal("expected revision mismatch error")
-			}
-
-			app := NewApp()
-			app.SetLanguage("en-US")
-			got := localizedDriverBackendErrorMessage(app, err)
-			if !strings.Contains(got, "driver-agent revision does not match") {
-				t.Fatalf("expected English revision mismatch wrapper, got %q", got)
-			}
-			if !strings.Contains(got, "installed: "+tc.wantActual) {
-				t.Fatalf("expected installed revision %q to pass through, got %q", tc.wantActual, got)
-			}
-			if !strings.Contains(got, "required: "+expectedRevision) {
-				t.Fatalf("expected required revision %q to pass through, got %q", expectedRevision, got)
-			}
-			for _, forbidden := range []string{"驱动代理", "不匹配", "已安装", "当前需要", "请安装", "空"} {
-				if strings.Contains(got, forbidden) {
-					t.Fatalf("expected no Chinese wrapper fragment %q in %q", forbidden, got)
-				}
-			}
-		})
+	if _, err := verifyInstalledOptionalDriverAgentRevision("sqlserver", `C:\raw\driver-agent.exe`); err != nil {
+		t.Fatalf("expected fingerprint revision mismatch hard-check to be disabled, got %v", err)
 	}
 }
 
@@ -635,18 +577,10 @@ func TestVerifyInstalledOptionalDriverAgentRevisionUsesI18nWrappers(t *testing.T
 		`驱动代理版本元数据不可用，请安装当前版本对应的 driver-agent`,
 		`驱动代理 revision 不匹配（已安装：`,
 		`actualLabel = "空"`,
+		"driver_manager.backend.error.agent_revision_mismatch",
 	} {
 		if strings.Contains(functionSource, rawWrapper) {
-			t.Fatalf("verifyInstalledOptionalDriverAgentRevision still contains raw wrapper %s", rawWrapper)
-		}
-	}
-	for _, key := range []string{
-		"driver_manager.backend.error.agent_metadata_unavailable",
-		"driver_manager.backend.error.agent_revision_mismatch",
-		"driver_manager.backend.error.agent_revision_mismatch_empty_actual",
-	} {
-		if !strings.Contains(functionSource, key) {
-			t.Fatalf("verifyInstalledOptionalDriverAgentRevision does not reference i18n key %q", key)
+			t.Fatalf("verifyInstalledOptionalDriverAgentRevision still contains fingerprint comparison residue %s", rawWrapper)
 		}
 	}
 }
@@ -819,7 +753,7 @@ func TestIoTDBDriverDefinitionUsesOptionalAgent(t *testing.T) {
 	}
 }
 
-func TestKafkaDriverDefinitionIsBuiltIn(t *testing.T) {
+func TestKafkaDriverDefinitionIsOptional(t *testing.T) {
 	definition, ok := resolveDriverDefinition("apache-kafka")
 	if !ok {
 		t.Fatal("expected kafka driver definition")
@@ -827,15 +761,15 @@ func TestKafkaDriverDefinitionIsBuiltIn(t *testing.T) {
 	if definition.Name != "Kafka" {
 		t.Fatalf("unexpected kafka driver name: %q", definition.Name)
 	}
-	if !definition.BuiltIn {
-		t.Fatal("expected kafka to be a built-in driver")
+	if definition.BuiltIn {
+		t.Fatal("expected kafka to be an optional driver")
 	}
-	if definition.PinnedVersion != "" || definition.DefaultDownloadURL != "" {
-		t.Fatalf("expected kafka builtin definition to omit optional-agent metadata: %#v", definition)
+	if definition.DefaultDownloadURL == "" {
+		t.Fatalf("expected kafka optional definition to include download metadata: %#v", definition)
 	}
 }
 
-func TestMQTTDriverDefinitionIsBuiltIn(t *testing.T) {
+func TestMQTTDriverDefinitionIsOptional(t *testing.T) {
 	definition, ok := resolveDriverDefinition("mqtts")
 	if !ok {
 		t.Fatal("expected mqtt driver definition")
@@ -843,15 +777,15 @@ func TestMQTTDriverDefinitionIsBuiltIn(t *testing.T) {
 	if definition.Name != "MQTT" {
 		t.Fatalf("unexpected mqtt driver name: %q", definition.Name)
 	}
-	if !definition.BuiltIn {
-		t.Fatal("expected mqtt to be a built-in driver")
+	if definition.BuiltIn {
+		t.Fatal("expected mqtt to be an optional driver")
 	}
-	if definition.PinnedVersion != "" || definition.DefaultDownloadURL != "" {
-		t.Fatalf("expected mqtt builtin definition to omit optional-agent metadata: %#v", definition)
+	if definition.DefaultDownloadURL == "" {
+		t.Fatalf("expected mqtt optional definition to include download metadata: %#v", definition)
 	}
 }
 
-func TestRocketMQDriverDefinitionIsBuiltIn(t *testing.T) {
+func TestRocketMQDriverDefinitionIsOptional(t *testing.T) {
 	definition, ok := resolveDriverDefinition("rmq")
 	if !ok {
 		t.Fatal("expected rocketmq driver definition")
@@ -859,15 +793,15 @@ func TestRocketMQDriverDefinitionIsBuiltIn(t *testing.T) {
 	if definition.Name != "RocketMQ" {
 		t.Fatalf("unexpected rocketmq driver name: %q", definition.Name)
 	}
-	if !definition.BuiltIn {
-		t.Fatal("expected rocketmq to be a built-in driver")
+	if definition.BuiltIn {
+		t.Fatal("expected rocketmq to be an optional driver")
 	}
-	if definition.PinnedVersion != "" || definition.DefaultDownloadURL != "" {
-		t.Fatalf("expected rocketmq builtin definition to omit optional-agent metadata: %#v", definition)
+	if definition.DefaultDownloadURL == "" {
+		t.Fatalf("expected rocketmq optional definition to include download metadata: %#v", definition)
 	}
 }
 
-func TestRabbitMQDriverDefinitionIsBuiltIn(t *testing.T) {
+func TestRabbitMQDriverDefinitionIsOptional(t *testing.T) {
 	definition, ok := resolveDriverDefinition("rabbit-mq")
 	if !ok {
 		t.Fatal("expected rabbitmq driver definition")
@@ -875,15 +809,15 @@ func TestRabbitMQDriverDefinitionIsBuiltIn(t *testing.T) {
 	if definition.Name != "RabbitMQ" {
 		t.Fatalf("unexpected rabbitmq driver name: %q", definition.Name)
 	}
-	if !definition.BuiltIn {
-		t.Fatal("expected rabbitmq to be a built-in driver")
+	if definition.BuiltIn {
+		t.Fatal("expected rabbitmq to be an optional driver")
 	}
-	if definition.PinnedVersion != "" || definition.DefaultDownloadURL != "" {
-		t.Fatalf("expected rabbitmq builtin definition to omit optional-agent metadata: %#v", definition)
+	if definition.DefaultDownloadURL == "" {
+		t.Fatalf("expected rabbitmq optional definition to include download metadata: %#v", definition)
 	}
 }
 
-func TestGoldenDBDriverDefinitionIsBuiltIn(t *testing.T) {
+func TestGoldenDBDriverDefinitionIsOptional(t *testing.T) {
 	definition, ok := resolveDriverDefinition("greatdb")
 	if !ok {
 		t.Fatal("expected goldendb driver definition")
@@ -891,11 +825,11 @@ func TestGoldenDBDriverDefinitionIsBuiltIn(t *testing.T) {
 	if definition.Name != "GoldenDB" {
 		t.Fatalf("unexpected goldendb driver name: %q", definition.Name)
 	}
-	if !definition.BuiltIn {
-		t.Fatal("expected goldendb to be a built-in driver")
+	if definition.BuiltIn {
+		t.Fatal("expected goldendb to be an optional driver")
 	}
-	if definition.PinnedVersion != "" || definition.DefaultDownloadURL != "" {
-		t.Fatalf("expected goldendb builtin definition to omit optional metadata: %#v", definition)
+	if definition.DefaultDownloadURL == "" {
+		t.Fatalf("expected goldendb optional definition to include download metadata: %#v", definition)
 	}
 	if latestDriverVersionMap["goldendb"] != "1.9.3" {
 		t.Fatalf("unexpected goldendb pinned version: %q", latestDriverVersionMap["goldendb"])
@@ -1826,11 +1760,8 @@ func TestInstallOptionalDriverAgentPackageAcceptsStaleDownloadRevision(t *testin
 		t.Fatalf("expected runtime executable to stay installed, got %v", err)
 	}
 	needsUpdate, reason, expectedRevision := optionalDriverAgentRevisionStatus("sqlserver", meta, true)
-	if !needsUpdate {
-		t.Fatalf("expected stale installed revision to be surfaced as needsUpdate; expected=%q", expectedRevision)
-	}
-	if !strings.Contains(reason, "强烈建议重装") {
-		t.Fatalf("expected advisory reinstall reason, got %q", reason)
+	if needsUpdate || reason != "" || expectedRevision != "" {
+		t.Fatalf("expected fingerprint revision comparison to stay disabled, needsUpdate=%v reason=%q expected=%q", needsUpdate, reason, expectedRevision)
 	}
 }
 

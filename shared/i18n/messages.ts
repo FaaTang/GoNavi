@@ -679,7 +679,7 @@ export const messages: Record<SupportedLanguage, Record<MessageKey, string>> = {
     "driver.modal.footer.close": "关闭",
     "driver.modal.footer.background": "后台运行",
     "driver.modal.header.description.install":
-      "除 MySQL / Redis / Oracle / PostgreSQL 外，其他数据源需先安装启用后再连接。",
+      "除 MySQL / PostgreSQL / Redis 外，其他数据源需先安装启用后再连接。",
     "driver.modal.header.description.agent":
       "驱动代理独立运行，PinkHunkDB 升级后如提示重装，请重新安装对应驱动以应用新的 agent 逻辑。",
     "driver.modal.stats.total": "全部",
@@ -1581,7 +1581,7 @@ export const messages: Record<SupportedLanguage, Record<MessageKey, string>> = {
     "driver.modal.footer.close": "Close",
     "driver.modal.footer.background": "Run in background",
     "driver.modal.header.description.install":
-      "Except for MySQL / Redis / Oracle / PostgreSQL, other data sources must be installed and enabled before connecting.",
+      "Except for MySQL / PostgreSQL / Redis, other data sources must be installed and enabled before connecting.",
     "driver.modal.header.description.agent":
       "Driver agents run independently. If PinkHunkDB asks for reinstallation after an upgrade, reinstall the affected driver so the new agent logic is applied.",
     "driver.modal.stats.total": "Total",

@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch)
+DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch trino goldendb oracle chroma qdrant rocketmq mqtt kafka rabbitmq)
 DEFAULT_PLATFORMS=(darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 linux/amd64 linux/arm64)
 DUCKDB_WINDOWS_LIBRARY_VERSION="v1.4.4"
 DUCKDB_WINDOWS_LIBRARY_URL="https://github.com/duckdb/duckdb/releases/download/${DUCKDB_WINDOWS_LIBRARY_VERSION}/libduckdb-windows-amd64.zip"
@@ -13,21 +13,21 @@ DUCKDB_WINDOWS_SUPPORT_DLL="duckdb.dll"
 
 usage() {
   cat <<'EOF'
-用法：
+用法�?
   ./build-driver-agents.sh [选项]
 
-选项：
+选项�?
   --drivers <列表>      指定驱动列表（逗号分隔），例如：kingbase,mongodb
   --platform <目标>      目标平台：current、all、GOOS/GOARCH，或逗号分隔列表
-                        默认 current（当前 Go 环境）
+                        默认 current（当�?Go 环境�?
   --out-dir <目录>      输出目录根路径，默认：dist/driver-agents
-  --bundle-name <文件名> 驱动总包 zip 名称，默认：PinkHunkDB-DriverAgents.zip
+  --bundle-name <文件�? 驱动总包 zip 名称，默认：PinkHunkDB-DriverAgents.zip
   --strict              任一驱动构建失败即中断（默认失败后继续，最后汇总）
   --upx                 要求使用 UPX 压缩支持的平台产物（默认 auto：有 upx 则压缩）
   --no-upx              禁用 UPX 压缩
   -h, --help            显示帮助
 
-示例：
+示例�?
   ./build-driver-agents.sh
   ./build-driver-agents.sh --drivers kingbase
   ./build-driver-agents.sh --platform windows/amd64 --drivers kingbase,mongodb
@@ -44,7 +44,7 @@ normalize_driver() {
     open_gauss|open-gauss) echo "opengauss" ;;
     gaussdb|gauss_db|gauss-db) echo "gaussdb" ;;
     elasticsearch|elastic) echo "elasticsearch" ;;
-    mariadb|oceanbase|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|opengauss|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse)
+    mariadb|oceanbase|starrocks|sphinx|sqlserver|sqlite|duckdb|dameng|kingbase|highgo|vastbase|opengauss|gaussdb|iris|mongodb|tdengine|iotdb|clickhouse|goldendb|oracle|chroma|qdrant|rocketmq|mqtt|kafka|rabbitmq|trino)
       echo "$name"
       ;;
     *)
@@ -117,7 +117,7 @@ zip_bundle() {
   done
 
   if [[ ${#bundle_dirs[@]} -eq 0 ]]; then
-    echo "❌ 驱动总包 staging 目录为空。"
+    echo "�?驱动总包 staging 目录为空�?
     exit 1
   fi
 
@@ -141,7 +141,7 @@ with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             zf.write(path, path.relative_to(stage).as_posix())
 PY
   else
-    echo "❌ 未找到 zip 或 python3，无法生成驱动总包 zip。"
+    echo "�?未找�?zip �?python3，无法生成驱动总包 zip�?
     exit 1
   fi
 }
@@ -175,7 +175,7 @@ PY
       zip -qry "$zip_path" "Windows/duckdb-driver-agent-windows-amd64.exe" "Windows/duckdb.dll"
     )
   else
-    echo "❌ 未找到 python3 或 zip，无法生成 DuckDB Windows 专属驱动包。"
+    echo "�?未找�?python3 �?zip，无法生�?DuckDB Windows 专属驱动包�?
     exit 1
   fi
 }
@@ -191,13 +191,13 @@ prepare_duckdb_windows_library() {
   fi
 
   mkdir -p "$lib_dir"
-  echo "⬇️  下载 DuckDB Windows 官方动态库：$DUCKDB_WINDOWS_LIBRARY_URL" >&2
+  echo "⬇️  下载 DuckDB Windows 官方动态库�?DUCKDB_WINDOWS_LIBRARY_URL" >&2
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$DUCKDB_WINDOWS_LIBRARY_URL" -o "$zip_path"
   elif command -v wget >/dev/null 2>&1; then
     wget -q "$DUCKDB_WINDOWS_LIBRARY_URL" -O "$zip_path"
   else
-    echo "❌ 未找到 curl 或 wget，无法下载 DuckDB Windows 动态库。" >&2
+    echo "�?未找�?curl �?wget，无法下�?DuckDB Windows 动态库�? >&2
     return 1
   fi
 
@@ -214,12 +214,12 @@ with zipfile.ZipFile(zip_path) as zf:
     zf.extractall(target)
 PY
   else
-    echo "❌ 未找到 unzip 或 python3，无法解压 DuckDB Windows 动态库。" >&2
+    echo "�?未找�?unzip �?python3，无法解�?DuckDB Windows 动态库�? >&2
     return 1
   fi
 
   if [[ ! -f "$lib_dir/duckdb.dll" || ! -f "$lib_dir/duckdb.lib" ]]; then
-    echo "❌ DuckDB Windows 动态库包缺少 duckdb.dll 或 duckdb.lib。" >&2
+    echo "�?DuckDB Windows 动态库包缺�?duckdb.dll �?duckdb.lib�? >&2
     return 1
   fi
 
@@ -276,7 +276,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "❌ 未知参数：$1"
+      echo "�?未知参数�?1"
       usage
       exit 1
       ;;
@@ -284,7 +284,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if ! command -v go >/dev/null 2>&1; then
-  echo "❌ 未找到 Go，请先安装 Go 并确保 go 在 PATH 中。"
+  echo "�?未找�?Go，请先安�?Go 并确�?go �?PATH 中�?
   exit 1
 fi
 
@@ -293,7 +293,7 @@ if [[ -n "$driver_csv" ]]; then
   IFS=',' read -r -a raw_drivers <<<"$driver_csv"
   for item in "${raw_drivers[@]}"; do
     normalized="$(normalize_driver "$item")" || {
-      echo "❌ 不支持的驱动：$item"
+      echo "�?不支持的驱动�?item"
       exit 1
     }
     drivers+=("$normalized")
@@ -318,14 +318,14 @@ for item in "${raw_platforms[@]}"; do
     continue
   fi
   normalized_platform="$(normalize_platform "$item")" || {
-    echo "❌ --platform 参数格式错误，应为 current、all、GOOS/GOARCH 或逗号分隔列表，例如 darwin/arm64,windows/amd64"
+    echo "�?--platform 参数格式错误，应�?current、all、GOOS/GOARCH 或逗号分隔列表，例�?darwin/arm64,windows/amd64"
     exit 1
   }
   append_platform "$normalized_platform"
 done
 
 if [[ ${#platforms[@]} -eq 0 ]]; then
-  echo "❌ 未指定有效目标平台。"
+  echo "�?未指定有效目标平台�?
   exit 1
 fi
 
@@ -352,10 +352,10 @@ declare -a built_assets=()
 declare -a failed_drivers=()
 declare -a skipped_drivers=()
 
-echo "🚀 开始构建 optional-driver-agent"
-echo "   平台：${platforms[*]}"
+echo "🚀 开始构�?optional-driver-agent"
+echo "   平台�?{platforms[*]}"
 echo "   输出根目录：$out_root_abs"
-echo "   驱动列表：${drivers[*]}"
+echo "   驱动列表�?{drivers[*]}"
 
 for platform in "${platforms[@]}"; do
   goos="${platform%%/*}"
@@ -369,12 +369,12 @@ for platform in "${platforms[@]}"; do
   output_dir_abs="$(cd "$output_dir" && pwd)"
 
   echo ""
-  echo "🧭 生成 driver-agent revision 指纹：$platform"
+  echo "🧭 生成 driver-agent revision 指纹�?platform"
   "$SCRIPT_DIR/tools/generate-driver-agent-revisions.sh" --platform "$platform" --drivers "$revision_driver_csv"
 
   for driver in "${drivers[@]}"; do
     if [[ "$driver" == "duckdb" && "$goos" == "windows" && "$goarch" != "amd64" ]]; then
-      echo "⚠️  跳过 duckdb（$platform 仅支持 windows/amd64）"
+      echo "⚠️  跳过 duckdb�?platform 仅支�?windows/amd64�?
       skipped_drivers+=("duckdb($platform)")
       continue
     fi
@@ -412,7 +412,7 @@ for platform in "${platforms[@]}"; do
     set -e
 
     if [[ $build_exit -ne 0 ]]; then
-      echo "❌ 构建失败：$driver ($platform)"
+      echo "�?构建失败�?driver ($platform)"
       failed_drivers+=("$driver($platform)")
       if [[ "$strict_mode" == "true" ]]; then
         exit $build_exit
@@ -433,7 +433,7 @@ for platform in "${platforms[@]}"; do
 done
 
 if [[ ${#built_assets[@]} -eq 0 ]]; then
-  echo "❌ 未成功构建任何驱动代理。"
+  echo "�?未成功构建任何驱动代理�?
   exit 1
 fi
 
@@ -448,14 +448,14 @@ if [[ -f "$duckdb_asset_path" && -f "$duckdb_dll_path" ]]; then
 fi
 
 echo ""
-echo "✅ 构建完成"
-echo "   单文件输出根目录：$out_root_abs"
-echo "   驱动总包：$bundle_zip_path"
+echo "�?构建完成"
+echo "   单文件输出根目录�?out_root_abs"
+echo "   驱动总包�?bundle_zip_path"
 echo "   已构建：${built_assets[*]}"
 if [[ ${#skipped_drivers[@]} -gt 0 ]]; then
   echo "   已跳过：${skipped_drivers[*]}"
 fi
 if [[ ${#failed_drivers[@]} -gt 0 ]]; then
-  echo "⚠️  构建失败驱动：${failed_drivers[*]}"
+  echo "⚠️  构建失败驱动�?{failed_drivers[*]}"
   exit 2
 fi

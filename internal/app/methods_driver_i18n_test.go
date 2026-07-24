@@ -1307,14 +1307,9 @@ func TestMethodsDriverUpdateStatusUsesLocalizedText(t *testing.T) {
 		"func optionalDriverAgentRevisionStatus": {
 			rawMessages: []string{
 				`fmt.Sprintf("当前 PinkHunkDB 版本要求更新后的 %s driver-agent（revision: %s）", displayName, expected)`,
-				`impact := "driver-agent 是独立二进制，不会随主程序自动更新；如果不重装，会继续使用旧 agent 逻辑，驱动侧已修复或优化的行为不会生效，可能继续出现旧版本问题。强烈建议重装对应驱动代理"`,
-				`fmt.Sprintf("原因：%s。影响：%s", updateReason, impact)`,
-				`fmt.Sprintf("原因：%s。影响：%s（已安装标记：%s，当前需要：%s）", updateReason, impact, actual, expected)`,
-			},
-			keys: []string{
 				"driver_manager.backend.status.agent_revision_update_detail",
-				"driver_manager.backend.status.agent_revision_update_detail_with_actual",
 			},
+			keys: []string{},
 		},
 		"func optionalDriverPackageUpdateStatus": {
 			rawMessages: []string{
@@ -1322,6 +1317,7 @@ func TestMethodsDriverUpdateStatusUsesLocalizedText(t *testing.T) {
 			},
 			keys: []string{
 				"driver_manager.backend.status.mongodb_compatibility_update_detail",
+				"driver_manager.backend.status.package_release_update_detail",
 			},
 		},
 	}
@@ -1351,6 +1347,8 @@ func TestMethodsDriverUpdateStatusCatalogKeysExist(t *testing.T) {
 		"driver_manager.backend.status.agent_revision_update_detail",
 		"driver_manager.backend.status.agent_revision_update_detail_with_actual",
 		"driver_manager.backend.status.mongodb_compatibility_update_detail",
+		"driver_manager.backend.status.package_release_update_detail",
+		"driver_manager.backend.status.package_release_current_unknown",
 	}
 	for _, language := range i18n.SupportedLanguages() {
 		catalog := catalogs[language]
@@ -1363,27 +1361,9 @@ func TestMethodsDriverUpdateStatusCatalogKeysExist(t *testing.T) {
 }
 
 func TestOptionalDriverAgentRevisionStatusUsesCurrentLanguageForUpdateReason(t *testing.T) {
-	app := NewApp()
-	app.SetLanguage(string(i18n.LanguageEnUS))
-	t.Cleanup(func() {
-		app.SetLanguage(string(i18n.LanguageZhCN))
-	})
-
 	needsUpdate, reason, expected := optionalDriverAgentRevisionStatus("clickhouse", installedDriverPackage{}, true)
-	if !needsUpdate {
-		t.Fatal("expected ClickHouse revision mismatch to require update")
-	}
-	if expected == "" {
-		t.Fatal("expected ClickHouse to define an expected revision")
-	}
-	if !strings.Contains(reason, "Reason:") || !strings.Contains(reason, "Impact:") {
-		t.Fatalf("expected English reason/impact wrapper, got %q", reason)
-	}
-	if !strings.Contains(reason, "ClickHouse driver-agent") || !strings.Contains(reason, expected) {
-		t.Fatalf("expected English ClickHouse revision detail with expected revision, got %q", reason)
-	}
-	if strings.Contains(reason, "原因：") || strings.Contains(reason, "影响：") || strings.Contains(reason, "强烈建议重装") {
-		t.Fatalf("expected no Chinese revision update reason in en-US mode, got %q", reason)
+	if needsUpdate || reason != "" || expected != "" {
+		t.Fatalf("expected fingerprint revision comparison to be disabled, needsUpdate=%v reason=%q expected=%q", needsUpdate, reason, expected)
 	}
 }
 

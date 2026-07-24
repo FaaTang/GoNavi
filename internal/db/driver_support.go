@@ -14,21 +14,21 @@ import (
 // coreBuiltinDrivers 是始终内置可用的核心驱动，无需额外安装即可使用。
 var coreBuiltinDrivers = map[string]struct{}{
 	"mysql":    {},
-	"goldendb": {},
 	"redis":    {},
-	"oracle":   {},
 	"postgres": {},
-	"chroma":   {},
-	"qdrant":   {},
-	"rocketmq": {},
-	"mqtt":     {},
-	"kafka":    {},
-	"rabbitmq": {},
 }
 
 // optionalGoDrivers 表示需要用户“安装启用”后才能使用的纯 Go 驱动。
-// 注意：这是一种运行时门控（installed.json 标记），并不减少主二进制体积。
+// 主程序通过 optional-driver-agent 进程加载，对应实现用 build tag 隔离以减小主二进制体积。
 var optionalGoDrivers = map[string]struct{}{
+	"goldendb":      {},
+	"oracle":        {},
+	"chroma":        {},
+	"qdrant":        {},
+	"rocketmq":      {},
+	"mqtt":          {},
+	"kafka":         {},
+	"rabbitmq":      {},
 	"mariadb":       {},
 	"oceanbase":     {},
 	"diros":         {},
@@ -52,9 +52,8 @@ var optionalGoDrivers = map[string]struct{}{
 	"trino":         {},
 }
 
-// optionalDriverAgentRevisions 记录 GoNavi 对各可选 driver-agent 包装逻辑的兼容版本。
-// 该 map 由 tools/generate-driver-agent-revisions.sh 按 driver-agent 源码依赖自动生成，
-// 避免人工判断需要 bump 哪个驱动 revision。
+// optionalDriverAgentRevisions 由历史脚本生成，仅作 agent metadata 可选字段；
+// 主程序与发布流程已不再用指纹 revision 做版本对比，也不再强制重算。
 var optionalDriverAgentRevisions = map[string]string{}
 
 var (

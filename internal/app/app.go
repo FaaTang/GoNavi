@@ -1082,44 +1082,8 @@ func formatConnectFailureCooldown(remaining time.Duration) time.Duration {
 }
 
 func verifyRuntimeOptionalDriverAgentRevision(config connection.ConnectionConfig) error {
-	driverType := normalizeDriverType(config.Type)
-	if !db.IsOptionalGoDriver(driverType) {
-		return nil
-	}
-	executablePath, err := db.ResolveOptionalDriverAgentExecutablePath("", driverType)
-	if err != nil {
-		return err
-	}
-	pkg, packageMetaExists := readInstalledDriverPackage("", driverType)
-	selectedVersion := ""
-	if packageMetaExists {
-		selectedVersion = strings.TrimSpace(pkg.Version)
-	}
-	if !shouldVerifyOptionalDriverAgentRevision(driverType, selectedVersion) {
-		return nil
-	}
-	expectedRevision := strings.TrimSpace(db.OptionalDriverAgentRevision(driverType))
-	if expectedRevision == "" {
-		return nil
-	}
-	displayName := resolveDriverDisplayName(driverDefinition{Type: driverType})
-	agentRevision, current, err := optionalDriverAgentRevisionCurrent(driverType, executablePath)
-	if err != nil {
-		logger.Warnf("%s driver-agent revision 元数据不可用，继续使用已安装代理：version=%s path=%s err=%v；建议在驱动管理中重装",
-			displayName, selectedVersion, executablePath, err)
-		return nil
-	}
-	if !current {
-		actualLabel := strings.TrimSpace(agentRevision)
-		if actualLabel == "" {
-			actualLabel = "空"
-		}
-		logger.Warnf("%s driver-agent revision 不匹配，继续使用已安装代理：已安装=%s 当前需要=%s version=%s path=%s；建议在驱动管理中重装",
-			displayName, actualLabel, expectedRevision, selectedVersion, executablePath)
-		return nil
-	}
-	logger.Infof("%s driver-agent revision 校验通过：已安装=%s 当前需要=%s version=%s path=%s",
-		displayName, strings.TrimSpace(agentRevision), expectedRevision, selectedVersion, executablePath)
+	// 不再用指纹 revision 在连接路径做版本对比。
+	_ = config
 	return nil
 }
 

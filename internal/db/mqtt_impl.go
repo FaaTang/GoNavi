@@ -1,9 +1,10 @@
+//go:build gonavi_full_drivers || gonavi_mqtt_driver
+
 package db
 
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"GoNavi-Wails/internal/connection"
 	"GoNavi-Wails/internal/logger"
@@ -928,18 +928,6 @@ func (r *pahoMQTTRuntime) Publish(ctx context.Context, command mqttPublishComman
 	return 1, nil
 }
 
-func mqttEncodePayload(payload interface{}) ([]byte, error) {
-	switch typed := payload.(type) {
-	case nil:
-		return []byte{}, nil
-	case []byte:
-		return typed, nil
-	case string:
-		return []byte(typed), nil
-	default:
-		return json.Marshal(typed)
-	}
-}
 
 func mqttRecordFromMessage(message pahomqtt.Message) mqttMessageRecord {
 	decoded, encoding := mqttDecodePayload(message.Payload())
@@ -956,19 +944,6 @@ func mqttRecordFromMessage(message pahomqtt.Message) mqttMessageRecord {
 	}
 }
 
-func mqttDecodePayload(payload []byte) (interface{}, string) {
-	if payload == nil {
-		return nil, "text"
-	}
-	var decoded interface{}
-	if err := decodeJSONWithUseNumber(payload, &decoded); err == nil {
-		return decoded, "json"
-	}
-	if utf8.Valid(payload) {
-		return string(payload), "text"
-	}
-	return base64.StdEncoding.EncodeToString(payload), "base64"
-}
 
 type mqttParsedSQL struct {
 	Action string

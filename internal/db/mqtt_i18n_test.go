@@ -1,3 +1,5 @@
+//go:build gonavi_full_drivers || gonavi_mqtt_driver
+
 package db
 
 import (

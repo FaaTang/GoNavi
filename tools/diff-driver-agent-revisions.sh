@@ -5,19 +5,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-DEFAULT_DRIVERS=(mariadb oceanbase diros starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch)
+DEFAULT_DRIVERS=(mariadb oceanbase doris starrocks sphinx sqlserver sqlite duckdb dameng kingbase highgo vastbase opengauss gaussdb iris mongodb tdengine iotdb clickhouse elasticsearch trino goldendb oracle chroma qdrant rocketmq mqtt kafka rabbitmq)
 
 usage() {
   cat <<'EOF'
-用法：
+用法�?
   ./tools/diff-driver-agent-revisions.sh --base <ref> --head <ref> --platform <GOOS/GOARCH>
 
-输出：
-  逗号分隔的 driver-agent 列表；当 base/head 在当前 runner + 指定平台上生成出的 revision 完全一致时输出空行。
+输出�?
+  逗号分隔�?driver-agent 列表；当 base/head 在当�?runner + 指定平台上生成出�?revision 完全一致时输出空行�?
 
-说明：
-  该脚本会分别在 base/head 对应源码上重算指定平台的 driver-agent revision，
-  并按实际 revision 差异判定哪些驱动必须重建。
+说明�?
+  该脚本会分别�?base/head 对应源码上重算指定平台的 driver-agent revision�?
+  并按实际 revision 差异判定哪些驱动必须重建�?
 EOF
 }
 
@@ -88,7 +88,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "未知参数：$1" >&2
+      echo "未知参数�?1" >&2
       usage >&2
       exit 1
       ;;
@@ -100,16 +100,16 @@ if [[ -z "$base_ref" || -z "$head_ref" || -z "$target_platform" ]]; then
   exit 1
 fi
 if [[ "$target_platform" != */* ]]; then
-  echo "--platform 参数格式错误，应为 GOOS/GOARCH，例如 darwin/arm64" >&2
+  echo "--platform 参数格式错误，应�?GOOS/GOARCH，例�?darwin/arm64" >&2
   exit 1
 fi
 
 if ! git rev-parse --verify "${base_ref}^{commit}" >/dev/null 2>&1; then
-  echo "无法解析 base ref：$base_ref" >&2
+  echo "无法解析 base ref�?base_ref" >&2
   exit 1
 fi
 if ! git rev-parse --verify "${head_ref}^{commit}" >/dev/null 2>&1; then
-  echo "无法解析 head ref：$head_ref" >&2
+  echo "无法解析 head ref�?head_ref" >&2
   exit 1
 fi
 

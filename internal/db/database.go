@@ -624,35 +624,11 @@ var databaseFactories = map[string]databaseFactory{
 	"mysql": func() Database {
 		return &MySQLDB{}
 	},
-	"goldendb": func() Database {
-		return &MySQLDB{}
-	},
 	"postgres": func() Database {
 		return &PostgresDB{}
 	},
-	"oracle": func() Database {
-		return &OracleDB{}
-	},
 	"custom": func() Database {
 		return &CustomDB{}
-	},
-	"chroma": func() Database {
-		return &ChromaDB{}
-	},
-	"qdrant": func() Database {
-		return &QdrantDB{}
-	},
-	"rocketmq": func() Database {
-		return &RocketMQDB{}
-	},
-	"mqtt": func() Database {
-		return &MQTTDB{}
-	},
-	"kafka": func() Database {
-		return &KafkaDB{}
-	},
-	"rabbitmq": func() Database {
-		return &RabbitMQDB{}
 	},
 }
 

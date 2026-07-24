@@ -240,29 +240,6 @@ func TestMySQLDSN_PreservesPreferredFallbackWithCustomTLSConfig(t *testing.T) {
 	}
 }
 
-func TestOracleDSN_EscapesUserAndPassword(t *testing.T) {
-	o := &OracleDB{}
-	cfg := connection.ConnectionConfig{
-		Type:     "oracle",
-		Host:     "127.0.0.1",
-		Port:     1521,
-		User:     "u@ser",
-		Password: "p@ss:wo/rd",
-		Database: "svc/name",
-	}
-
-	dsn := o.getDSN(cfg)
-	if strings.Contains(dsn, cfg.Password) {
-		t.Fatalf("dsn 包含原始密码：%s", dsn)
-	}
-	if !strings.Contains(dsn, "u%40ser") || !strings.Contains(dsn, "p%40ss%3Awo%2Frd") {
-		t.Fatalf("dsn 未正确转义 user/password：%s", dsn)
-	}
-	if !strings.Contains(dsn, "/svc%2Fname") {
-		t.Fatalf("dsn 未正确转义 service：%s", dsn)
-	}
-}
-
 func TestDamengDSN_KeepsRawPasswordForDriverParser(t *testing.T) {
 	d := &DamengDB{}
 	cfg := connection.ConnectionConfig{
