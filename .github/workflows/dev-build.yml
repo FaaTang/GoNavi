@@ -651,8 +651,15 @@ jobs:
         run: |
           set -euo pipefail
           DEV_VERSION="${{ steps.version.outputs.version }}"
-          echo "🧭 为 ${{ matrix.platform }} 全量生成 driver-agent revision 指纹，避免跨平台沿用旧 revision"
-          ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}"
+          git fetch --force --tags 2>/dev/null || true
+          PREV_TAG="$(git describe --tags --match 'v*' --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)"
+          if [[ -n "$PREV_TAG" ]]; then
+            echo "🧭 生成 ${{ matrix.platform }} driver-agent revision（相对 ${PREV_TAG} 驱动源码未变则跳过）"
+            ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}" --skip-if-unchanged-since "$PREV_TAG"
+          else
+            echo "🧭 无历史稳定 tag，全量生成 ${{ matrix.platform }} driver-agent revision"
+            ./tools/generate-driver-agent-revisions.sh --platform "${{ matrix.platform }}"
+          fi
           if [ -n "${{ matrix.wails_tags }}" ]; then
             wails build -s -skipbindings -platform ${{ matrix.platform }} -clean -o ${{ matrix.build_name }} -tags "${{ matrix.wails_tags }}" -ldflags "-s -w -X GoNavi-Wails/internal/app.AppVersion=${DEV_VERSION}"
           else

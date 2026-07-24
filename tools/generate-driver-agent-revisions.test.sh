@@ -77,3 +77,52 @@ copy_repo_to_tmp "$tmpdir_connection"
 )
 
 echo "generate-driver-agent-revisions platform test passed"
+
+tmpdir_skip="$(mktemp -d "${TMPDIR:-/tmp}/gonavi-generate-driver-revisions-skip.XXXXXX")"
+cleanup_skip() {
+  rm -rf "$tmpdir_skip"
+}
+trap 'cleanup; cleanup_skip' EXIT
+
+copy_repo_to_tmp "$tmpdir_skip"
+(
+  cd "$tmpdir_skip"
+  git init -q
+  git config user.email "ci@example.com"
+  git config user.name "ci"
+  # 避免 Windows/沙箱下换行或文件模式噪音干扰「未变更」判断。
+  git config core.autocrlf false
+  git config core.filemode false
+  git add -A
+  git commit -q -m "base"
+
+  before_hash="$(git hash-object internal/db/driver_agent_revisions_gen.go)"
+  skip_output="$(GONAVI_DRIVER_REVISION_JOBS=1 bash ./tools/generate-driver-agent-revisions.sh --platform windows/amd64 --skip-if-unchanged-since HEAD)"
+  after_hash="$(git hash-object internal/db/driver_agent_revisions_gen.go)"
+
+  if [[ "$skip_output" != *"跳过"* ]]; then
+    echo "expected --skip-if-unchanged-since HEAD to skip when inputs are unchanged, got: $skip_output" >&2
+    exit 1
+  fi
+  if [[ "$before_hash" != "$after_hash" ]]; then
+    echo "expected skipped generation to leave revision file untouched" >&2
+    exit 1
+  fi
+
+  printf '\n' >>cmd/optional-driver-agent/main.go
+  if GONAVI_DRIVER_REVISION_JOBS=1 bash ./tools/generate-driver-agent-revisions.sh \
+      --platform windows/amd64 \
+      --skip-if-unchanged-since HEAD \
+      --decide-skip-only >/tmp/gonavi-rev-decide.log 2>&1; then
+    echo "expected driver source change to require regeneration" >&2
+    cat /tmp/gonavi-rev-decide.log >&2
+    exit 1
+  fi
+  if ! grep -q "需要重算" /tmp/gonavi-rev-decide.log; then
+    echo "expected regeneration decision after driver source change" >&2
+    cat /tmp/gonavi-rev-decide.log >&2
+    exit 1
+  fi
+)
+
+echo "generate-driver-agent-revisions skip-unchanged test passed"
