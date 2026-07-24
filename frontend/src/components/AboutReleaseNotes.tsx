@@ -22,9 +22,6 @@ export const AboutReleaseNotes: React.FC<AboutReleaseNotesProps> = ({
   darkMode,
 }) => {
   const text = String(notes || '').trim();
-  if (!text) {
-    return null;
-  }
 
   const onLinkClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement | null;
@@ -35,6 +32,10 @@ export const AboutReleaseNotes: React.FC<AboutReleaseNotesProps> = ({
     event.preventDefault();
     BrowserOpenURL(href);
   }, []);
+
+  if (!text) {
+    return null;
+  }
 
   return (
     <div className={`about-release-section${darkMode ? ' about-release-section--dark' : ''}`}>
