@@ -2268,10 +2268,15 @@ const sanitizeWindowState = (
   return "normal";
 };
 
+const DEFAULT_SIDEBAR_WIDTH = 420;
+
 const sanitizeSidebarWidth = (value: unknown): number => {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 330;
-  return Math.max(200, Math.min(600, Math.trunc(parsed)));
+  if (!Number.isFinite(parsed)) return DEFAULT_SIDEBAR_WIDTH;
+  const width = Math.max(200, Math.min(600, Math.trunc(parsed)));
+  // 旧默认 330 过窄会挤压连接名与筛选文案，升级到当前 CSS 允许上限。
+  if (width === 330) return DEFAULT_SIDEBAR_WIDTH;
+  return width;
 };
 
 const sanitizeWindowBounds = (
@@ -2498,7 +2503,7 @@ export const useStore = create<AppState>()(
       pinnedSidebarTables: [],
       windowBounds: null,
       windowState: "normal" as const,
-      sidebarWidth: 330,
+      sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
 
       // AI 运行状态
       aiPanelVisible: false,
