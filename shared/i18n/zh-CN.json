@@ -2440,6 +2440,8 @@
   "app.about.message.update_package_ready": "更新包已就绪（{{version}}）",
   "app.about.message.update_package_ready_with_path": "更新包已就绪（{{version}}），路径：{{path}}",
   "app.about.project_links": "项目入口",
+  "app.about.release_notes.latest_title": "最新 Release",
+  "app.about.release_notes.title": "更新说明",
   "app.about.title": "关于 PinkHunkDB",
   "app.about.update_status.check_failed": "检查更新失败: {{error}}",
   "app.about.update_status.checking": "正在检查更新...",

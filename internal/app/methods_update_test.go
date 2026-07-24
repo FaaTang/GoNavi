@@ -27,6 +27,7 @@ func TestFetchLatestUpdateInfoSkipsChecksumWhenCurrentVersionIsAlreadyLatest(t *
 		return &githubRelease{
 			TagName: "v0.6.5",
 			Name:    "v0.6.5",
+			Body:    "## ✨ 新功能\n\n* 改进用户界面和功能",
 			HTMLURL: "https://github.com/FaaTang/PinkHunkDB/releases/tag/v0.6.5",
 			Assets: []githubAsset{
 				{
@@ -62,6 +63,9 @@ func TestFetchLatestUpdateInfoSkipsChecksumWhenCurrentVersionIsAlreadyLatest(t *
 	if info.LatestVersion != "0.6.5" || info.CurrentVersion != "0.6.5" {
 		t.Fatalf("unexpected version info: %#v", info)
 	}
+	if info.ReleaseNotes != "## ✨ 新功能\n\n* 改进用户界面和功能" {
+		t.Fatalf("expected release notes to be returned, got %#v", info.ReleaseNotes)
+	}
 }
 
 func TestFetchLatestUpdateInfoFetchesChecksumWhenUpdateIsAvailable(t *testing.T) {
@@ -80,6 +84,7 @@ func TestFetchLatestUpdateInfoFetchesChecksumWhenUpdateIsAvailable(t *testing.T)
 		return &githubRelease{
 			TagName: "v0.6.5",
 			Name:    "v0.6.5",
+			Body:    "## 🐛 问题修复\n\n* 修复更新检查",
 			HTMLURL: "https://github.com/FaaTang/PinkHunkDB/releases/tag/v0.6.5",
 			Assets: []githubAsset{
 				{
@@ -113,6 +118,9 @@ func TestFetchLatestUpdateInfoFetchesChecksumWhenUpdateIsAvailable(t *testing.T)
 	}
 	if info.SHA256 != "abc123" || info.AssetName != assetName {
 		t.Fatalf("unexpected update info: %#v", info)
+	}
+	if info.ReleaseNotes != "## 🐛 问题修复\n\n* 修复更新检查" {
+		t.Fatalf("expected release notes to be returned, got %#v", info.ReleaseNotes)
 	}
 }
 

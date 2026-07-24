@@ -2440,6 +2440,8 @@
   "app.about.message.update_package_ready": "Update package is ready ({{version}})",
   "app.about.message.update_package_ready_with_path": "Update package is ready ({{version}}), path: {{path}}",
   "app.about.project_links": "Project Links",
+  "app.about.release_notes.latest_title": "Latest Release",
+  "app.about.release_notes.title": "Release Notes",
   "app.about.title": "About PinkHunkDB",
   "app.about.update_status.check_failed": "Update check failed: {{error}}",
   "app.about.update_status.checking": "Checking for updates...",

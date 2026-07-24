@@ -168,6 +168,8 @@ describe("i18n catalog", () => {
       "app.about.title",
       "app.about.field.update_status",
       "app.about.field.update_download_path",
+      "app.about.release_notes.title",
+      "app.about.release_notes.latest_title",
       "common.back_to_previous",
       "common.unknown",
       "common.close",

@@ -47,6 +47,7 @@ type UpdateInfo struct {
 	CurrentVersion  string `json:"currentVersion"`
 	LatestVersion   string `json:"latestVersion"`
 	ReleaseName     string `json:"releaseName"`
+	ReleaseNotes    string `json:"releaseNotes,omitempty"`
 	ReleaseNotesURL string `json:"releaseNotesUrl"`
 	AssetName       string `json:"assetName"`
 	AssetURL        string `json:"assetUrl"`
@@ -94,6 +95,7 @@ type stagedUpdate struct {
 type githubRelease struct {
 	TagName    string        `json:"tag_name"`
 	Name       string        `json:"name"`
+	Body       string        `json:"body"`
 	HTMLURL    string        `json:"html_url"`
 	Prerelease bool          `json:"prerelease"`
 	Assets     []githubAsset `json:"assets"`
@@ -444,6 +446,7 @@ func fetchLatestUpdateInfo() (UpdateInfo, error) {
 		return UpdateInfo{}, localizedUpdateError{key: "app.update.backend.error.latest_version_unparseable"}
 	}
 
+	releaseNotes := strings.TrimSpace(release.Body)
 	hasUpdate := compareVersion(currentVersion, latestVersion) < 0
 	if !hasUpdate {
 		return UpdateInfo{
@@ -451,6 +454,7 @@ func fetchLatestUpdateInfo() (UpdateInfo, error) {
 			CurrentVersion:  currentVersion,
 			LatestVersion:   latestVersion,
 			ReleaseName:     release.Name,
+			ReleaseNotes:    releaseNotes,
 			ReleaseNotesURL: release.HTMLURL,
 		}, nil
 	}
@@ -481,6 +485,7 @@ func fetchLatestUpdateInfo() (UpdateInfo, error) {
 		CurrentVersion:  currentVersion,
 		LatestVersion:   latestVersion,
 		ReleaseName:     release.Name,
+		ReleaseNotes:    releaseNotes,
 		ReleaseNotesURL: release.HTMLURL,
 		AssetName:       asset.Name,
 		AssetURL:        asset.BrowserDownloadURL,

@@ -12,6 +12,7 @@ export type UpdateInfo = {
   currentVersion: string;
   latestVersion: string;
   releaseName?: string;
+  releaseNotes?: string;
   releaseNotesUrl?: string;
   assetName?: string;
   assetUrl?: string;

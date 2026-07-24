@@ -103,6 +103,7 @@ import { safeWindowRuntimeCall } from './utils/wailsRuntime';
 import { useAppUpdateManager } from './hooks/useAppUpdateManager';
 import { useAppSidebarResize } from './hooks/useAppSidebarResize';
 import { useAppUtilityStyles } from './hooks/useAppUtilityStyles';
+import { AboutReleaseNotes } from './components/AboutReleaseNotes';
 import { ApplyDataRootDirectory, GetDataRootDirectoryInfo, GetSavedConnections, ListInstalledFontFamilies, OpenDataRootDirectory, SelectDataRootDirectory, SetMacNativeWindowControls, SetWindowTranslucency, SyncMemoryPolicy } from '../wailsjs/go/app/App';
 import { getAntdLocale } from './i18n/frameworkLocale';
 import { useI18n } from './i18n/provider';
@@ -4087,6 +4088,17 @@ function App() {
                             ) : null}
                         </div>
                     </div>
+                    {lastUpdateInfo?.releaseNotes ? (
+                        <div style={utilityPanelStyle}>
+                            <AboutReleaseNotes
+                                notes={lastUpdateInfo.releaseNotes}
+                                hasUpdate={Boolean(lastUpdateInfo.hasUpdate)}
+                                title={t('app.about.release_notes.title')}
+                                latestTitle={t('app.about.release_notes.latest_title')}
+                                darkMode={darkMode}
+                            />
+                        </div>
+                    ) : null}
                     <div style={utilityPanelStyle}>
                         <div style={{ marginBottom: 10, fontWeight: 600 }}>{t('app.about.project_links')}</div>
                         <div style={{ display: 'grid', gap: 10 }}>

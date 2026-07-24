@@ -1,0 +1,115 @@
+.about-release-section {
+  margin-top: 4px;
+}
+
+.about-release-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(16, 24, 40, 0.92);
+}
+
+.about-update-notes {
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: break-word;
+  color: rgba(63, 75, 94, 0.95);
+}
+
+.about-update-notes h1,
+.about-update-notes h2,
+.about-update-notes h3 {
+  margin: 0.65em 0 0.35em;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(16, 24, 40, 0.92);
+  line-height: 1.35;
+}
+
+.about-update-notes h1:first-child,
+.about-update-notes h2:first-child,
+.about-update-notes h3:first-child {
+  margin-top: 0;
+}
+
+.about-update-notes p,
+.about-update-notes ul,
+.about-update-notes ol {
+  margin: 0.35em 0;
+}
+
+.about-update-notes ul,
+.about-update-notes ol {
+  padding-left: 1.35em;
+}
+
+.about-update-notes li {
+  margin: 0.2em 0;
+}
+
+.about-update-notes hr {
+  margin: 0.75em 0;
+  border: none;
+  border-top: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.about-update-notes a {
+  color: #ff4da6;
+  text-decoration: none;
+}
+
+.about-update-notes a:hover {
+  text-decoration: underline;
+}
+
+.about-update-notes code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(144, 147, 153, 0.14);
+  font-size: 0.95em;
+}
+
+.about-update-notes strong {
+  color: rgba(16, 24, 40, 0.92);
+  font-weight: 650;
+}
+
+.about-release-section--dark .about-release-section-title {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.about-release-section--dark .about-update-notes {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.about-release-section--dark .about-update-notes h1,
+.about-release-section--dark .about-update-notes h2,
+.about-release-section--dark .about-update-notes h3,
+.about-release-section--dark .about-update-notes strong {
+  color: rgba(245, 247, 255, 0.92);
+}
+
+.about-release-section--dark .about-update-notes hr {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.about-release-section--dark .about-update-notes a {
+  color: #ffb3dc;
+}
+
+.about-release-section--dark .about-update-notes code {
+  background: rgba(255, 255, 255, 0.1);
+}
