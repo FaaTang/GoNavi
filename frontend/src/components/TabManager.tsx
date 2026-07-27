@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, message, Tabs, Tooltip } from 'antd';
-import { AppstoreOutlined, AimOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, AimOutlined, CloseOutlined, ConsoleSqlOutlined, DatabaseOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import type { MenuProps, TabsProps } from 'antd';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragStartEvent, DragEndEvent, DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
@@ -565,7 +565,6 @@ const TabManager: React.FC = React.memo(() => {
   const closeTabsToRight = useStore(state => state.closeTabsToRight);
   const closeAllTabs = useStore(state => state.closeAllTabs);
   const moveTab = useStore(state => state.moveTab);
-  const setAIPanelVisible = useStore(state => state.setAIPanelVisible);
   const tabsNavBorderColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0, 0, 0, 0.08)';
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
   const suppressClickUntilRef = useRef<number>(0);
@@ -814,10 +813,6 @@ const TabManager: React.FC = React.memo(() => {
     target?.click();
   };
 
-  const handleOpenAI = () => {
-    setAIPanelVisible(true);
-  };
-
   const EmptyWorkbench = (
     <div className="gn-v2-empty-workbench">
       <section className="gn-v2-empty-hero" aria-label={t('tab_manager.empty.aria.start_workbench')}>
@@ -831,11 +826,8 @@ const TabManager: React.FC = React.memo(() => {
           <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenConnectionModal}>
             {t('connection.new')}
           </Button>
-          <Button icon={<ConsoleSqlOutlined />} onClick={() => window.dispatchEvent(new CustomEvent('gonavi:create-query-tab'))}>
+          <Button icon={<ConsoleSqlOutlined />} onClick={() => window.dispatchEvent(new CustomEvent('PinkHunkDB:create-query-tab'))}>
             {t('query.new')}
-          </Button>
-          <Button icon={<RobotOutlined />} onClick={handleOpenAI}>
-            {t('tab_manager.empty.action.open_ai')}
           </Button>
         </div>
       </section>
@@ -851,18 +843,11 @@ const TabManager: React.FC = React.memo(() => {
             <small>{t('tab_manager.empty.quick.configure_source.description')}</small>
           </span>
         </button>
-        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('gonavi:create-query-tab'))}>
+        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('PinkHunkDB:create-query-tab'))}>
           <ConsoleSqlOutlined />
           <span>
             <strong>{t('tab_manager.empty.quick.sql_workspace.title')}</strong>
             <small>{t('tab_manager.empty.quick.sql_workspace.description')}</small>
-          </span>
-        </button>
-        <button type="button" onClick={handleOpenAI}>
-          <RobotOutlined />
-          <span>
-            <strong>{t('tab_manager.empty.quick.ai_assist.title')}</strong>
-            <small>{t('tab_manager.empty.quick.ai_assist.description')}</small>
           </span>
         </button>
       </section>

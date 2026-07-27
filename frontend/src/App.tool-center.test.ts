@@ -302,8 +302,8 @@ describe('tool center menu entries', () => {
   });
 
   it('listens for command search query-tab events and routes them through handleNewQuery', () => {
-    expect(appSource).toContain("window.addEventListener('gonavi:create-query-tab', handleCreateQueryTabEvent as EventListener);");
-    expect(appSource).toContain("window.removeEventListener('gonavi:create-query-tab', handleCreateQueryTabEvent as EventListener);");
+    expect(appSource).toContain("window.addEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);");
+    expect(appSource).toContain("window.removeEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);");
     expect(appSource).toContain('const handleCreateQueryTabEvent = () => {');
     expect(appSource).toContain('handleNewQuery();');
   });
