@@ -4008,7 +4008,7 @@ function App() {
             title={renderUtilityModalTitle(<InfoCircleOutlined />, t('app.about.title'), t('app.about.description'))}
             open={isAboutOpen}
             onCancel={() => setIsAboutOpen(false)}
-            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8 }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' } }}
+            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8 }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10, display: 'flex', flexWrap: 'nowrap', gap: 10, justifyContent: 'flex-end' } }}
             footer={[
                 isBackgroundProgressForLatestUpdate && !isLatestUpdateDownloaded ? (
                     <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
@@ -4028,7 +4028,6 @@ function App() {
                     <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
                 ) : null,
                 <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
-                <Button key="close" onClick={() => setIsAboutOpen(false)}>{t('common.close')}</Button>,
             ].filter(Boolean)}
           >
             {aboutLoading ? (
