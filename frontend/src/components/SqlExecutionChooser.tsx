@@ -211,35 +211,7 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
     () => splitSqlExecutionChooserColumns(options),
     [options],
   );
-  const subqueryOptionCount = subqueryOptions.length;
-  const statementOptionCount = useMemo(
-    () => primaryOptions.filter((item) => isSqlExecutionStatementOptionId(item.id)).length,
-    [primaryOptions],
-  );
   const showTwoColumns = primaryOptions.length > 0 && subqueryOptions.length > 0;
-
-  const resolveOptionLabel = useCallback((option: SqlExecutionChooserOptionView): string => {
-    if (isSqlExecutionSubqueryOptionId(option.id)) {
-      const subqueryIndexMatch = option.id.match(/^subquery-(\d+)$/);
-      const subqueryIndex = subqueryIndexMatch ? Number(subqueryIndexMatch[1]) + 1 : 0;
-      return subqueryOptionCount <= 1
-        ? translate('query_editor.execution.chooser.current_subquery')
-        : translate('query_editor.execution.chooser.subquery', { index: subqueryIndex });
-    }
-    if (isSqlExecutionTableOptionId(option.id)) {
-      return translate('query_editor.execution.chooser.table', {
-        name: option.tableName || option.preview,
-      });
-    }
-    if (isSqlExecutionStatementOptionId(option.id)) {
-      const statementIndexMatch = option.id.match(/^statement-(\d+)$/);
-      const statementIndex = statementIndexMatch ? Number(statementIndexMatch[1]) + 1 : 0;
-      return statementOptionCount <= 1
-        ? translate('query_editor.execution.chooser.current_statement')
-        : translate('query_editor.execution.chooser.statement', { index: statementIndex });
-    }
-    return translate('query_editor.execution.chooser.all_statements', { count: option.statementCount });
-  }, [statementOptionCount, subqueryOptionCount, translate]);
 
   const handleMoveSelection = useCallback((key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
     const nextId = resolveColumnNavigateOptionId(options, selectedId, key);
@@ -315,9 +287,6 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
           boxSizing: 'border-box',
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#1f1f1f' }}>
-          {resolveOptionLabel(option)}
-        </span>
         <span style={{ fontSize: 12, color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {option.preview}
         </span>
@@ -366,7 +335,7 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
         boxShadow: '0 6px 18px rgba(0, 0, 0, 0.12)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 6,
       }}
     >
       <div
