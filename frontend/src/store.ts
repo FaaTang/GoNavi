@@ -1282,7 +1282,7 @@ interface AppState {
   sidebarRootOrder: string[];
   tabs: TabData[];
   activeTabId: string | null;
-  activeContext: { connectionId: string; dbName: string } | null;
+  activeContext: { connectionId: string; dbName: string; tableName?: string } | null;
   savedQueries: SavedQuery[];
   externalSQLDirectories: ExternalSQLDirectory[];
   theme: "light" | "dark";
@@ -1396,7 +1396,7 @@ interface AppState {
   clearTabResultsClearedFlag: (tabId: string) => void;
   setActiveTab: (id: string) => void;
   setActiveContext: (
-    context: { connectionId: string; dbName: string } | null,
+    context: { connectionId: string; dbName: string; tableName?: string } | null,
   ) => void;
 
   replaceSavedQueries: (queries: SavedQuery[]) => void;
@@ -1777,28 +1777,49 @@ const sanitizeActiveTabId = (activeTabId: unknown, tabs: TabData[]): string | nu
   return tabs[0]?.id || null;
 };
 
+type ActiveWorkbenchContext = {
+  connectionId: string;
+  dbName: string;
+  tableName?: string;
+};
+
 const resolveActiveContextFromTab = (
   tab: TabData | null | undefined,
-): { connectionId: string; dbName: string } | null => {
+): ActiveWorkbenchContext | null => {
   if (!tab) return null;
   const connectionId = toTrimmedString(tab.connectionId);
   if (!connectionId) return null;
+  const tableName = toTrimmedString(tab.tableName);
   return {
     connectionId,
     dbName: toTrimmedString(tab.dbName),
+    ...(tableName ? { tableName } : {}),
   };
 };
 
 const resolveActiveContextForTabId = (
   tabs: TabData[],
   activeTabId: string | null | undefined,
-  fallbackContext: { connectionId: string; dbName: string } | null,
-): { connectionId: string; dbName: string } | null => {
+  fallbackContext: ActiveWorkbenchContext | null,
+): ActiveWorkbenchContext | null => {
   const normalizedActiveTabId = toTrimmedString(activeTabId);
   if (normalizedActiveTabId) {
     const activeTab = tabs.find((tab) => tab.id === normalizedActiveTabId);
     const contextFromTab = resolveActiveContextFromTab(activeTab);
     if (contextFromTab) {
+      // 查询页本身没有表对象：保留侧栏选中的表名，供「新建查询」预填 SQL
+      if (
+        activeTab?.type === "query"
+        && !contextFromTab.tableName
+        && fallbackContext?.tableName
+        && fallbackContext.connectionId === contextFromTab.connectionId
+        && fallbackContext.dbName === contextFromTab.dbName
+      ) {
+        return {
+          ...contextFromTab,
+          tableName: fallbackContext.tableName,
+        };
+      }
       return contextFromTab;
     }
   }

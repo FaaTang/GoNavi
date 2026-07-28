@@ -100,6 +100,7 @@ import { resolveTitleBarToggleIconKey, resolveWindowsScaleCheckDelayMs, shouldAp
 import { resolveVisibleStartupWindowBounds } from './utils/windowRestoreBounds';
 import { DEFAULT_AI_PANEL_WIDTH, resolveOverlayAIPanelWidth, shouldOverlayAIPanel } from './utils/aiPanelLayout';
 import { safeWindowRuntimeCall } from './utils/wailsRuntime';
+import { buildTableSelectQuery } from './utils/objectQueryTemplates';
 import { useAppUpdateManager } from './hooks/useAppUpdateManager';
 import { useAppSidebarResize } from './hooks/useAppSidebarResize';
 import { useAppUtilityStyles } from './hooks/useAppUtilityStyles';
@@ -1649,6 +1650,7 @@ function App() {
   const handleNewQuery = useCallback(() => {
       let connId = '';
       let db = '';
+      let tableName = '';
 
       // Priority: Active Tab Context (if connection still valid) > Sidebar Selection (activeContext)
       if (activeTabId) {
@@ -1656,6 +1658,7 @@ function App() {
           if (currentTab && currentTab.connectionId && connections.some(c => c.id === currentTab.connectionId)) {
               connId = currentTab.connectionId;
               db = currentTab.dbName || '';
+              tableName = String(currentTab.tableName || '').trim();
           }
       }
 
@@ -1663,7 +1666,21 @@ function App() {
       if (!connId && activeContext?.connectionId && connections.some(c => c.id === activeContext.connectionId)) {
           connId = activeContext.connectionId;
           db = activeContext.dbName || '';
+          tableName = String(activeContext.tableName || '').trim();
+      } else if (
+          connId
+          && !tableName
+          && activeContext?.connectionId === connId
+          && String(activeContext.dbName || '') === db
+      ) {
+          // 当前 tab 无表对象时，沿用侧栏选中的表名
+          tableName = String(activeContext.tableName || '').trim();
       }
+
+      const connection = connections.find((item) => item.id === connId);
+      const query = tableName
+          ? buildTableSelectQuery(String(connection?.config?.type || ''), tableName)
+          : '';
 
       addTab({
           id: `query-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1671,7 +1688,7 @@ function App() {
           type: 'query',
           connectionId: connId,
           dbName: db,
-          query: ''
+          query,
       });
   }, [activeTabId, tabs, connections, activeContext, addTab, t]);
 
@@ -2522,7 +2539,18 @@ function App() {
 
   useEffect(() => {
       const handleCreateQueryTabEvent = () => {
-          handleNewQuery();
+          // 侧栏已选中库/表时，优先复用侧栏新建查询（表节点会预填 SELECT * FROM ...）
+          let handledBySidebar = false;
+          window.dispatchEvent(new CustomEvent('gonavi:sidebar-new-query', {
+              detail: {
+                  markHandled: () => {
+                      handledBySidebar = true;
+                  },
+              },
+          }));
+          if (!handledBySidebar) {
+              handleNewQuery();
+          }
       };
       window.addEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);
       return () => {

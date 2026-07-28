@@ -332,7 +332,12 @@ export const isSidebarTreeDdlShortcutNode = (
 
 export const isSidebarTreeNewQueryShortcutNode = (
   node: Pick<SidebarNodeLike, 'type'> | null | undefined,
-): boolean => node?.type === 'database' || node?.type === 'table';
+): boolean => (
+  node?.type === 'database'
+  || node?.type === 'table'
+  || node?.type === 'view'
+  || node?.type === 'materialized-view'
+);
 
 export const shouldHandleSidebarTreeShortcut = (input: {
   selectedCount: number;

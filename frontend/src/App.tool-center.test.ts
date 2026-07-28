@@ -301,10 +301,12 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain('void safeWindowRuntimeCall(() => SetMacNativeWindowControls(useNativeMacWindowControls), undefined);');
   });
 
-  it('listens for command search query-tab events and routes them through handleNewQuery', () => {
+  it('listens for command search query-tab events and prefers sidebar selection before handleNewQuery', () => {
     expect(appSource).toContain("window.addEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);");
     expect(appSource).toContain("window.removeEventListener('PinkHunkDB:create-query-tab', handleCreateQueryTabEvent as EventListener);");
     expect(appSource).toContain('const handleCreateQueryTabEvent = () => {');
+    expect(appSource).toContain("window.dispatchEvent(new CustomEvent('gonavi:sidebar-new-query'");
+    expect(appSource).toContain('if (!handledBySidebar) {');
     expect(appSource).toContain('handleNewQuery();');
   });
 });

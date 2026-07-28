@@ -31,8 +31,10 @@ export const buildNewQueryTabFromSidebarNode = (
       query: '',
     };
   }
-  if (node.type === 'table') {
-    const tableName = String(node.dataRef.tableName || '').trim();
+  if (node.type === 'table' || node.type === 'view' || node.type === 'materialized-view') {
+    const tableName = String(
+      node.dataRef.tableName || node.dataRef.viewName || '',
+    ).trim();
     const dbName = String(node.dataRef.dbName || '').trim();
     if (!tableName || !dbName) {
       return null;

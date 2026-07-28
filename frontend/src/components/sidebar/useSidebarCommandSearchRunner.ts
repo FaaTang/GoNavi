@@ -18,7 +18,7 @@ type UseSidebarCommandSearchRunnerArgs = {
   onDoubleClick: (event: any, node: any) => void;
   scrollSidebarTreeToKey: (key: React.Key) => void;
   selectedNodesRef: MutableRefObject<any[]>;
-  setActiveContext: (context: { connectionId: string; dbName: string } | null) => void;
+      setActiveContext: (context: { connectionId: string; dbName: string; tableName?: string } | null) => void;
   setSelectedKeys: Dispatch<SetStateAction<React.Key[]>>;
   setV2CommandActiveIndex: Dispatch<SetStateAction<number>>;
   treeDataRef: MutableRefObject<TreeNode[]>;

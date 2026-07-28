@@ -569,7 +569,7 @@ const Sidebar: React.FC<{
   const treeDragSelectionSnapshotRef = useRef<{
       selectedKeys: React.Key[];
       selectedNodes: any[];
-      activeContext: { connectionId: string; dbName: string } | null;
+      activeContext: { connectionId: string; dbName: string; tableName?: string } | null;
   }>({
       selectedKeys: [],
       selectedNodes: [],
@@ -1662,10 +1662,20 @@ const Sidebar: React.FC<{
       } else if (type === 'database') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'table') {
-          setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
+          setActiveContext({
+              connectionId: nodeConnectionId || dataRef.id,
+              dbName: dataRef.dbName,
+              tableName: String(dataRef.tableName || '').trim() || undefined,
+          });
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
-      } else if (type === 'view' || type === 'materialized-view' || type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
+      } else if (type === 'view' || type === 'materialized-view') {
+          setActiveContext({
+              connectionId: nodeConnectionId || dataRef.id,
+              dbName: dataRef.dbName,
+              tableName: String(dataRef.tableName || dataRef.viewName || '').trim() || undefined,
+          });
+      } else if (type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'saved-query') {
           setActiveContext({ connectionId: dataRef.connectionId, dbName: dataRef.dbName });
@@ -1732,7 +1742,16 @@ const Sidebar: React.FC<{
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
       } else if (type === 'table' || type === 'view' || type === 'materialized-view' || type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
-          setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
+          const selectedTableName = type === 'table'
+              ? String(dataRef.tableName || '').trim()
+              : (type === 'view' || type === 'materialized-view')
+                  ? String(dataRef.tableName || dataRef.viewName || '').trim()
+                  : '';
+          setActiveContext({
+              connectionId: nodeConnectionId || dataRef.id,
+              dbName: dataRef.dbName,
+              ...(selectedTableName ? { tableName: selectedTableName } : {}),
+          });
       } else if (type === 'saved-query') setActiveContext({ connectionId: dataRef.connectionId, dbName: dataRef.dbName });
       else if (type === 'redis-db') setActiveContext({ connectionId: dataRef.id, dbName: `db${dataRef.redisDB}` });
 
@@ -2652,14 +2671,18 @@ const Sidebar: React.FC<{
       if (selectedKeysRef.current.length !== 1) {
           return null;
       }
+      const key = selectedKeysRef.current[0];
+      // 优先从树数据取完整节点，避免 selectedNodes 丢失 type/dataRef
+      const fromTree = findTreeNodeByKeyRef.current(visibleTreeDataRef.current, key)
+          || findTreeNodeByKeyRef.current(treeDataRef.current, key);
+      if (fromTree) {
+          return fromTree;
+      }
       const selectedNodesFromRef = selectedNodesRef.current;
       if (selectedNodesFromRef.length === 1 && selectedNodesFromRef[0]) {
           return selectedNodesFromRef[0];
       }
-      const key = selectedKeysRef.current[0];
-      return findTreeNodeByKeyRef.current(visibleTreeDataRef.current, key)
-          || findTreeNodeByKeyRef.current(treeDataRef.current, key)
-          || null;
+      return null;
   }, []);
 
   const triggerSidebarTreeCopy = useCallback((): boolean => {
@@ -2852,12 +2875,18 @@ const Sidebar: React.FC<{
   ]);
 
   useEffect(() => {
-      const handleSidebarNewQueryEvent = () => {
-          triggerSidebarTreeNewQueryShortcut();
+      const handleSidebarNewQueryEvent = (event?: Event) => {
+          if (!triggerSidebarTreeNewQueryShortcut()) {
+              return;
+          }
+          const detail = (event as CustomEvent<{ markHandled?: () => void }> | undefined)?.detail;
+          if (typeof detail?.markHandled === 'function') {
+              detail.markHandled();
+          }
       };
-      window.addEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent);
+      window.addEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent as EventListener);
       return () => {
-          window.removeEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent);
+          window.removeEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent as EventListener);
       };
   }, [triggerSidebarTreeNewQueryShortcut]);
 

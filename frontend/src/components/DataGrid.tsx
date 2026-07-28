@@ -1026,7 +1026,7 @@ const DataGrid: React.FC<DataGridProps> = ({
       if (!connectionId || !normalizedTableName || normalizedTableName === '-') return;
       const targetDbName = String(dbName || '').trim();
       const tabId = `${connectionId}-${targetDbName}-table-${normalizedTableName}`;
-      setActiveContext({ connectionId, dbName: targetDbName });
+      setActiveContext({ connectionId, dbName: targetDbName, tableName: normalizedTableName });
       addTab({
           id: tabId,
           title: normalizedTableName,
