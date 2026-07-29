@@ -746,6 +746,25 @@ autoFetchState.visible = false;
     vi.clearAllMocks();
   });
 
+  it('persists edited query drafts to the store while typing', async () => {
+    let renderer!: ReactTestRenderer;
+    await act(async () => {
+      renderer = create(<QueryEditor tab={createTab({ query: 'select * from users;' })} />);
+    });
+
+    await act(async () => {
+      editorState.value = 'select * from orders where status = "paid";';
+      editorState.latestOnChange?.(editorState.value);
+    });
+
+    expect(getQueryTabDraft('tab-1')).toBe('select * from orders where status = "paid";');
+    expect(storeState.updateQueryTabDraft).toHaveBeenCalledWith('tab-1', {
+      query: 'select * from orders where status = "paid";',
+    });
+
+    renderer.unmount();
+  });
+
   it('keeps Oracle anonymous PL/SQL blocks intact when running from the editor', async () => {
     storeState.connections[0].config.type = 'oracle';
     storeState.connections[0].config.database = 'ORCLPDB1';

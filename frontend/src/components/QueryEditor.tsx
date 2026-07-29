@@ -508,7 +508,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           return;
       }
       setQueryTabDraft(tab.id, next);
-  }, [isExternalSQLFileTab, tab.id]);
+      if (next.length <= QUERY_EDITOR_PERSISTED_DRAFT_MAX_TEXT_LENGTH) {
+          updateQueryTabDraft(tab.id, { query: next });
+      }
+  }, [isExternalSQLFileTab, tab.id, updateQueryTabDraft]);
 
   const applyQueryState = useCallback((nextQuery: string) => {
       const next = String(nextQuery ?? '');
