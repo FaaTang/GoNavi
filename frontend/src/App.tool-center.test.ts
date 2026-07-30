@@ -234,11 +234,11 @@ describe('tool center menu entries', () => {
 
   it('executes every global shortcut action exposed in the shortcut manager', () => {
     const expectedHandlers = new Map([
-      ['runQuery', 'gonavi:run-active-query'],
-      ['focusSidebarSearch', 'gonavi:focus-sidebar-search'],
+      ['runQuery', 'PinkHunkDB:run-active-query'],
+      ['focusSidebarSearch', 'PinkHunkDB:focus-sidebar-search'],
       ['switchToNextTab', 'switchActiveTabByOffset(1);'],
       ['switchToPreviousTab', 'switchActiveTabByOffset(-1);'],
-      ['closeCurrentTab', 'gonavi:close-active-tab'],
+      ['closeCurrentTab', 'PinkHunkDB:close-active-tab'],
       ['newConnection', 'handleCreateConnection();'],
       ['toggleAIPanel', 'toggleAIPanel();'],
       ['toggleLogPanel', 'handleToggleLogPanel();'],
@@ -288,6 +288,16 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain('if (allowMacNativeFullscreen && useNativeMacWindowControls && isMacRuntime) {');
     expect(appSource).toContain('void handleTitleBarWindowToggle({ allowMacNativeFullscreen: false });');
     expect(getGlobalShortcutCaseBlock('toggleMacFullscreen')).toContain('handleTitleBarWindowToggle({ allowMacNativeFullscreen: true });');
+  });
+
+  it('keeps custom window controls flush to the top-right corner for Fitts targeting', () => {
+    expect(appSource).toContain('className="gn-titlebar"');
+    expect(appSource).toContain('className="titlebar-window-controls"');
+    expect(appSource).toContain("alignItems: 'stretch'");
+    expect(appSource).toContain('titlebar-window-btn titlebar-close-btn');
+    expect(appCss).toContain('.titlebar-window-controls .titlebar-close-btn.ant-btn');
+    expect(appCss).toContain('margin-right: calc(-1 * var(--PinkHunkDB-border-radius, 0px))');
+    expect(appCss).toContain('height: 100% !important');
   });
 
   it('captures global shortcuts before Monaco/editor defaults consume them', () => {

@@ -146,6 +146,41 @@ export const resolveSidebarTableNameForCopy = (
   return String(node?.dataRef?.tableName || node?.dataRef?.viewName || node?.dataRef?.sequenceName || node?.dataRef?.packageName || node?.dataRef?.eventName || node?.title || '').trim();
 };
 
+const SIDEBAR_OBJECT_CONTEXT_TYPES = new Set([
+  'table',
+  'view',
+  'materialized-view',
+  'sequence',
+  'package',
+  'db-trigger',
+  'db-event',
+  'routine',
+]);
+
+/**
+ * resolveSidebarObjectNameForContext 提取三级面包屑第 3 级对象名（表/视图/例程等）。
+ */
+export const resolveSidebarObjectNameForContext = (
+  node: Pick<SidebarNodeLike, 'type' | 'title' | 'dataRef'> | null | undefined,
+): string => {
+  if (!node || !SIDEBAR_OBJECT_CONTEXT_TYPES.has(String(node.type || ''))) {
+    return '';
+  }
+  const dataRef = node.dataRef || {};
+  return String(
+    dataRef.tableName
+      || dataRef.viewName
+      || dataRef.sequenceName
+      || dataRef.packageName
+      || dataRef.triggerName
+      || dataRef.eventName
+      || dataRef.routineName
+      || dataRef.name
+      || (typeof node.title === 'string' || typeof node.title === 'number' ? node.title : '')
+      || '',
+  ).trim();
+};
+
 // === 命令搜索相关类型与解析（V2 Command Search）===
 
 /** 命令搜索模式：default（默认）/ object（@前缀，对象搜索）/ ai（?或？前缀，AI 提问） */
@@ -260,34 +295,105 @@ export const isSidebarTreeMultiSelectMouseEvent = (
   event: Pick<MouseEvent, 'ctrlKey' | 'metaKey'> | null | undefined,
 ): boolean => !!(event?.ctrlKey || event?.metaKey);
 
+export const isSidebarTreeRangeSelectMouseEvent = (
+  event: Pick<MouseEvent, 'ctrlKey' | 'metaKey' | 'shiftKey'> | null | undefined,
+): boolean => !!(event?.shiftKey && !event?.ctrlKey && !event?.metaKey);
+
+/**
+ * resolveSidebarTreeRangeKeys 按可见树顺序，计算 Shift 连续选中区间。
+ */
+export const resolveSidebarTreeRangeKeys = (
+  orderedKeys: SidebarTreeSelectKey[],
+  anchorKey: SidebarTreeSelectKey | null | undefined,
+  targetKey: SidebarTreeSelectKey | null | undefined,
+): SidebarTreeSelectKey[] => {
+  if (anchorKey === undefined || anchorKey === null || targetKey === undefined || targetKey === null) {
+    return targetKey === undefined || targetKey === null ? [] : [targetKey];
+  }
+  const anchorIndex = orderedKeys.findIndex((key) => String(key) === String(anchorKey));
+  const targetIndex = orderedKeys.findIndex((key) => String(key) === String(targetKey));
+  if (anchorIndex < 0 && targetIndex < 0) {
+    return [anchorKey, targetKey].filter((key, index, list) => (
+      list.findIndex((item) => String(item) === String(key)) === index
+    ));
+  }
+  if (anchorIndex < 0) {
+    return [targetKey];
+  }
+  if (targetIndex < 0) {
+    return [anchorKey];
+  }
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
+  return orderedKeys.slice(start, end + 1);
+};
+
 /**
  * resolveSidebarTreeSelectState 规范化树节点选择：
- * - 普通单击：仅保留当前节点；再次点击同一节点时不取消选中
+ * - 普通单击：仅保留当前节点；再次点击已选节点时保持选中（取消选中用 Esc / Ctrl）
+ * - Shift + 单击：按可见树顺序连续选中
  * - Ctrl/Cmd + 单击：沿用 antd 多选结果（允许取消选中）
  */
 export const resolveSidebarTreeSelectState = (input: {
   keys: SidebarTreeSelectKey[];
   node: SidebarNodeLike | null | undefined;
   selectedNodes: SidebarNodeLike[];
-  nativeEvent?: Pick<MouseEvent, 'ctrlKey' | 'metaKey'> | null;
-}): { keys: SidebarTreeSelectKey[]; nodes: SidebarNodeLike[] } => {
-  if (isSidebarTreeMultiSelectMouseEvent(input.nativeEvent)) {
-    return { keys: input.keys, nodes: input.selectedNodes };
-  }
+  nativeEvent?: Pick<MouseEvent, 'ctrlKey' | 'metaKey' | 'shiftKey'> | null;
+  previousKeys?: SidebarTreeSelectKey[];
+  orderedKeys?: SidebarTreeSelectKey[];
+  anchorKey?: SidebarTreeSelectKey | null;
+  resolveNodeByKey?: (key: SidebarTreeSelectKey) => SidebarNodeLike | null;
+}): { keys: SidebarTreeSelectKey[]; nodes: SidebarNodeLike[]; nextAnchorKey: SidebarTreeSelectKey | null } => {
   const nodeKey = input.node?.key;
+  if (isSidebarTreeMultiSelectMouseEvent(input.nativeEvent)) {
+    const nextAnchor = nodeKey !== undefined && nodeKey !== null ? nodeKey : (input.anchorKey ?? null);
+    return { keys: input.keys, nodes: input.selectedNodes, nextAnchorKey: nextAnchor };
+  }
+  if (
+    isSidebarTreeRangeSelectMouseEvent(input.nativeEvent)
+    && nodeKey !== undefined
+    && nodeKey !== null
+  ) {
+    const anchorKey = input.anchorKey
+      ?? (input.previousKeys && input.previousKeys.length > 0 ? input.previousKeys[0] : null)
+      ?? nodeKey;
+    const rangeKeys = resolveSidebarTreeRangeKeys(input.orderedKeys || [], anchorKey, nodeKey);
+    const resolveNodeByKey = input.resolveNodeByKey;
+    const rangeNodes = rangeKeys
+      .map((key) => {
+        if (resolveNodeByKey) {
+          return resolveNodeByKey(key);
+        }
+        if (input.node && String(input.node.key) === String(key)) {
+          return input.node;
+        }
+        return input.selectedNodes.find((node) => String(node?.key) === String(key)) || null;
+      })
+      .filter(Boolean) as SidebarNodeLike[];
+    return {
+      keys: rangeKeys,
+      nodes: rangeNodes.length > 0 ? rangeNodes : (input.node ? [input.node] : []),
+      nextAnchorKey: anchorKey,
+    };
+  }
   // antd Tree 再次点击已选节点会传空 keys；普通单击时保持该节点选中。
   if (input.keys.length === 0) {
     if (nodeKey !== undefined && nodeKey !== null && input.node) {
-      return { keys: [nodeKey], nodes: [input.node] };
+      return { keys: [nodeKey], nodes: [input.node], nextAnchorKey: nodeKey };
     }
-    return { keys: [], nodes: [] };
+    return { keys: [], nodes: [], nextAnchorKey: null };
   }
   if (nodeKey === undefined || nodeKey === null) {
-    return { keys: input.keys, nodes: input.selectedNodes };
+    return {
+      keys: input.keys,
+      nodes: input.selectedNodes,
+      nextAnchorKey: input.anchorKey ?? null,
+    };
   }
   return {
     keys: [nodeKey],
     nodes: input.node ? [input.node] : [],
+    nextAnchorKey: nodeKey,
   };
 };
 

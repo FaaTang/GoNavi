@@ -359,6 +359,47 @@ body[data-theme='light'] .redis-viewer-workbench .ant-radio-button-wrapper-check
     flex-shrink: 0;
 }
 
+/* Custom Title Bar — flush window controls for Fitts's law corner targeting */
+.gn-titlebar {
+  position: relative;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.titlebar-window-controls {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.titlebar-window-controls .titlebar-window-btn.ant-btn {
+  height: 100% !important;
+  min-height: 100% !important;
+  width: var(--titlebar-btn-width, 46px) !important;
+  min-width: var(--titlebar-btn-width, 46px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+/* Extend close hit-target into the absolute top-right corner (incl. rounded window edge). */
+.titlebar-window-controls .titlebar-close-btn.ant-btn {
+  width: calc(var(--titlebar-btn-width, 46px) + var(--PinkHunkDB-border-radius, 0px)) !important;
+  min-width: calc(var(--titlebar-btn-width, 46px) + var(--PinkHunkDB-border-radius, 0px)) !important;
+  margin-right: calc(-1 * var(--PinkHunkDB-border-radius, 0px)) !important;
+  padding-right: var(--PinkHunkDB-border-radius, 0px) !important;
+}
+
 /* Custom Title Bar Close Button Hover */
 .titlebar-close-btn:hover {
     background-color: #ff4d4f !important;

@@ -2,6 +2,8 @@ import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction 
 
 import { t } from '../../i18n';
 import type { SavedConnection } from '../../types';
+import { resolveSidebarObjectNameForContext } from './sidebarHelpers';
+import { buildNewQueryTabFromSidebarNode } from './sidebarShortcutActions';
 import { resolveSidebarNodeConnectionId, shouldRunV2CommandSearchEnter, type SidebarTreeNode as TreeNode, type V2CommandSearchItem } from '../sidebarV2Utils';
 
 type UseSidebarCommandSearchRunnerArgs = {
@@ -102,11 +104,19 @@ export const useSidebarCommandSearchRunner = ({
         schemaName: dataRef.schemaName,
         objectGroup: node.type === 'table' ? 'tables' : (node.type === 'materialized-view' ? 'materializedViews' : 'views'),
       });
-      onDoubleClick(null, node);
+      const queryTab = buildNewQueryTabFromSidebarNode(node, t);
+      if (queryTab) {
+        addTab(queryTab);
+      }
       return;
     }
     if (node.type === 'db-trigger' || node.type === 'db-event' || node.type === 'routine' || node.type === 'sequence' || node.type === 'package') {
-      setActiveContext({ connectionId: dataRef.id, dbName: dataRef.dbName });
+      const selectedObjectName = resolveSidebarObjectNameForContext(node);
+      setActiveContext({
+        connectionId: dataRef.id,
+        dbName: dataRef.dbName,
+        ...(selectedObjectName ? { tableName: selectedObjectName } : {}),
+      });
       setSelectedKeys([node.key]);
       selectedNodesRef.current = [node];
       scrollSidebarTreeToKey(node.key);

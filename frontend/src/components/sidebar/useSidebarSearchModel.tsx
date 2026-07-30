@@ -27,6 +27,7 @@ import { getDbIcon } from '../DatabaseIcons';
 import {
   isV2SidebarObjectNode,
   parseV2CommandSearchQuery,
+  resolveSidebarObjectNameForContext,
   type V2ExplorerFilter,
 } from './sidebarHelpers';
 import type { SearchScope } from '../sidebarCoreUtils';
@@ -74,7 +75,8 @@ type SidebarSearchModelArgs = {
   v2ExplorerFilter: V2ExplorerFilter;
   treeData: TreeNode[];
   treeViewportWidth: number;
-  treeHeight: number;  isV2CommandSearchOpen: boolean;
+  treeHeight: number;
+  isV2CommandSearchOpen: boolean;
   connections: SavedConnection[];
   connectionIds: string[];
   selectedKeys: React.Key[];
@@ -110,7 +112,8 @@ export const useSidebarSearchModel = ({
   v2ExplorerFilter,
   treeData,
   treeViewportWidth,
-  treeHeight,  isV2CommandSearchOpen,
+  treeHeight,
+  isV2CommandSearchOpen,
   connections,
   connectionIds,
   selectedKeys,
@@ -574,6 +577,14 @@ export const useSidebarSearchModel = ({
     }
     return String(activeTab?.dbName || '').trim();
   }, [activeContext, activeTab?.dbName]);
+  const activeObjectDisplayName = useMemo(() => {
+    const fromContext = String(activeContext?.tableName || '').trim();
+    if (fromContext) {
+      return fromContext;
+    }
+    const selectedNode = selectedNodesRef.current?.[0];
+    return resolveSidebarObjectNameForContext(selectedNode);
+  }, [activeContext?.tableName, selectedKeys, selectedNodesRef]);
   const activeConnectionTreeData = useMemo(() => {
     const externalSQLNodes = displayTreeData.filter((node) => node.type === 'external-sql-root');
     if (!activeConnection) return displayTreeData;
@@ -674,6 +685,7 @@ export const useSidebarSearchModel = ({
     activeConnection,
     activeConnectionDisplayName,
     activeDatabaseDisplayName,
+    activeObjectDisplayName,
     activeConnectionTreeData,
     v2VisibleTreeData,
     v2TreeHorizontalScrollWidth,

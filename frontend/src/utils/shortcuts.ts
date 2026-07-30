@@ -322,8 +322,8 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
     windows: { combo: 'Enter', enabled: true },
   },
   focusSidebarSearch: {
-    mac: { combo: 'Meta+K', enabled: true },
-    windows: { combo: 'Ctrl+K', enabled: true },
+    mac: { combo: 'Meta+F', enabled: true },
+    windows: { combo: 'Ctrl+F', enabled: true },
   },
   sidebarNewQuery: {
     mac: { combo: 'Ctrl+Shift+Q', enabled: true },
@@ -640,9 +640,14 @@ const isLegacyShortcutBinding = (value: Record<string, unknown>): boolean => (
 );
 
 const LEGACY_NEW_QUERY_TAB_COMBOS = new Set(['Ctrl+N', 'Meta+N']);
+const LEGACY_FOCUS_SIDEBAR_SEARCH_COMBOS = new Set(['Ctrl+K', 'Meta+K']);
 
 const isLegacyNewQueryTabCombo = (combo: string): boolean => (
   LEGACY_NEW_QUERY_TAB_COMBOS.has(normalizeShortcutCombo(combo))
+);
+
+const isLegacyFocusSidebarSearchCombo = (combo: string): boolean => (
+  LEGACY_FOCUS_SIDEBAR_SEARCH_COMBOS.has(normalizeShortcutCombo(combo))
 );
 
 const migrateLegacyNewQueryTabRaw = (raw: Record<string, unknown>): Record<string, unknown> => {
@@ -698,6 +703,19 @@ const upgradeLegacySidebarNewQueryBinding = (
   };
 };
 
+const upgradeLegacyFocusSidebarSearchBinding = (
+  binding: ShortcutPlatformBinding,
+  fallback: ShortcutPlatformBinding,
+): ShortcutPlatformBinding => {
+  if (!isLegacyFocusSidebarSearchCombo(binding.combo)) {
+    return binding;
+  }
+  return {
+    combo: fallback.combo,
+    enabled: binding.enabled,
+  };
+};
+
 const sanitizeShortcutPlatformBinding = (
   action: ShortcutAction,
   platform: ShortcutPlatform,
@@ -744,6 +762,12 @@ export const sanitizeShortcutOptions = (value: unknown): ShortcutOptions => {
   defaults.sidebarNewQuery = {
     mac: upgradeLegacySidebarNewQueryBinding(defaults.sidebarNewQuery.mac, sidebarNewQueryDefaults.mac),
     windows: upgradeLegacySidebarNewQueryBinding(defaults.sidebarNewQuery.windows, sidebarNewQueryDefaults.windows),
+  };
+
+  const focusSidebarSearchDefaults = DEFAULT_SHORTCUT_OPTIONS.focusSidebarSearch;
+  defaults.focusSidebarSearch = {
+    mac: upgradeLegacyFocusSidebarSearchBinding(defaults.focusSidebarSearch.mac, focusSidebarSearchDefaults.mac),
+    windows: upgradeLegacyFocusSidebarSearchBinding(defaults.focusSidebarSearch.windows, focusSidebarSearchDefaults.windows),
   };
 
   return defaults;

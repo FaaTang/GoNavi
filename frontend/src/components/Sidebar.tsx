@@ -56,6 +56,7 @@ import {
   isSidebarTreeDdlShortcutNode,
   isSidebarTreeNewQueryShortcutNode,
   resolveSidebarNodeDisplayLabel,
+  resolveSidebarObjectNameForContext,
   resolveSidebarTreeSelectState,
   shouldHandleSidebarTreeCopyShortcut,
   shouldHandleSidebarTreeShortcut,
@@ -81,7 +82,9 @@ export {
   isSidebarTreeDdlShortcutNode,
   isSidebarTreeNewQueryShortcutNode,
   isSidebarTreeMultiSelectMouseEvent,
+  isSidebarTreeRangeSelectMouseEvent,
   resolveSidebarNodeDisplayLabel,
+  resolveSidebarObjectNameForContext,
   resolveSidebarTreeSelectState,
   shouldHandleSidebarTreeCopyShortcut,
   shouldHandleSidebarTreeShortcut,
@@ -94,6 +97,7 @@ import {
 import React, { useEffect, useState, useMemo, useRef, useCallback, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { Tree, message, Dropdown, MenuProps, Input, Button, Form, Popover, Tooltip } from 'antd';
+import Modal from './common/ResizableDraggableModal';
 	import {
 	  DatabaseOutlined,
 	  TableOutlined,
@@ -126,7 +130,10 @@ import { Tree, message, Dropdown, MenuProps, Input, Button, Form, Popover, Toolt
   MoreOutlined,
   ToolOutlined,
   SettingOutlined,
-  BarsOutlined
+  BarsOutlined,
+  NodeExpandOutlined,
+  NodeCollapseOutlined,
+  AimOutlined,
 	} from '@ant-design/icons';
 import {
     buildSidebarRootConnectionToken,
@@ -208,6 +215,12 @@ import {
   shouldCloseV2CommandSearchOnGlobalKey,
   shouldRunV2CommandSearchEnter,
   sortSidebarTableEntries,
+  collectSidebarExpandableKeys,
+  collectSidebarSubtreeKeys,
+  collectVisibleSidebarTreeNodeKeys,
+  flattenSidebarTreeKeysInExpandedOrder,
+  isSidebarTreeNodeExpandable,
+  resolveSidebarScrollContextCrumbs,
   type SidebarConnectionState,
   type SidebarTreeNode as TreeNode,
   type V2CommandSearchItem,
@@ -236,6 +249,12 @@ export {
   shouldCloseV2CommandSearchOnGlobalKey,
   shouldRunV2CommandSearchEnter,
   sortSidebarTableEntries,
+  collectSidebarExpandableKeys,
+  collectSidebarSubtreeKeys,
+  collectVisibleSidebarTreeNodeKeys,
+  flattenSidebarTreeKeysInExpandedOrder,
+  isSidebarTreeNodeExpandable,
+  resolveSidebarScrollContextCrumbs,
 };
 export type { V2CommandSearchItem, V2RailConnectionGroup } from './sidebarV2Utils';
 
@@ -551,8 +570,12 @@ const Sidebar: React.FC<{
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [loadedKeys, setLoadedKeys] = useState<React.Key[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+  const [viewportVisibleKeys, setViewportVisibleKeys] = useState<string[]>([]);
   const selectedKeysRef = useRef<React.Key[]>([]);
   const selectedNodesRef = useRef<any[]>([]);
+  const selectionAnchorKeyRef = useRef<React.Key | null>(null);
+  const visibleTreeDataRef = useRef<TreeNode[]>([]);
+  const viewportVisibleKeysRafRef = useRef(0);
   const sidebarTreeCopyHotkeyArmedAtRef = useRef(0);
   const sidebarDdlRequestSeqRef = useRef(0);
   const [sidebarDdlModalState, setSidebarDdlModalState] = useState({
@@ -738,9 +761,9 @@ const Sidebar: React.FC<{
           inputEl.focus();
           inputEl.select();
       };
-      window.addEventListener('gonavi:focus-sidebar-search', handleFocusSidebarSearch as EventListener);
+      window.addEventListener('PinkHunkDB:focus-sidebar-search', handleFocusSidebarSearch as EventListener);
       return () => {
-          window.removeEventListener('gonavi:focus-sidebar-search', handleFocusSidebarSearch as EventListener);
+          window.removeEventListener('PinkHunkDB:focus-sidebar-search', handleFocusSidebarSearch as EventListener);
       };
   }, [openV2CommandSearch, v2UseLegacySidebarFilter]);
 
@@ -1488,7 +1511,11 @@ const Sidebar: React.FC<{
       setSelectedKeys([targetKey]);
       selectedKeysRef.current = [targetKey];
       selectedNodesRef.current = targetNode ? [targetNode] : [];
-      setActiveContext({ connectionId: request.connectionId, dbName: request.dbName });
+      setActiveContext({
+          connectionId: request.connectionId,
+          dbName: request.dbName,
+          ...(String(request.tableName || '').trim() ? { tableName: String(request.tableName).trim() } : {}),
+      });
       scrollSidebarTreeToKey(targetKey);
   };
 
@@ -1634,15 +1661,27 @@ const Sidebar: React.FC<{
       if (isTreeDragging) {
           return;
       }
-      const { keys: nextKeys, nodes: nextNodes } = resolveSidebarTreeSelectState({
+      const orderedKeys = flattenSidebarTreeKeysInExpandedOrder(
+          visibleTreeDataRef.current.length > 0 ? visibleTreeDataRef.current : treeDataRef.current,
+          expandedKeys,
+      );
+      const { keys: nextKeys, nodes: nextNodes, nextAnchorKey } = resolveSidebarTreeSelectState({
           keys,
           node: info?.node,
           selectedNodes: info?.selectedNodes || [],
           nativeEvent: info?.nativeEvent,
+          previousKeys: selectedKeysRef.current,
+          orderedKeys,
+          anchorKey: selectionAnchorKeyRef.current,
+          resolveNodeByKey: (key) => (
+              findTreeNodeByKeyRef.current(visibleTreeDataRef.current, key)
+              || findTreeNodeByKeyRef.current(treeDataRef.current, key)
+          ),
       });
       setSelectedKeys(nextKeys);
       selectedKeysRef.current = nextKeys;
       selectedNodesRef.current = nextNodes;
+      selectionAnchorKeyRef.current = nextAnchorKey;
       markSidebarTreeInteraction();
 
       if (nextKeys.length === 0) {
@@ -1661,26 +1700,24 @@ const Sidebar: React.FC<{
           setActiveContext({ connectionId: key, dbName: '' });
       } else if (type === 'database') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
-      } else if (type === 'table') {
+      } else if (type === 'table' || type === 'view' || type === 'materialized-view' || type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
+          const selectedObjectName = resolveSidebarObjectNameForContext(info.node);
           setActiveContext({
               connectionId: nodeConnectionId || dataRef.id,
               dbName: dataRef.dbName,
-              tableName: String(dataRef.tableName || '').trim() || undefined,
+              ...(selectedObjectName ? { tableName: selectedObjectName } : {}),
           });
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
-      } else if (type === 'view' || type === 'materialized-view') {
-          setActiveContext({
-              connectionId: nodeConnectionId || dataRef.id,
-              dbName: dataRef.dbName,
-              tableName: String(dataRef.tableName || dataRef.viewName || '').trim() || undefined,
-          });
-      } else if (type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
-          setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'saved-query') {
           setActiveContext({ connectionId: dataRef.connectionId, dbName: dataRef.dbName });
       } else if (type === 'redis-db') {
           setActiveContext({ connectionId: dataRef.id, dbName: `db${dataRef.redisDB}` });
+      }
+
+      // 多选时不触发打开设计页 / 表概览等副作用
+      if (nextKeys.length !== 1) {
+          return;
       }
 
       if (type === 'folder-columns') openDesign(info.node, 'columns', false);
@@ -1731,26 +1768,24 @@ const Sidebar: React.FC<{
           setSelectedKeys([nodeKey]);
           selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
+          selectionAnchorKeyRef.current = nodeKey;
           markSidebarTreeInteraction();
           setActiveContext({ connectionId: nodeKey, dbName: '' });
       } else if (type === 'database') {
           setSelectedKeys([nodeKey]);
           selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
+          selectionAnchorKeyRef.current = nodeKey;
           markSidebarTreeInteraction();
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
       } else if (type === 'table' || type === 'view' || type === 'materialized-view' || type === 'sequence' || type === 'package' || type === 'db-trigger' || type === 'db-event' || type === 'routine') {
-          const selectedTableName = type === 'table'
-              ? String(dataRef.tableName || '').trim()
-              : (type === 'view' || type === 'materialized-view')
-                  ? String(dataRef.tableName || dataRef.viewName || '').trim()
-                  : '';
+          const selectedObjectName = resolveSidebarObjectNameForContext(node);
           setActiveContext({
               connectionId: nodeConnectionId || dataRef.id,
               dbName: dataRef.dbName,
-              ...(selectedTableName ? { tableName: selectedTableName } : {}),
+              ...(selectedObjectName ? { tableName: selectedObjectName } : {}),
           });
       } else if (type === 'saved-query') setActiveContext({ connectionId: dataRef.connectionId, dbName: dataRef.dbName });
       else if (type === 'redis-db') setActiveContext({ connectionId: dataRef.id, dbName: `db${dataRef.redisDB}` });
@@ -2206,6 +2241,7 @@ const Sidebar: React.FC<{
       activeConnection,
       activeConnectionDisplayName,
       activeDatabaseDisplayName,
+      activeObjectDisplayName,
       v2VisibleTreeData,
       v2TreeHorizontalScrollWidth,
       effectiveTreeHeight,
@@ -2635,13 +2671,280 @@ const Sidebar: React.FC<{
       : v2SettingsLabel;
   const v2RailExpandButtonLabelsLabel = t('sidebar.rail.toggle_labels.expand');
   const v2RailCollapseButtonLabelsLabel = t('sidebar.rail.toggle_labels.collapse');
-  const v2ActiveConnectionHeaderLabel = t('sidebar.active_connection.current_host_database');
-  const v2NoDatabaseSelectedLabel = t('sidebar.active_connection.no_database_selected');
   const v2ConnectionActionsLabel = t('sidebar.active_connection.actions');
+  const v2ExpandAllLabel = t('sidebar.tree.expand_all');
+  const v2CollapseAllLabel = t('sidebar.tree.collapse_all');
   const v2CommandSearchLabel = t('sidebar.command_search.label');
   const v2CommandSearchPlaceholder = t('sidebar.command_search.placeholder');
 
-  const visibleTreeDataRef = useRef<TreeNode[]>([]);
+  const selectedExpandableNodes = useMemo(() => {
+      const roots: TreeNode[] = [];
+      const seen = new Set<string>();
+      selectedKeys.forEach((key) => {
+          const node = findTreeNodeByKey(v2VisibleTreeData, key)
+              || findTreeNodeByKey(treeData, key);
+          if (!node || !isSidebarTreeNodeExpandable(node)) return;
+          const nodeKey = String(node.key);
+          if (seen.has(nodeKey)) return;
+          seen.add(nodeKey);
+          roots.push(node);
+      });
+      return roots;
+  }, [selectedKeys, treeData, v2VisibleTreeData]);
+
+  const expandSidebarTreeNodes = useCallback((roots: TreeNode[]) => {
+      if (roots.length === 0) return;
+      const nextKeys = collectSidebarExpandableKeys(roots);
+      if (nextKeys.length === 0) return;
+      setExpandedKeys((prev) => {
+          const merged = [...prev];
+          nextKeys.forEach((key) => {
+              if (!merged.some((item) => String(item) === String(key))) {
+                  merged.push(key);
+              }
+          });
+          return merged;
+      });
+      setAutoExpandParent(true);
+      const loadExpandableNodes = (nodes: TreeNode[]) => {
+          nodes.forEach((node) => {
+              if (shouldLoadSidebarNodeOnExpand(node)) {
+                  void onLoadData(node);
+              }
+              if (Array.isArray(node.children) && node.children.length > 0) {
+                  loadExpandableNodes(node.children);
+              }
+          });
+      };
+      loadExpandableNodes(roots);
+  }, []);
+
+  const collapseSidebarTreeNodes = useCallback((roots: TreeNode[] | 'all') => {
+      if (roots === 'all') {
+          setExpandedKeys([]);
+          setAutoExpandParent(false);
+          return;
+      }
+      if (roots.length === 0) return;
+      const removeKeySet = new Set(
+          collectSidebarSubtreeKeys(roots).map((key) => String(key)),
+      );
+      setExpandedKeys((prev) => prev.filter((key) => !removeKeySet.has(String(key))));
+      setAutoExpandParent(false);
+  }, []);
+
+  const expandAllSidebarTree = useCallback(() => {
+      if (selectedExpandableNodes.length > 0) {
+          expandSidebarTreeNodes(selectedExpandableNodes);
+          return;
+      }
+      if (v2VisibleTreeData.length === 0) return;
+      Modal.confirm({
+          title: t('sidebar.tree.expand_all_confirm_title'),
+          content: t('sidebar.tree.expand_all_confirm_content'),
+          onOk: () => {
+              expandSidebarTreeNodes(v2VisibleTreeData);
+          },
+      });
+  }, [expandSidebarTreeNodes, selectedExpandableNodes, v2VisibleTreeData]);
+
+  const collapseAllSidebarTree = useCallback(() => {
+      if (selectedExpandableNodes.length > 0) {
+          collapseSidebarTreeNodes(selectedExpandableNodes);
+          return;
+      }
+      if (expandedKeys.length === 0) return;
+      Modal.confirm({
+          title: t('sidebar.tree.collapse_all_confirm_title'),
+          content: t('sidebar.tree.collapse_all_confirm_content'),
+          onOk: () => {
+              collapseSidebarTreeNodes('all');
+          },
+      });
+  }, [collapseSidebarTreeNodes, expandedKeys.length, selectedExpandableNodes]);
+
+  const refreshViewportVisibleKeys = useCallback(() => {
+      if (viewportVisibleKeysRafRef.current) {
+          window.cancelAnimationFrame(viewportVisibleKeysRafRef.current);
+      }
+      viewportVisibleKeysRafRef.current = window.requestAnimationFrame(() => {
+          viewportVisibleKeysRafRef.current = 0;
+          const nextKeys = collectVisibleSidebarTreeNodeKeys(treeContainerRef.current);
+          setViewportVisibleKeys((prev) => {
+              if (prev.length === nextKeys.length && prev.every((key, index) => key === nextKeys[index])) {
+                  return prev;
+              }
+              return nextKeys;
+          });
+      });
+  }, []);
+
+  useEffect(() => {
+      const root = treeContainerRef.current;
+      if (!root) return undefined;
+      const holder = root.querySelector('.ant-tree-list-holder') as HTMLElement | null;
+      refreshViewportVisibleKeys();
+      if (!holder) return undefined;
+      holder.addEventListener('scroll', refreshViewportVisibleKeys, { passive: true });
+      const resizeObserver = typeof ResizeObserver !== 'undefined'
+          ? new ResizeObserver(() => refreshViewportVisibleKeys())
+          : null;
+      resizeObserver?.observe(holder);
+      return () => {
+          holder.removeEventListener('scroll', refreshViewportVisibleKeys);
+          resizeObserver?.disconnect();
+          if (viewportVisibleKeysRafRef.current) {
+              window.cancelAnimationFrame(viewportVisibleKeysRafRef.current);
+              viewportVisibleKeysRafRef.current = 0;
+          }
+      };
+  }, [effectiveTreeHeight, expandedKeys, refreshViewportVisibleKeys, v2VisibleTreeData]);
+
+  const scrollContextCrumbs = useMemo(() => resolveSidebarScrollContextCrumbs({
+      visibleNodeKeys: viewportVisibleKeys,
+      treeData,
+      connectionIds,
+      connections,
+      fallbackConnectionId: activeConnection?.id,
+      fallbackConnectionName: activeConnectionDisplayName,
+      fallbackDbName: activeDatabaseDisplayName,
+  }), [
+      activeConnection?.id,
+      activeConnectionDisplayName,
+      activeDatabaseDisplayName,
+      connectionIds,
+      connections,
+      treeData,
+      viewportVisibleKeys,
+  ]);
+
+  const pathConnectionId = String(scrollContextCrumbs?.connectionId || activeConnection?.id || '').trim();
+  const pathConnectionName = scrollContextCrumbs?.showConnection
+      ? scrollContextCrumbs.connectionName
+      : '';
+  const pathDatabaseName = scrollContextCrumbs?.showDatabase
+      ? scrollContextCrumbs.dbName
+      : '';
+  const pathLocateDbName = String(scrollContextCrumbs?.dbName || activeDatabaseDisplayName || '').trim();
+  const pathObjectName = activeObjectDisplayName;
+  const pathObjectLocateGroup = (() => {
+      const selectedNode = selectedNodesRef.current?.[0]
+          || (selectedKeys[0]
+              ? findTreeNodeByKey(v2VisibleTreeData, selectedKeys[0])
+                  || findTreeNodeByKey(treeData, selectedKeys[0])
+              : null);
+      const type = String(selectedNode?.type || '');
+      if (type === 'view') return 'views';
+      if (type === 'materialized-view') return 'materializedViews';
+      if (type === 'db-trigger') return 'triggers';
+      if (type === 'routine') return 'routines';
+      if (type === 'sequence') return 'sequences';
+      if (type === 'package') return 'packages';
+      return 'tables';
+  })();
+  const pathRows = [
+      pathConnectionName && pathConnectionId
+          ? {
+              key: 'connection',
+              label: pathConnectionName,
+              className: 'is-connection',
+              locateKind: 'connection' as const,
+              locateKey: pathConnectionId,
+          }
+          : null,
+      pathDatabaseName && pathConnectionId
+          ? {
+              key: 'database',
+              label: pathDatabaseName,
+              className: 'is-database',
+              locateKind: 'database' as const,
+              locateDetail: {
+                  connectionId: pathConnectionId,
+                  dbName: pathDatabaseName,
+                  tableName: '',
+                  objectGroup: 'database' as const,
+              },
+          }
+          : null,
+      pathObjectName && pathConnectionId && pathLocateDbName
+          ? {
+              key: 'object',
+              label: pathObjectName,
+              className: 'is-object',
+              locateKind: 'object' as const,
+              locateDetail: {
+                  connectionId: pathConnectionId,
+                  dbName: pathLocateDbName,
+                  tableName: pathObjectName,
+                  objectGroup: pathObjectLocateGroup,
+              },
+          }
+          : (pathObjectName
+              ? {
+                  key: 'object',
+                  label: pathObjectName,
+                  className: 'is-object',
+                  locateKind: 'object' as const,
+                  locateKey: selectedKeys[0] ? String(selectedKeys[0]) : '',
+              }
+              : null),
+  ].filter(Boolean) as Array<{
+      key: string;
+      label: string;
+      className: string;
+      locateKind: 'connection' | 'database' | 'object';
+      locateKey?: string;
+      locateDetail?: {
+          connectionId: string;
+          dbName: string;
+          tableName: string;
+          objectGroup: string;
+      };
+  }>;
+  const pathTitle = [pathConnectionName, pathDatabaseName, pathObjectName].filter(Boolean).join(' / ');
+  const hasScrollOrSelectionPath = pathRows.length > 0;
+  const v2LocatePathLevelLabel = t('sidebar.tree.locate_path_level');
+
+  const locateSelectionPathRow = useCallback((row: {
+      locateKind: 'connection' | 'database' | 'object';
+      locateKey?: string;
+      locateDetail?: {
+          connectionId: string;
+          dbName: string;
+          tableName: string;
+          objectGroup: string;
+      };
+  }) => {
+      if (row.locateDetail) {
+          void locateObjectInSidebarRef.current(row.locateDetail);
+          return;
+      }
+      const targetKey = String(row.locateKey || '').trim();
+      if (!targetKey) {
+          message.warning(t('sidebar.message.locate_current_table_unavailable'));
+          return;
+      }
+      if (row.locateKind === 'connection' && v2ExplorerFilter !== 'all') {
+          setV2ExplorerFilter('all');
+      }
+      const path = findSidebarNodePathByKey(treeDataRef.current as SidebarLocateTreeNodeLike[], targetKey);
+      if (!path) {
+          message.warning(t('sidebar.message.locate_connection_not_in_tree'));
+          return;
+      }
+      const targetNode = findTreeNodeByKey(treeDataRef.current, targetKey);
+      setSearchValue('');
+      mergeExpandedTreeKeys(path.slice(0, -1));
+      setSelectedKeys([targetKey]);
+      selectedKeysRef.current = [targetKey];
+      selectedNodesRef.current = targetNode ? [targetNode] : [];
+      selectionAnchorKeyRef.current = targetKey;
+      if (row.locateKind === 'connection') {
+          setActiveContext({ connectionId: targetKey, dbName: '' });
+      }
+      scrollSidebarTreeToKey(targetKey);
+  }, [v2ExplorerFilter]);
+
   useEffect(() => {
       visibleTreeDataRef.current = v2VisibleTreeData;
   }, [displayTreeData, v2VisibleTreeData]);
@@ -2819,6 +3122,7 @@ const Sidebar: React.FC<{
       setSelectedKeys([]);
       selectedKeysRef.current = [];
       selectedNodesRef.current = [];
+      selectionAnchorKeyRef.current = null;
       if (false) {
           setActiveContext(null);
       }
@@ -2889,6 +3193,22 @@ const Sidebar: React.FC<{
           window.removeEventListener('gonavi:sidebar-new-query', handleSidebarNewQueryEvent as EventListener);
       };
   }, [triggerSidebarTreeNewQueryShortcut]);
+
+  useEffect(() => {
+      const handleSidebarViewTableDdlEvent = (event?: Event) => {
+          if (!triggerSidebarTreeDdlShortcut()) {
+              return;
+          }
+          const detail = (event as CustomEvent<{ markHandled?: () => void }> | undefined)?.detail;
+          if (typeof detail?.markHandled === 'function') {
+              detail.markHandled();
+          }
+      };
+      window.addEventListener('gonavi:sidebar-view-table-ddl', handleSidebarViewTableDdlEvent as EventListener);
+      return () => {
+          window.removeEventListener('gonavi:sidebar-view-table-ddl', handleSidebarViewTableDdlEvent as EventListener);
+      };
+  }, [triggerSidebarTreeDdlShortcut]);
 
   useEffect(() => {
       const onWindowKeyDown = (event: KeyboardEvent) => {
@@ -2997,45 +3317,6 @@ const Sidebar: React.FC<{
         {exportProgressModal}
         {<SidebarConnectionRail {...v2ConnectionRailProps} />}
         <div className={'gn-v2-object-explorer'} style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, flex: 1 }}>
-        {(
-            <div className="gn-v2-active-connection-header" data-object-count={activeConnectionObjectCount}>
-                <div className="gn-v2-active-connection-trigger" aria-label={v2ActiveConnectionHeaderLabel}>
-                    <span className={`gn-v2-live-dot is-${activeConnection ? buildRailConnectionStatus(activeConnection.id) : 'idle'}`} />
-                    <div className="gn-v2-active-connection-copy">
-                        <strong>{activeConnectionDisplayName}</strong>
-                        <span>{activeDatabaseDisplayName || v2NoDatabaseSelectedLabel}</span>
-                    </div>
-                </div>
-                <div className="gn-v2-active-connection-actions">
-                    {onCreateConnection && (
-                        <Tooltip title={t('connection.new')}>
-                            <Button
-                                size="small"
-                                type="text"
-                                icon={<PlusOutlined />}
-                                aria-label={t('connection.new')}
-                                data-gonavi-create-connection-action="true"
-                                onClick={onCreateConnection}
-                            />
-                        </Tooltip>
-                    )}
-                    <Tooltip title={v2ConnectionActionsLabel}>
-                        <Button
-                            size="small"
-                            type="text"
-                            icon={<MoreOutlined />}
-                            aria-label={v2ConnectionActionsLabel}
-                            disabled={!activeConnection}
-                            onClick={(event) => {
-                                if (activeConnection) {
-                                    openV2ConnectionContextMenu(event, activeConnection);
-                                }
-                            }}
-                        />
-                    </Tooltip>
-                </div>
-            </div>
-        )}
         <div className={'gn-v2-explorer-search'} style={{ padding: '8px 14px', borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}` }}>
             {!v2UseLegacySidebarFilter ? (
                 <div className="gn-v2-explorer-command-row" data-v2-sidebar-search-mode="command">
@@ -3095,6 +3376,60 @@ const Sidebar: React.FC<{
                 </div>
             )}
         </div>
+        {(
+            <div className="gn-v2-active-connection-header" data-object-count={activeConnectionObjectCount}>
+                <div className="gn-v2-active-connection-actions">
+                    <Tooltip title={v2ExpandAllLabel}>
+                        <Button
+                            size="small"
+                            type="text"
+                            icon={<NodeExpandOutlined />}
+                            aria-label={v2ExpandAllLabel}
+                            data-sidebar-expand-all-action="true"
+                            disabled={v2VisibleTreeData.length === 0}
+                            onClick={expandAllSidebarTree}
+                        />
+                    </Tooltip>
+                    <Tooltip title={v2CollapseAllLabel}>
+                        <Button
+                            size="small"
+                            type="text"
+                            icon={<NodeCollapseOutlined />}
+                            aria-label={v2CollapseAllLabel}
+                            data-sidebar-collapse-all-action="true"
+                            disabled={expandedKeys.length === 0}
+                            onClick={collapseAllSidebarTree}
+                        />
+                    </Tooltip>
+                    {onCreateConnection && (
+                        <Tooltip title={t('connection.new')}>
+                            <Button
+                                size="small"
+                                type="text"
+                                icon={<PlusOutlined />}
+                                aria-label={t('connection.new')}
+                                data-gonavi-create-connection-action="true"
+                                onClick={onCreateConnection}
+                            />
+                        </Tooltip>
+                    )}
+                    <Tooltip title={v2ConnectionActionsLabel}>
+                        <Button
+                            size="small"
+                            type="text"
+                            icon={<MoreOutlined />}
+                            aria-label={v2ConnectionActionsLabel}
+                            disabled={!activeConnection}
+                            onClick={(event) => {
+                                if (activeConnection) {
+                                    openV2ConnectionContextMenu(event, activeConnection);
+                                }
+                            }}
+                        />
+                    </Tooltip>
+                </div>
+            </div>
+        )}
 
         <div className="gn-v2-explorer-filter-tabs" aria-label={t('sidebar.command_search.object_kind.filter_aria')}>
                 {V2_EXPLORER_FILTER_OPTIONS.map((item) => (
@@ -3109,6 +3444,64 @@ const Sidebar: React.FC<{
                     </button>
                 ))}
             </div>
+        <div className="gn-v2-selection-path-row">
+            <div
+                className="gn-v2-selection-path is-tree"
+                data-sidebar-scroll-context={hasScrollOrSelectionPath ? 'true' : 'false'}
+                title={pathTitle || activeConnectionDisplayName}
+            >
+                {(hasScrollOrSelectionPath
+                    ? pathRows
+                    : (pathConnectionId
+                        ? [{
+                            key: 'connection',
+                            label: activeConnectionDisplayName,
+                            className: 'is-connection',
+                            locateKind: 'connection' as const,
+                            locateKey: pathConnectionId,
+                        }]
+                        : [{
+                            key: 'connection',
+                            label: activeConnectionDisplayName,
+                            className: 'is-connection',
+                            locateKind: 'connection' as const,
+                        }])
+                ).map((row, index, rows) => (
+                    <div
+                        key={row.key}
+                        className={[
+                            'gn-v2-selection-path-line',
+                            `depth-${index + 1}`,
+                            row.className,
+                            index === rows.length - 1 ? 'is-leaf' : '',
+                        ].filter(Boolean).join(' ')}
+                    >
+                        <span className="gn-v2-selection-line-guide" aria-hidden="true">
+                            <span className="gn-v2-selection-line-rail" />
+                            <span className="gn-v2-selection-line-node" />
+                        </span>
+                        <span className={`gn-v2-selection-crumb ${row.className}`}>{row.label}</span>
+                        {(row.locateDetail || row.locateKey) ? (
+                            <Tooltip title={v2LocatePathLevelLabel}>
+                                <button
+                                    type="button"
+                                    className="gn-v2-selection-locate"
+                                    aria-label={v2LocatePathLevelLabel}
+                                    data-sidebar-path-locate={row.key}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        locateSelectionPathRow(row);
+                                    }}
+                                >
+                                    <AimOutlined />
+                                </button>
+                            </Tooltip>
+                        ) : null}
+                    </div>
+                ))}
+            </div>
+        </div>
 
         {/* Toolbar */}
         

@@ -103,6 +103,7 @@ import {
     getQueryEditorDecorationModelTextIfLightweight,
     getQueryEditorObjectResolveText,
     getTabQueryValue,
+    focusQueryEditorCaret,
     isDocumentLevelShortcutTarget,
     isQueryEditorPrimaryMouseButton,
     normalizeCommentText,
@@ -792,9 +793,22 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           label: buildQueryEditorMonacoActionLabel('query_editor.action.show_object_info'),
           keybindings: showObjectInfoKeybinding,
           run: () => {
-              const preferredPosition = lastHoverTargetPositionRef.current || editor.getPosition?.();
-              const shown = showObjectInfoAtPosition(preferredPosition);
-              if (!shown) {
+              const caretPosition = editor.getPosition?.();
+              const hoverPosition = lastHoverTargetPositionRef.current;
+              const shown = showObjectInfoAtPosition(caretPosition)
+                  || (!!hoverPosition && showObjectInfoAtPosition(hoverPosition));
+              if (shown) {
+                  return;
+              }
+              let handledBySidebar = false;
+              window.dispatchEvent(new CustomEvent('gonavi:sidebar-view-table-ddl', {
+                  detail: {
+                      markHandled: () => {
+                          handledBySidebar = true;
+                      },
+                  },
+              }));
+              if (!handledBySidebar) {
                   void message.info({
                       key: 'PinkHunkDB-query-editor-object-info-miss',
                       content: translate('query_editor.message.object_info_target_not_found'),
@@ -868,10 +882,24 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       if (!isActive) {
           return;
       }
-      const raf = requestAnimationFrame(() => {
-          editorRef.current?.focus?.();
-      });
-      return () => cancelAnimationFrame(raf);
+      let cancelled = false;
+      let attempts = 0;
+      const tryFocus = () => {
+          if (cancelled) {
+              return;
+          }
+          if (focusQueryEditorCaret(editorRef.current)) {
+              return;
+          }
+          if (attempts++ < 40) {
+              window.requestAnimationFrame(tryFocus);
+          }
+      };
+      const raf = window.requestAnimationFrame(tryFocus);
+      return () => {
+          cancelled = true;
+          window.cancelAnimationFrame(raf);
+      };
   }, [isActive, tab.id]);
 
   const handleSidebarObjectDrop = useCallback((event: DragEvent) => {
@@ -1796,9 +1824,22 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           label: buildQueryEditorMonacoActionLabel('query_editor.action.show_object_info'),
           keybindings: showObjectInfoKeybinding,
           run: () => {
-              const preferredPosition = lastHoverTargetPositionRef.current || editor.getPosition?.();
-              const shown = showObjectInfoAtPosition(preferredPosition);
-              if (!shown) {
+              const caretPosition = editor.getPosition?.();
+              const hoverPosition = lastHoverTargetPositionRef.current;
+              const shown = showObjectInfoAtPosition(caretPosition)
+                  || (!!hoverPosition && showObjectInfoAtPosition(hoverPosition));
+              if (shown) {
+                  return;
+              }
+              let handledBySidebar = false;
+              window.dispatchEvent(new CustomEvent('gonavi:sidebar-view-table-ddl', {
+                  detail: {
+                      markHandled: () => {
+                          handledBySidebar = true;
+                      },
+                  },
+              }));
+              if (!handledBySidebar) {
                   void message.info({
                       key: 'PinkHunkDB-query-editor-object-info-miss',
                       content: translate('query_editor.message.object_info_target_not_found'),
@@ -2920,6 +2961,12 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               window.dispatchEvent(new CustomEvent('PinkHunkDB:ai:inject-prompt', { detail: { prompt: finalPrompt } }));
           }, store.aiPanelVisible ? 0 : 350);
       });
+
+      if (isActive) {
+          window.requestAnimationFrame(() => {
+              focusQueryEditorCaret(editor, { toEnd: true });
+          });
+      }
   };
 
   const handleFormat = () => {

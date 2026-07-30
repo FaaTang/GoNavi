@@ -2422,3 +2422,35 @@ export const resolveQueryLocatorPlan = async ({
         return plan;
     }
 };
+
+/**
+ * focusQueryEditorCaret 聚焦查询编辑器；toEnd 时把光标放到文档末尾。
+ */
+export const focusQueryEditorCaret = (
+  editor: {
+    getModel?: () => {
+      getLineCount?: () => number;
+      getLineMaxColumn?: (lineNumber: number) => number;
+    } | null;
+    setPosition?: (position: { lineNumber: number; column: number }) => void;
+    revealPosition?: (position: { lineNumber: number; column: number }) => void;
+    focus?: () => void;
+  } | null | undefined,
+  options?: { toEnd?: boolean },
+): boolean => {
+  if (!editor) {
+    return false;
+  }
+  if (options?.toEnd) {
+    const model = editor.getModel?.();
+    if (model) {
+      const lineCount = Math.max(1, Number(model.getLineCount?.() || 1));
+      const maxCol = Math.max(1, Number(model.getLineMaxColumn?.(lineCount) || 1));
+      const position = { lineNumber: lineCount, column: maxCol };
+      editor.setPosition?.(position);
+      editor.revealPosition?.(position);
+    }
+  }
+  editor.focus?.();
+  return true;
+};

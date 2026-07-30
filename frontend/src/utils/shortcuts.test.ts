@@ -486,6 +486,20 @@ describe('shortcut defaults', () => {
     });
   });
 
+  it('upgrades focusSidebarSearch still using legacy Ctrl+K combo', () => {
+    const options = sanitizeShortcutOptions({
+      focusSidebarSearch: {
+        mac: { combo: 'Meta+K', enabled: true },
+        windows: { combo: 'Ctrl+K', enabled: true },
+      },
+    });
+
+    expect(options.focusSidebarSearch).toEqual({
+      mac: { combo: 'Meta+F', enabled: true },
+      windows: { combo: 'Ctrl+F', enabled: true },
+    });
+  });
+
   it('preserves custom legacy newQueryTab binding as sidebarNewQuery', () => {
     const options = sanitizeShortcutOptions({
       newQueryTab: {

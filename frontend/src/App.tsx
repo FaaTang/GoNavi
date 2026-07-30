@@ -2842,18 +2842,20 @@ function App() {
         }}>
           {/* Custom Title Bar */}
           <div
+            className="gn-titlebar"
             onDoubleClick={handleTitleBarDoubleClick}
             style={{
                 height: titleBarHeight,
                 flexShrink: 0,
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'stretch',
                 justifyContent: 'space-between',
                 background: bgMain,
                 borderBottom: 'none',
                 userSelect: 'none',
                 WebkitAppRegion: 'drag', // Wails drag region
                 '--wails-draggable': 'drag',
+                '--titlebar-btn-width': `${titleBarButtonWidth}px`,
                 paddingLeft: getMacNativeTitlebarPaddingLeft(effectiveUiScale, useNativeMacWindowControls),
                 paddingRight: getMacNativeTitlebarPaddingRight(effectiveUiScale, useNativeMacWindowControls),
                 fontSize: tokenFontSize
@@ -2867,18 +2869,21 @@ function App() {
                   <div style={{ minWidth: Math.max(40, Math.round(48 * effectiveUiScale)) }} />
               ) : (
                   <div
+                    className="titlebar-window-controls"
                     data-no-titlebar-toggle="true"
                     onDoubleClick={(e) => e.stopPropagation()}
                     style={{ display: 'flex', height: '100%', WebkitAppRegion: 'no-drag', '--wails-draggable': 'no-drag' } as any}
                   >
                       <Button 
                         type="text" 
+                        className="titlebar-window-btn"
                         icon={<MinusOutlined />} 
                         style={{ height: '100%', borderRadius: 0, width: titleBarButtonWidth }} 
                         onClick={WindowMinimise} 
                       />
                       <Button 
                         type="text" 
+                        className="titlebar-window-btn"
                         icon={titleBarToggleIconKey === 'restore' ? <SwitcherOutlined /> : <BorderOutlined />} 
                         style={{ height: '100%', borderRadius: 0, width: titleBarButtonWidth }} 
                         onClick={() => { void handleTitleBarWindowToggle(); }} 
@@ -2887,7 +2892,8 @@ function App() {
                         type="text" 
                         icon={<CloseOutlined />} 
                         danger
-                        className="titlebar-close-btn"
+                        className="titlebar-window-btn titlebar-close-btn"
+                        aria-label={t('common.close')}
                         style={{ height: '100%', borderRadius: 0, width: titleBarButtonWidth }} 
                         onClick={Quit} 
                       />

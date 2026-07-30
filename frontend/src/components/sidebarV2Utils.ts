@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { Key, ReactNode } from 'react';
 
 import {
   buildSidebarRootConnectionToken,
@@ -75,6 +75,99 @@ export const shouldLoadSidebarNodeOnExpand = (
     || node.type === 'table'
     || node.type === 'jvm-mode'
     || node.type === 'jvm-resource';
+};
+
+/**
+ * collectSidebarExpandableKeys 收集对象树可展开节点 key。
+ * 默认会包含已加载子节点的节点，以及尚未懒加载但可展开的节点。
+ */
+export const collectSidebarExpandableKeys = (
+  nodes: Array<Pick<SidebarTreeNode, 'key' | 'type' | 'isLeaf' | 'children'> | null | undefined> | null | undefined,
+  options?: { includeUnloaded?: boolean },
+): Key[] => {
+  const keys: Key[] = [];
+  const includeUnloaded = options?.includeUnloaded !== false;
+  const walk = (
+    list: Array<Pick<SidebarTreeNode, 'key' | 'type' | 'isLeaf' | 'children'> | null | undefined> | null | undefined,
+  ) => {
+    if (!Array.isArray(list)) return;
+    for (const node of list) {
+      if (!node || node.isLeaf === true || node.key == null || node.key === '') continue;
+      const hasChildren = hasSidebarLazyChildren(node.children);
+      if (hasChildren) {
+        keys.push(node.key);
+        walk(node.children as Array<Pick<SidebarTreeNode, 'key' | 'type' | 'isLeaf' | 'children'>>);
+        continue;
+      }
+      if (includeUnloaded && shouldLoadSidebarNodeOnExpand(node)) {
+        keys.push(node.key);
+      }
+    }
+  };
+  walk(nodes);
+  return keys;
+};
+
+/**
+ * isSidebarTreeNodeExpandable 判断节点是否可被「展开选中 / 收起选中」作为根处理。
+ */
+export const isSidebarTreeNodeExpandable = (
+  node: Pick<SidebarTreeNode, 'type' | 'isLeaf' | 'children'> | null | undefined,
+): boolean => {
+  if (!node || node.isLeaf === true) return false;
+  return hasSidebarLazyChildren(node.children) || shouldLoadSidebarNodeOnExpand(node);
+};
+
+/**
+ * collectSidebarSubtreeKeys 收集若干根节点自身及其已加载子孙 key。
+ */
+export const collectSidebarSubtreeKeys = (
+  nodes: Array<Pick<SidebarTreeNode, 'key' | 'children'> | null | undefined> | null | undefined,
+): Key[] => {
+  const keys: Key[] = [];
+  const walk = (
+    list: Array<Pick<SidebarTreeNode, 'key' | 'children'> | null | undefined> | null | undefined,
+  ) => {
+    if (!Array.isArray(list)) return;
+    for (const node of list) {
+      if (!node || node.key == null || node.key === '') continue;
+      keys.push(node.key);
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        walk(node.children as Array<Pick<SidebarTreeNode, 'key' | 'children'>>);
+      }
+    }
+  };
+  walk(nodes);
+  return keys;
+};
+
+/**
+ * flattenSidebarTreeKeysInExpandedOrder 按当前展开状态，展平可见树节点顺序（供 Shift 连续选）。
+ */
+export const flattenSidebarTreeKeysInExpandedOrder = (
+  nodes: Array<Pick<SidebarTreeNode, 'key' | 'children'> | null | undefined> | null | undefined,
+  expandedKeys: Iterable<Key>,
+): Key[] => {
+  const expanded = new Set(Array.from(expandedKeys || []).map((key) => String(key)));
+  const keys: Key[] = [];
+  const walk = (
+    list: Array<Pick<SidebarTreeNode, 'key' | 'children'> | null | undefined> | null | undefined,
+  ) => {
+    if (!Array.isArray(list)) return;
+    for (const node of list) {
+      if (!node || node.key == null || node.key === '') continue;
+      keys.push(node.key);
+      if (
+        Array.isArray(node.children)
+        && node.children.length > 0
+        && expanded.has(String(node.key))
+      ) {
+        walk(node.children as Array<Pick<SidebarTreeNode, 'key' | 'children'>>);
+      }
+    }
+  };
+  walk(nodes);
+  return keys;
 };
 
 export const resolveSidebarTableNameForCopy = (
@@ -630,6 +723,125 @@ export const resolveSidebarNodeConnectionId = (
   const directId = String(node?.dataRef?.id || node?.dataRef?.connectionId || '').trim();
   if (directId && connectionIds.includes(directId)) return directId;
   return resolveSidebarConnectionIdFromKey(node?.key, connectionIds);
+};
+
+export type SidebarScrollContextCrumbs = {
+  connectionId: string;
+  connectionName: string;
+  dbName: string;
+  showConnection: boolean;
+  showDatabase: boolean;
+};
+
+const findSidebarTreeNodeByKey = (
+  nodes: Array<Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'> | null | undefined> | null | undefined,
+  targetKey: string,
+): Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'> | null => {
+  if (!Array.isArray(nodes) || !targetKey) return null;
+  for (const node of nodes) {
+    if (!node) continue;
+    if (String(node.key || '').trim() === targetKey) return node;
+    const found = findSidebarTreeNodeByKey(node.children as typeof nodes, targetKey);
+    if (found) return found;
+  }
+  return null;
+};
+
+export const collectVisibleSidebarTreeNodeKeys = (
+  treeRoot: HTMLElement | null | undefined,
+): string[] => {
+  if (!treeRoot) return [];
+  const holder = treeRoot.querySelector('.ant-tree-list-holder') as HTMLElement | null;
+  const viewport = holder || treeRoot;
+  const viewportRect = viewport.getBoundingClientRect();
+  if (viewportRect.height <= 0) return [];
+
+  const visible: Array<{ key: string; top: number }> = [];
+  const treenodes = treeRoot.querySelectorAll('.ant-tree-treenode');
+  treenodes.forEach((node) => {
+    const el = node as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom <= viewportRect.top + 1 || rect.top >= viewportRect.bottom - 1) {
+      return;
+    }
+    const keyEl = el.querySelector('[data-sidebar-node-key]') as HTMLElement | null;
+    const key = String(keyEl?.getAttribute('data-sidebar-node-key') || '').trim();
+    if (!key) return;
+    visible.push({ key, top: rect.top });
+  });
+
+  visible.sort((a, b) => a.top - b.top);
+  return visible.map((item) => item.key);
+};
+
+export const resolveSidebarNodeDatabaseName = (
+  node: Pick<SidebarTreeNode, 'type' | 'title' | 'dataRef'> | null | undefined,
+): string => {
+  if (!node) return '';
+  if (node.type === 'connection' || node.type === 'tag') return '';
+  if (node.type === 'redis-db') {
+    const redisDB = node.dataRef?.redisDB;
+    return redisDB == null || redisDB === '' ? '' : `db${redisDB}`;
+  }
+  if (node.type === 'database') {
+    return String(node.dataRef?.dbName || node.title || '').trim();
+  }
+  return String(node.dataRef?.dbName || '').trim();
+};
+
+/**
+ * resolveSidebarScrollContextCrumbs 根据当前视口可见节点，计算需要悬浮补全的连接/库面包屑。
+ * 仅当对应层级节点本身不在视口内时展示该级。
+ */
+export const resolveSidebarScrollContextCrumbs = (input: {
+  visibleNodeKeys: string[];
+  treeData: Array<Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'> | null | undefined>;
+  connectionIds: string[];
+  connections: Array<{ id: string; name?: string }>;
+  fallbackConnectionId?: string;
+  fallbackConnectionName?: string;
+  fallbackDbName?: string;
+}): SidebarScrollContextCrumbs | null => {
+  const connectionIds = Array.isArray(input.connectionIds) ? input.connectionIds.filter(Boolean) : [];
+  const visibleKeys = (input.visibleNodeKeys || []).map((key) => String(key || '').trim()).filter(Boolean);
+  const visibleNodes = visibleKeys
+    .map((key) => findSidebarTreeNodeByKey(input.treeData, key))
+    .filter(Boolean) as Array<Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'>>;
+
+  const anchorNode = visibleNodes[0] || null;
+  const connectionId = anchorNode
+    ? resolveSidebarNodeConnectionId(anchorNode, connectionIds)
+    : String(input.fallbackConnectionId || '').trim();
+  if (!connectionId) {
+    return null;
+  }
+
+  const connection = input.connections.find((item) => item.id === connectionId);
+  const connectionName = String(connection?.name || '').trim()
+    || String(input.fallbackConnectionName || '').trim()
+    || connectionId;
+  const dbName = resolveSidebarNodeDatabaseName(anchorNode)
+    || (anchorNode ? '' : String(input.fallbackDbName || '').trim());
+
+  const connectionVisible = visibleNodes.some((node) => (
+    node.type === 'connection' && String(node.key || '').trim() === connectionId
+  ));
+  const databaseVisible = !!dbName && visibleNodes.some((node) => {
+    const nodeConnectionId = resolveSidebarNodeConnectionId(node, connectionIds);
+    const nodeDbName = resolveSidebarNodeDatabaseName(node);
+    if (nodeConnectionId !== connectionId || nodeDbName !== dbName) return false;
+    if (node.type === 'database') return true;
+    // schema 分组仍在视口时，视为库层级上下文尚可见
+    return node.type === 'object-group' && String(node.dataRef?.groupKey || '') === 'schema';
+  });
+
+  return {
+    connectionId,
+    connectionName,
+    dbName,
+    showConnection: !connectionVisible,
+    showDatabase: !!dbName && !databaseVisible,
+  };
 };
 
 export const normalizeSidebarTreeRelativeDropPosition = (

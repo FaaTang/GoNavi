@@ -10,11 +10,15 @@ import Sidebar, {
   buildV2SidebarTableSectionedChildren,
   buildSQLFileExecutionFooter,
   buildV2RailConnectionGroups,
+  collectSidebarExpandableKeys,
+  collectSidebarSubtreeKeys,
   estimateV2TreeHorizontalScrollWidth,
   filterV2CommandSearchTreeItems,
   filterV2ExplorerTreeByKind,
+  flattenSidebarTreeKeysInExpandedOrder,
   getV2RailConnectionGroupBadgeText,
   hasSidebarLazyChildren,
+  isSidebarTreeNodeExpandable,
   normalizeSidebarTreeRelativeDropPosition,
   parseV2CommandSearchQuery,
   resolveV2CommandSearchPersistentFilter,
@@ -318,6 +322,59 @@ describe('Sidebar locate toolbar', () => {
     expect(shouldLoadSidebarNodeOnExpand({ type: 'database', children: [] })).toBe(true);
     expect(shouldLoadSidebarNodeOnExpand({ type: 'database', children: [{ key: 'tables', title: '表' }] })).toBe(false);
     expect(shouldLoadSidebarNodeOnExpand({ type: 'object-group', children: [] })).toBe(false);
+  });
+
+  it('collects expandable keys for expand-all without descending into unloaded leaves', () => {
+    expect(collectSidebarExpandableKeys([
+      {
+        key: 'conn-1-db',
+        type: 'database',
+        children: [
+          {
+            key: 'conn-1-db-tables',
+            type: 'object-group',
+            children: [
+              { key: 'conn-1-db-users', type: 'table', isLeaf: false, children: [] },
+              { key: 'conn-1-db-orders', type: 'table', isLeaf: true },
+            ],
+          },
+        ],
+      },
+      {
+        key: 'conn-1-other',
+        type: 'database',
+        children: [],
+      },
+    ] as any)).toEqual([
+      'conn-1-db',
+      'conn-1-db-tables',
+      'conn-1-db-users',
+      'conn-1-other',
+    ]);
+    expect(collectSidebarExpandableKeys([
+      { key: 'conn-1-other', type: 'database', children: [] },
+    ] as any, { includeUnloaded: false })).toEqual([]);
+  });
+
+  it('collects subtree keys and expandable selection roots for selected expand/collapse', () => {
+    expect(isSidebarTreeNodeExpandable({ type: 'database', children: [] })).toBe(true);
+    expect(isSidebarTreeNodeExpandable({ type: 'table', isLeaf: true })).toBe(false);
+    expect(collectSidebarSubtreeKeys([
+      {
+        key: 'conn-1',
+        children: [
+          { key: 'conn-1-db', children: [{ key: 'conn-1-db-users' }] },
+        ],
+      },
+    ] as any)).toEqual(['conn-1', 'conn-1-db', 'conn-1-db-users']);
+    expect(flattenSidebarTreeKeysInExpandedOrder([
+      {
+        key: 'conn-1',
+        children: [
+          { key: 'conn-1-db', children: [{ key: 'conn-1-db-users' }] },
+        ],
+      },
+    ] as any, ['conn-1'])).toEqual(['conn-1', 'conn-1-db']);
   });
 
   it('wires tree expand and double-click expansion to lazy loading', () => {
@@ -670,13 +727,16 @@ describe('Sidebar locate toolbar', () => {
   });
 
   it('passes the exact tree key when locating a command-search object node', () => {
-    const source = readSidebarSource();
-    const commandSearchRunSource = source.slice(
-      source.indexOf("if (node.type === 'table' || node.type === 'view' || node.type === 'materialized-view')"),
-      source.indexOf("if (node.type === 'db-trigger' || node.type === 'db-event' || node.type === 'routine' || node.type === 'sequence' || node.type === 'package')"),
+    const commandSearchSource = readSourceFile('./sidebar/useSidebarCommandSearchRunner.ts');
+    const commandSearchRunSource = commandSearchSource.slice(
+      commandSearchSource.indexOf("if (node.type === 'table' || node.type === 'view' || node.type === 'materialized-view')"),
+      commandSearchSource.indexOf("if (node.type === 'db-trigger' || node.type === 'db-event' || node.type === 'routine' || node.type === 'sequence' || node.type === 'package')"),
     );
 
     expect(commandSearchRunSource).toContain("tabId: String(node.key || '')");
+    expect(commandSearchRunSource).toContain('buildNewQueryTabFromSidebarNode');
+    expect(commandSearchRunSource).toContain('addTab(queryTab)');
+    expect(commandSearchRunSource).not.toContain('onDoubleClick(null, node)');
   });
 
   it('wires external SQL directory file actions to dedicated Wails APIs', () => {
@@ -740,10 +800,12 @@ describe('Sidebar locate toolbar', () => {
     expect(markup).toContain('搜索表、连接、动作... 或问 AI');
     expect(markup).toContain('gn-v2-search-shortcut');
     expect(markup).toContain('<kbd>⌘</kbd>');
-    expect(markup).toContain('<kbd>K</kbd>');
+    expect(markup).toContain('<kbd>F</kbd>');
     expect(source).toContain("const focusSidebarSearchShortcut = resolveShortcutDisplay(shortcutOptions, 'focusSidebarSearch', activeShortcutPlatform);");
     expect(source).not.toContain('<kbd>⌘</kbd>');
-    expect(source).not.toContain('<kbd>K</kbd>');
+    expect(source).not.toContain('<kbd>F</kbd>');
+    expect(markup).toContain('gn-v2-selection-path');
+    expect(markup).toContain('gn-v2-selection-crumb is-connection');
     expect(markup).toContain('gn-v2-explorer-filter-tabs');
     expect(markup).toContain('全部');
     expect(markup).toContain('视图');
@@ -771,6 +833,22 @@ describe('Sidebar locate toolbar', () => {
     expect(markup).toContain('data-sidebar-open-external-sql-file-action="true"');
     expect(markup).not.toContain('data-sidebar-locate-current-tab-action="true"');
     expect(markup).toContain('data-gonavi-create-connection-action="true"');
+    expect(markup).toContain('data-sidebar-expand-all-action="true"');
+    expect(markup).toContain('data-sidebar-collapse-all-action="true"');
+    expect(markup).toContain('aria-label="全部展开"');
+    expect(markup).toContain('aria-label="全部收起"');
+    expect(source).toContain('collectSidebarExpandableKeys');
+    expect(source).toContain('selectedExpandableNodes');
+    expect(source).toContain('expandAllSidebarTree');
+    expect(source).toContain('collapseAllSidebarTree');
+    expect(source).toContain('expand_all_confirm_content');
+    expect(source).toContain('collapse_all_confirm_content');
+    expect(source).toContain('Modal.confirm');
+    expect(source).toContain('data-sidebar-path-locate');
+    expect(source).toContain('locateSelectionPathRow');
+    expect(source).toContain('flattenSidebarTreeKeysInExpandedOrder');
+    expect(source).toContain('selectionAnchorKeyRef');
+    expect(source).toContain('isSidebarTreeRangeSelectMouseEvent');
     expect(markup).toContain('aria-label="AI 助手"');
     expect(markup).toContain('data-gonavi-ai-entry-action="true"');
     expect(markup).toContain('aria-label="工具"');
@@ -1016,7 +1094,10 @@ describe('Sidebar locate toolbar', () => {
     expect(css).toMatch(/\.gn-v2-rail-item,\s*body\[data-ui-version="v2"\] \.gn-v2-rail-tool \{[^}]*width: calc\(36px \* var\(--gn-ui-scale, 1\)\);[^}]*height: calc\(38px \* var\(--gn-ui-scale, 1\)\);[^}]*font-size: var\(--gn-font-size-sm, 12px\);/s);
     expect(css).toMatch(/\.gn-v2-rail-tool \{[^}]*height: calc\(32px \* var\(--gn-ui-scale, 1\)\);/s);
     expect(css).toMatch(/\.gn-v2-rail-tool \{[^}]*width: calc\(24px \* var\(--gn-ui-scale, 1\)\);/s);
-    expect(css).toMatch(/\.gn-v2-active-connection-trigger \{[^}]*height: 34px;[^}]*border: 0;[^}]*background: transparent;/s);
+    expect(css).toMatch(/\.gn-v2-active-connection-header \{[^}]*justify-content: flex-end;/s);
+    expect(css).toMatch(/\.gn-v2-selection-path\.is-tree \{[^}]*flex-direction: column;/s);
+    expect(css).toMatch(/\.gn-v2-selection-crumb\.is-connection \{[^}]*color: var\(--gn-fg-1\);/s);
+    expect(css).toMatch(/\.gn-v2-selection-locate \{[^}]*margin-left: auto;/s);
     expect(css).not.toContain('.gn-v2-active-connection-trigger:hover');
   });
 
@@ -1143,13 +1224,17 @@ describe('Sidebar locate toolbar', () => {
     };
 
     const markup = renderSidebarMarkup();
+    const source = readSidebarSource();
 
     expect(markup).toContain('gn-v2-connection-rail');
-    expect(markup).toContain('gn-v2-active-connection-copy');
-    expect(markup).toContain('<strong>本地</strong>');
-    expect(markup).toContain('<span>app_db</span>');
-    expect(markup).not.toContain('<span>localhost</span>');
+    expect(markup).toContain('gn-v2-selection-path-row');
+    expect(markup).toContain('gn-v2-selection-path');
+    expect(markup).toContain('gn-v2-selection-crumb is-connection">本地</span>');
+    expect(markup).toContain('gn-v2-selection-crumb is-database">app_db</span>');
+    expect(markup).not.toContain('localhost');
     expect(markup).not.toContain('gn-v2-db-icon-label');
+    expect(source).toContain('resolveSidebarScrollContextCrumbs');
+    expect(source).toContain('collectVisibleSidebarTreeNodeKeys');
   });
 
   it('shows an empty v2 active host header when no host is selected', () => {
@@ -1175,9 +1260,10 @@ describe('Sidebar locate toolbar', () => {
 
     const markup = renderSidebarMarkup();
 
-    expect(markup).toContain(`<strong>${t('sidebar.active_connection.no_host_selected')}</strong>`);
-    expect(markup).toContain(`<span>${t('sidebar.active_connection.no_database_selected')}</span>`);
-    expect(markup).not.toContain('<strong>本地</strong>');
+    expect(markup).toContain(`gn-v2-selection-crumb is-connection">${t('sidebar.active_connection.no_host_selected')}</span>`);
+    expect(markup).not.toContain('gn-v2-selection-crumb is-database');
+    expect(markup).not.toContain(t('sidebar.active_connection.no_database_selected'));
+    expect(markup).not.toContain('>本地</span>');
   });
 
   it('keeps all filter backed by the full tree so hosts remain visible in v2', () => {
