@@ -689,7 +689,10 @@ describe('Sidebar locate toolbar', () => {
     expect(handlersSource).toContain('DBReleaseConnection');
     expect(handlersSource).toContain('releaseConnectionResources');
     expect(handlersSource).toContain('closeTabsWithSavePrompt');
+    expect(handlersSource).toContain('resolveConnectionBatchNodes');
+    expect(handlersSource).toContain('skipTabClosePrompt');
     expect(handlersSource).toContain('void disconnectConnectionNode(node)');
+    expect(handlersSource).toContain('batchConfirmContent');
   });
 
   it('prompts to save dirty query tabs before disconnecting a sidebar connection', () => {

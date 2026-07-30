@@ -32,6 +32,7 @@ type UseSidebarV2ActionHandlersArgs = {
   pinnedSidebarTables: any[];
   loadingNodesRef: MutableRefObject<Set<string>>;
   treeDataRef: MutableRefObject<TreeNode[]>;
+  selectedNodesRef: MutableRefObject<any[]>;
   findTreeNodeByKeyRef: MutableRefObject<(nodes: TreeNode[], targetKey: React.Key) => TreeNode | null>;
   refreshV2TableContextMenuStatsRef: MutableRefObject<(node: any) => void>;
   setConnectionStates: Dispatch<SetStateAction<Record<string, SidebarConnectionState>>>;
@@ -95,6 +96,7 @@ export const useSidebarV2ActionHandlers = ({
   pinnedSidebarTables,
   loadingNodesRef,
   treeDataRef,
+  selectedNodesRef,
   findTreeNodeByKeyRef,
   refreshV2TableContextMenuStatsRef,
   setConnectionStates,
@@ -366,15 +368,22 @@ export const useSidebarV2ActionHandlers = ({
     }
   };
 
-  const disconnectConnectionNode = async (node: any) => {
-    const connKey = String(node?.key || node?.dataRef?.id || '');
-    if (!connKey) return;
+  const disconnectConnectionNodeInternal = async (
+    node: any,
+    options?: { skipTabClosePrompt?: boolean; skipSuccessToast?: boolean },
+  ): Promise<boolean> => {
+    const connKey = String(node?.key || node?.dataRef?.id || '').trim();
+    if (!connKey) return false;
     const tabsToClose = useStore.getState().tabs.filter(
       (tab) => String(tab.connectionId || '').trim() === connKey,
     );
-    const proceed = await closeTabsWithSavePrompt(tabsToClose, () => closeTabsByConnection(connKey));
-    if (!proceed) {
-      return;
+    if (!options?.skipTabClosePrompt) {
+      const proceed = await closeTabsWithSavePrompt(tabsToClose, () => closeTabsByConnection(connKey));
+      if (!proceed) {
+        return false;
+      }
+    } else {
+      closeTabsByConnection(connKey);
     }
     const conn = (connections.find((item) => item.id === connKey) || node?.dataRef) as SavedConnection | undefined;
     Array.from(loadingNodesRef.current).forEach((loadingKey) => {
@@ -399,10 +408,66 @@ export const useSidebarV2ActionHandlers = ({
     } catch (error: any) {
       message.warning(String(error?.message || '').trim() || t('sidebar.message.connection_release_failed_from_sidebar'));
     }
+    if (!options?.skipSuccessToast) {
+      message.success(t('connection.sidebar.disconnect.success'));
+    }
+    return true;
+  };
+
+  const disconnectConnectionNode = async (node: any) => {
+    const batchNodes = resolveConnectionBatchNodes(node);
+    if (batchNodes.length <= 1) {
+      void disconnectConnectionNodeInternal(node);
+      return;
+    }
+    const connectionIds = batchNodes
+      .map((item) => String(item?.key || item?.dataRef?.id || '').trim())
+      .filter(Boolean);
+    const connectionIdSet = new Set(connectionIds);
+    const tabsToClose = useStore.getState().tabs.filter(
+      (tab) => connectionIdSet.has(String(tab.connectionId || '').trim()),
+    );
+    const proceed = await closeTabsWithSavePrompt(tabsToClose, () => {
+      connectionIds.forEach((connId) => closeTabsByConnection(connId));
+    });
+    if (!proceed) {
+      return;
+    }
+    for (const item of batchNodes) {
+      await disconnectConnectionNodeInternal(item, { skipTabClosePrompt: true, skipSuccessToast: true });
+    }
     message.success(t('connection.sidebar.disconnect.success'));
   };
 
   const deleteConnectionNode = (node: any) => {
+    const batchNodes = resolveConnectionBatchNodes(node);
+    if (batchNodes.length > 1) {
+      Modal.confirm({
+        title: t('connection.sidebar.delete.confirmTitle'),
+        content: t('connection.sidebar.delete.batchConfirmContent', { count: batchNodes.length }),
+        onOk: async () => {
+          const backendApp = (window as any).go?.app?.App;
+          if (typeof backendApp?.DeleteConnection !== 'function') {
+            message.error(t('connection.sidebar.delete.backendUnavailable'));
+            throw new Error('DeleteConnection unavailable');
+          }
+          try {
+            for (const item of batchNodes) {
+              const connId = String(item?.key || item?.dataRef?.id || '').trim();
+              if (!connId) continue;
+              await backendApp.DeleteConnection(connId);
+              closeTabsByConnection(connId);
+              removeConnection(connId);
+            }
+            message.success(t('connection.sidebar.delete.batchSuccess', { count: batchNodes.length }));
+          } catch (error: any) {
+            message.error(error?.message || t('connection.sidebar.delete.failureFallback'));
+            throw error;
+          }
+        },
+      });
+      return;
+    }
     Modal.confirm({
       title: t('connection.sidebar.delete.confirmTitle'),
       content: t('connection.sidebar.delete.confirmContent', { name: node.title }),
@@ -439,6 +504,34 @@ export const useSidebarV2ActionHandlers = ({
     return findTreeNodeByKeyRef.current(treeDataRef.current, conn.id) || createConnectionTreeNode(conn);
   };
 
+  const resolveConnectionBatchNodes = (node: any): TreeNode[] => {
+    const currentConnId = String(node?.key || node?.dataRef?.id || '').trim();
+    if (!currentConnId) return [];
+    const selected = Array.isArray(selectedNodesRef.current) ? selectedNodesRef.current : [];
+    const selectedConnectionNodes = selected.filter((item) => String(item?.type || '') === 'connection');
+    if (selectedConnectionNodes.length <= 1) {
+      return [node];
+    }
+    const selectedConnIds = new Set(
+      selectedConnectionNodes
+        .map((item) => String(item?.key || item?.dataRef?.id || '').trim())
+        .filter(Boolean),
+    );
+    if (!selectedConnIds.has(currentConnId)) {
+      return [node];
+    }
+    const resolved: TreeNode[] = [];
+    const seen = new Set<string>();
+    selectedConnectionNodes.forEach((item) => {
+      const connId = String(item?.key || item?.dataRef?.id || '').trim();
+      if (!connId || seen.has(connId)) return;
+      seen.add(connId);
+      const resolvedNode = findTreeNodeByKeyRef.current(treeDataRef.current, connId) || item;
+      resolved.push(resolvedNode as TreeNode);
+    });
+    return resolved.length > 0 ? resolved : [node];
+  };
+
   const handleV2ConnectionContextMenuAction = (node: any, action: V2ConnectionContextMenuActionKey) => {
     const connId = String(node?.key || node?.dataRef?.id || '');
     if (!connId) return;
@@ -448,7 +541,7 @@ export const useSidebarV2ActionHandlers = ({
         setIsCreateDbModalOpen(true);
         return;
       case 'refresh':
-        refreshConnectionNode(node);
+        resolveConnectionBatchNodes(node).forEach((item) => refreshConnectionNode(item));
         return;
       case 'new-query':
         addTab({

@@ -2169,6 +2169,7 @@ const Sidebar: React.FC<{
       pinnedSidebarTables,
       loadingNodesRef,
       treeDataRef,
+      selectedNodesRef,
       findTreeNodeByKeyRef,
       refreshV2TableContextMenuStatsRef,
       setConnectionStates,
