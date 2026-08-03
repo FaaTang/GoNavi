@@ -252,6 +252,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   const toggleQueryResultsPanelActionRef = useRef<any>(null);
   const lastExternalQueryRef = useRef<string>(getTabQueryValue(tab));
   const lastLocalQueryRef = useRef<string>(query);
+  const formatRestoreSnapshotRef = useRef(tab.formatRestoreSnapshot);
   const imeCompositionFallbackRef = useRef<{
       editor: any;
       valueBefore: string;
@@ -543,6 +544,10 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   useEffect(() => {
       currentDbRef.current = currentDb;
   }, [currentDb]);
+
+  useEffect(() => {
+      formatRestoreSnapshotRef.current = tab.formatRestoreSnapshot;
+  }, [tab.formatRestoreSnapshot]);
 
   useEffect(() => {
       const nextConnectionId = String(tab.connectionId || '').trim();
@@ -2980,6 +2985,18 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           const editor = editorRef.current;
           const monaco = monacoRef.current;
           const model = editor?.getModel?.();
+          const clearFormatRestoreSnapshot = () => {
+              formatRestoreSnapshotRef.current = undefined;
+              updateQueryTabDraft(tab.id, { formatRestoreSnapshot: undefined });
+          };
+          const saveFormatRestoreSnapshot = (query: string) => {
+              const snapshot = {
+                  query,
+                  createdAt: Date.now(),
+              };
+              formatRestoreSnapshotRef.current = snapshot;
+              updateQueryTabDraft(tab.id, { formatRestoreSnapshot: snapshot });
+          };
           if (editor && monaco && model) {
               const fullRange = model.getFullModelRange?.()
                   || new monaco.Range(1, 1, model.getLineCount?.() || 1, model.getLineMaxColumn?.(model.getLineCount?.() || 1) || 1);
@@ -3003,16 +3020,33 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               const compactFormatted = format(compact, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
               const isAlreadyBeautified = sourceSql === formatted
                   || (sourceSql.includes('\n  ') && compactFormatted === formatted);
+              const restoreSnapshotQuery = formatRestoreSnapshotRef.current?.query
+                  ?? tab.formatRestoreSnapshot?.query;
+              if (isAlreadyBeautified && typeof restoreSnapshotQuery === 'string') {
+                  if (fullSql === restoreSnapshotQuery) {
+                      clearFormatRestoreSnapshot();
+                      return;
+                  }
+                  clearFormatRestoreSnapshot();
+                  editor.pushUndoStop?.();
+                  editor.executeEdits?.('PinkHunkDB-format-sql', [{
+                      range: fullRange,
+                      text: restoreSnapshotQuery,
+                      forceMoveMarkers: true,
+                  }]);
+                  editor.pushUndoStop?.();
+                  const nextValue = editor.getValue?.();
+                  applyQueryState(typeof nextValue === 'string' ? nextValue : restoreSnapshotQuery);
+                  refreshObjectDecorations();
+                  return;
+              }
               const nextSql = isAlreadyBeautified ? compact : formatted;
               if (sourceSql === nextSql) {
                   return;
               }
-              updateQueryTabDraft(tab.id, {
-                  formatRestoreSnapshot: {
-                      query: fullSql,
-                      createdAt: Date.now(),
-                  },
-              });
+              if (!isAlreadyBeautified) {
+                  saveFormatRestoreSnapshot(fullSql);
+              }
               editor.pushUndoStop?.();
               editor.executeEdits?.('PinkHunkDB-format-sql', [{
                   range: targetRange,
@@ -3032,16 +3066,24 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const compactFormatted = format(compact, { language: formatterLanguage, keywordCase: sqlFormatOptions.keywordCase });
       const isAlreadyBeautified = sourceSql === formatted
           || (sourceSql.includes('\n  ') && compactFormatted === formatted);
+      const restoreSnapshotQuery = formatRestoreSnapshotRef.current?.query
+          ?? tab.formatRestoreSnapshot?.query;
+      if (isAlreadyBeautified && typeof restoreSnapshotQuery === 'string') {
+          if (sourceSql === restoreSnapshotQuery) {
+              clearFormatRestoreSnapshot();
+              return;
+          }
+          clearFormatRestoreSnapshot();
+          syncQueryToEditor(restoreSnapshotQuery);
+          return;
+      }
       const nextSql = isAlreadyBeautified ? compact : formatted;
       if (sourceSql === nextSql) {
           return;
       }
-      updateQueryTabDraft(tab.id, {
-          formatRestoreSnapshot: {
-              query: sourceSql,
-              createdAt: Date.now(),
-          },
-      });
+      if (!isAlreadyBeautified) {
+          saveFormatRestoreSnapshot(sourceSql);
+      }
       syncQueryToEditor(nextSql);
   } catch (e) {
           void message.error(translate('query_editor.message.format_failed'));
@@ -3049,11 +3091,13 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   };
 
   const handleRestoreLastFormat = () => {
-      const previousQuery = tab.formatRestoreSnapshot?.query;
+      const previousQuery = formatRestoreSnapshotRef.current?.query
+          ?? tab.formatRestoreSnapshot?.query;
       if (!previousQuery) {
           void message.info(translate('query_editor.message.no_format_restore_snapshot'));
           return;
       }
+      formatRestoreSnapshotRef.current = undefined;
       syncQueryToEditor(previousQuery);
       updateQueryTabDraft(tab.id, {
           query: previousQuery,

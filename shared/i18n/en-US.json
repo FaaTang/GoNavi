@@ -2671,7 +2671,7 @@
   "app.shortcuts.action.switchToPreviousTab.label": "Switch to Previous Tab",
   "app.shortcuts.action.closeCurrentTab.description": "Close the active workbench tab; query tabs prompt to save unsaved changes",
   "app.shortcuts.action.closeCurrentTab.label": "Close Current Tab",
-  "app.shortcuts.action.formatSql.description": "Beautify the current SQL; if already beautified, toggle to compact single-line SQL",
+  "app.shortcuts.action.formatSql.description": "Beautify the current SQL; if already beautified, restore the pre-format SQL",
   "app.shortcuts.action.formatSql.label": "Format SQL",
   "app.shortcuts.action.toggleAIPanel.description": "Open the right AI data insights panel",
   "app.shortcuts.action.toggleAIPanel.label": "Open AI Data Insights",

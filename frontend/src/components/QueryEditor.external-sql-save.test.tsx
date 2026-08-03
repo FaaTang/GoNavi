@@ -1877,7 +1877,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     expect(editorState.editor.pushUndoStop).toHaveBeenCalledTimes(2);
     expect(editorState.editor.executeEdits).toHaveBeenCalledWith(
-      'gonavi-format-sql',
+      'PinkHunkDB-format-sql',
       expect.arrayContaining([
         expect.objectContaining({
           text: expect.stringContaining('SELECT'),
@@ -1892,11 +1892,12 @@ storeState.queryOptions.showQueryResultsPanel = false;
     });
   });
 
-  it('toggles formatted SQL back to compact single-line SQL on repeated beautify', async () => {
+  it('restores the pre-beautify SQL snapshot on repeated beautify', async () => {
     let renderer!: ReactTestRenderer;
+    const originalSql = 'select * from users where id=1';
 
     await act(async () => {
-      renderer = create(<QueryEditor tab={createTab({ query: 'select * from users where id=1' })} />);
+      renderer = create(<QueryEditor tab={createTab({ query: originalSql })} />);
     });
 
     const formatButton = findButton(renderer, '美化');
@@ -1908,13 +1909,52 @@ storeState.queryOptions.showQueryResultsPanel = false;
     });
 
     expect(editorState.editor.executeEdits).toHaveBeenLastCalledWith(
-      'gonavi-format-sql',
+      'PinkHunkDB-format-sql',
       expect.arrayContaining([
         expect.objectContaining({
-          text: 'SELECT * FROM users WHERE id = 1',
+          text: originalSql,
         }),
       ]),
     );
+    expect(storeState.updateQueryTabDraft).toHaveBeenCalledWith('tab-1', {
+      formatRestoreSnapshot: undefined,
+    });
+    expect(editorState.value).toBe(originalSql);
+  });
+
+  it('preserves statement newlines when restoring multi-statement SQL after beautify', async () => {
+    let renderer!: ReactTestRenderer;
+    const originalSql = [
+      'SELECT * FROM public.case_info ORDER BY id DESC;',
+      'SELECT * FROM public.case_info WHERE id = 2083080860509896705;',
+    ].join('\n');
+
+    await act(async () => {
+      renderer = create(<QueryEditor tab={createTab({ query: originalSql })} />);
+    });
+
+    const formatButton = findButton(renderer, '美化');
+    await act(async () => {
+      await formatButton.props.onClick();
+    });
+    expect(editorState.editor.executeEdits).toHaveBeenCalled();
+    const beautified = String(editorState.editor.executeEdits.mock.calls.at(-1)?.[1]?.[0]?.text || '');
+    expect(beautified).toContain('\n');
+    expect(beautified).not.toBe(originalSql);
+
+    await act(async () => {
+      await formatButton.props.onClick();
+    });
+
+    expect(editorState.editor.executeEdits).toHaveBeenLastCalledWith(
+      'PinkHunkDB-format-sql',
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: originalSql,
+        }),
+      ]),
+    );
+    expect(originalSql.split('\n')).toHaveLength(2);
   });
 
   it('compresses selected SQL when selected content is already beautified', async () => {
@@ -1938,7 +1978,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
     });
 
     expect(editorState.editor.executeEdits).toHaveBeenLastCalledWith(
-      'gonavi-format-sql',
+      'PinkHunkDB-format-sql',
       expect.arrayContaining([
         expect.objectContaining({
           range: expect.objectContaining({
@@ -2006,7 +2046,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     expect(messageApi.error).not.toHaveBeenCalled();
     expect(editorState.editor.executeEdits).toHaveBeenCalledWith(
-      'gonavi-format-sql',
+      'PinkHunkDB-format-sql',
       expect.arrayContaining([
         expect.objectContaining({
           text: expect.stringContaining(')::int AS time_diff_seconds'),
@@ -2079,7 +2119,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     expect(messageApi.error).not.toHaveBeenCalled();
     expect(editorState.editor.executeEdits).toHaveBeenCalledWith(
-      'gonavi-format-sql',
+      'PinkHunkDB-format-sql',
       expect.arrayContaining([
         expect.objectContaining({
           text: expect.stringContaining("'2025-06-25'::date;"),
