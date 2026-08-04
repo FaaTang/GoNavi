@@ -100,7 +100,7 @@ const ensureSqlExecutionChooserHighlightStyle = () => {
     styleNode.id = SQL_EXECUTION_CHOOSER_HIGHLIGHT_STYLE_ID;
     styleNode.textContent = `
 .gn-sql-execution-chooser-highlight {
-  background: rgba(24, 144, 255, 0.2);
+  background: color-mix(in srgb, var(--gn-accent, #ff4da6) 22%, transparent);
   border-radius: 2px;
 }
 `;
@@ -276,8 +276,12 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
         style={{
           textAlign: 'left',
           borderRadius: 6,
-          border: isSelected ? '1px solid #1677ff' : '1px solid #d9d9d9',
-          background: isSelected ? 'rgba(22, 119, 255, 0.08)' : '#fff',
+          border: isSelected
+            ? '1px solid var(--gn-accent, #ff4da6)'
+            : '1px solid var(--gn-br-2, #d9d9d9)',
+          background: isSelected
+            ? 'var(--gn-accent-soft, #ffe4f0)'
+            : 'var(--gn-bg-panel, #fff)',
           padding: '8px 10px',
           display: 'flex',
           flexDirection: 'column',
@@ -372,7 +376,7 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
           style={{
             border: 'none',
             background: 'transparent',
-            color: '#1677ff',
+            color: 'var(--gn-accent-2, #e6005c)',
             fontSize: 12,
             padding: 0,
             cursor: 'pointer',
