@@ -907,6 +907,33 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       };
   }, [isActive, tab.id]);
 
+  useEffect(() => {
+      if (!isActive) {
+          return;
+      }
+      const handleFocusEditorFind = (event: Event) => {
+          const detail = (event as CustomEvent<{ tabId?: string }>).detail || {};
+          if (detail.tabId && detail.tabId !== tab.id) {
+              return;
+          }
+          const editor = editorRef.current;
+          if (!editor) {
+              return;
+          }
+          editor.focus?.();
+          const findAction = editor.getAction?.('actions.find');
+          if (findAction?.run) {
+              void findAction.run();
+              return;
+          }
+          editor.trigger?.('keyboard', 'actions.find', null);
+      };
+      window.addEventListener('PinkHunkDB:focus-editor-find', handleFocusEditorFind as EventListener);
+      return () => {
+          window.removeEventListener('PinkHunkDB:focus-editor-find', handleFocusEditorFind as EventListener);
+      };
+  }, [isActive, tab.id]);
+
   const handleSidebarObjectDrop = useCallback((event: DragEvent) => {
       if (!hasSidebarSqlEditorDragPayload(event.dataTransfer)) {
           return;
@@ -1621,6 +1648,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
 
       editor.updateOptions?.({
           fixedOverflowWidgets: true,
+          find: {
+              addExtraSpaceOnTop: false,
+          },
           hover: {
               enabled: true,
               delay: QUERY_EDITOR_HOVER_DELAY_MS,
@@ -5357,6 +5387,9 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
             minimap: { enabled: false },
             automaticLayout: true,
             fixedOverflowWidgets: true,
+            find: {
+              addExtraSpaceOnTop: false,
+            },
             hover: {
               enabled: true,
               delay: QUERY_EDITOR_HOVER_DELAY_MS,

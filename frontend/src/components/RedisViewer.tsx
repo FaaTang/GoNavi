@@ -2,7 +2,7 @@ import Modal from './common/ResizableDraggableModal';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Table, Input, Button, Space, Tag, Tree, Spin, message, Form, InputNumber, Popconfirm, Tooltip, Radio } from 'antd';
-import type { RadioChangeEvent } from 'antd';
+import type { InputRef, RadioChangeEvent } from 'antd';
 import { ReloadOutlined, DeleteOutlined, PlusOutlined, EditOutlined, SearchOutlined, ClockCircleOutlined, CopyOutlined, FolderOpenOutlined, KeyOutlined, RightOutlined, DownOutlined } from '@ant-design/icons';
 import { useStore } from '../store';
 import { RedisKeyInfo, RedisValue, StreamEntry } from '../types';
@@ -51,6 +51,8 @@ const REDIS_KEY_GONE_MESSAGE = 'Redis Key 不存在或已过期'; // i18n-scan: 
 interface RedisViewerProps {
     connectionId: string;
     redisDB: number;
+    tabId?: string;
+    isActive?: boolean;
 }
 
 // Draggable divider uses direct DOM updates to avoid resize lag.
@@ -177,7 +179,7 @@ const getRedisTopologyTagLabel = (topology: 'single' | 'replica' | 'cluster' | '
     return 'Single';
 };
 
-const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
+const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB, tabId, isActive = true }) => {
     const connections = useStore(state => state.connections);
     const theme = useStore(state => state.theme);
     const appearance = useStore(state => state.appearance);
@@ -211,6 +213,7 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
     const [keys, setKeys] = useState<RedisKeyInfo[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchInput, setSearchInput] = useState('');
+    const keySearchInputRef = useRef<InputRef>(null);
     const [searchPattern, setSearchPattern] = useState('*');
     const [searchMode, setSearchMode] = useState<RedisSearchMode>('fuzzy');
     const [cursor, setCursor] = useState<string>('0');
@@ -416,6 +419,35 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
         setSearchMode(nextMode);
         executeSearch(searchInput, nextMode);
     }, [executeSearch, searchInput]);
+
+    useEffect(() => {
+        if (!isActive) {
+            return;
+        }
+        const handleFocusRedisKeySearch = (event: Event) => {
+            const detail = (event as CustomEvent<{
+                tabId?: string;
+                connectionId?: string;
+                redisDB?: number;
+            }>).detail || {};
+            if (detail.tabId && tabId && detail.tabId !== tabId) {
+                return;
+            }
+            if (detail.connectionId && detail.connectionId !== connectionId) {
+                return;
+            }
+            if (detail.redisDB !== undefined && Number(detail.redisDB) !== Number(redisDB)) {
+                return;
+            }
+            window.requestAnimationFrame(() => {
+                keySearchInputRef.current?.focus({ cursor: 'all' });
+            });
+        };
+        window.addEventListener('PinkHunkDB:focus-redis-key-search', handleFocusRedisKeySearch as EventListener);
+        return () => {
+            window.removeEventListener('PinkHunkDB:focus-redis-key-search', handleFocusRedisKeySearch as EventListener);
+        };
+    }, [connectionId, isActive, redisDB, tabId]);
 
     const handleLoadMore = () => {
         if (!hasMore || loading) {
@@ -1914,6 +1946,7 @@ const RedisViewer: React.FC<RedisViewerProps> = ({ connectionId, redisDB }) => {
                         </Radio.Group>
                         <Search
                             {...noAutoCapInputProps}
+                            ref={keySearchInputRef}
                             style={{ flex: 1 }}
                             placeholder={searchMode === 'exact' ? tr('redis_viewer.placeholder.search_exact') : tr('redis_viewer.placeholder.search_fuzzy')}
                             value={searchInput}

@@ -495,6 +495,24 @@ describe('shortcut defaults', () => {
     });
 
     expect(options.focusSidebarSearch).toEqual({
+      mac: { combo: 'Meta+Shift+F', enabled: true },
+      windows: { combo: 'Ctrl+Shift+F', enabled: true },
+    });
+  });
+
+  it('upgrades focusSidebarSearch still using previous Ctrl+F default', () => {
+    const options = sanitizeShortcutOptions({
+      focusSidebarSearch: {
+        mac: { combo: 'Meta+F', enabled: true },
+        windows: { combo: 'Ctrl+F', enabled: true },
+      },
+    });
+
+    expect(options.focusSidebarSearch).toEqual({
+      mac: { combo: 'Meta+Shift+F', enabled: true },
+      windows: { combo: 'Ctrl+Shift+F', enabled: true },
+    });
+    expect(options.focusTabSearch).toEqual({
       mac: { combo: 'Meta+F', enabled: true },
       windows: { combo: 'Ctrl+F', enabled: true },
     });

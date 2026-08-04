@@ -236,6 +236,7 @@ describe('tool center menu entries', () => {
     const expectedHandlers = new Map([
       ['runQuery', 'PinkHunkDB:run-active-query'],
       ['focusSidebarSearch', 'PinkHunkDB:focus-sidebar-search'],
+      ['focusTabSearch', 'PinkHunkDB:focus-redis-key-search'],
       ['switchToNextTab', 'switchActiveTabByOffset(1);'],
       ['switchToPreviousTab', 'switchActiveTabByOffset(-1);'],
       ['closeCurrentTab', 'PinkHunkDB:close-active-tab'],
@@ -252,11 +253,13 @@ describe('tool center menu entries', () => {
     for (const [action, handler] of expectedHandlers) {
       expect(getGlobalShortcutCaseBlock(action)).toContain(handler);
     }
+    expect(getGlobalShortcutCaseBlock('focusTabSearch')).toContain('PinkHunkDB:focus-editor-find');
+    expect(getGlobalShortcutCaseBlock('focusTabSearch')).toContain('PinkHunkDB:focus-datagrid-page-find');
     expect(appSource).toContain('const switchActiveTabByOffset = useCallback((offset: 1 | -1) => {');
     expect(appSource).toContain('const nextIndex = (baseIndex + offset + tabs.length) % tabs.length;');
     expect(appSource).toContain('setActiveTab(tabs[nextIndex].id);');
     expect(appSource).toContain('handleCreateConnection, handleManualResetWindowZoom');
-    expect(appSource).toContain('switchActiveTabByOffset, themeMode');
+    expect(appSource).toContain('switchActiveTabByOffset, tabs, themeMode');
   });
 
   it('automatically resets WebView2 zoom when a Windows taskbar restore returns focus', () => {

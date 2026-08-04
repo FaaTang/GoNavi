@@ -2200,6 +2200,9 @@ storeState.queryOptions.showQueryResultsPanel = false;
     const initialOptions = editorState.editor.updateOptions.mock.calls[0]?.[0];
     expect(initialOptions).toMatchObject({
       fixedOverflowWidgets: true,
+      find: {
+        addExtraSpaceOnTop: false,
+      },
       hover: {
         enabled: true,
         delay: 1000,

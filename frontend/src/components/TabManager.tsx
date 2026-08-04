@@ -486,7 +486,7 @@ const TabContent: React.FC<{ tab: TabData; isActive: boolean; lazyHeavyModules: 
     );
   }
   if (tab.type === 'redis-keys') {
-    return <RedisViewer connectionId={tab.connectionId} redisDB={tab.redisDB ?? 0} />;
+    return <RedisViewer connectionId={tab.connectionId} redisDB={tab.redisDB ?? 0} tabId={tab.id} isActive={isActive} />;
   }
   if (tab.type === 'redis-command') {
     return <RedisCommandEditor connectionId={tab.connectionId} redisDB={tab.redisDB ?? 0} />;

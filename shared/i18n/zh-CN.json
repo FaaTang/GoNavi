@@ -2641,6 +2641,8 @@
   "app.shortcuts.action.diagnoseQuery.label": "SQL 诊断",
   "app.shortcuts.action.focusSidebarSearch.description": "定位到左侧连接树搜索框",
   "app.shortcuts.action.focusSidebarSearch.label": "聚焦侧边栏搜索",
+  "app.shortcuts.action.focusTabSearch.description": "定位到当前标签页内的搜索（SQL 查找、Redis Key 搜索、表格页内查找等）",
+  "app.shortcuts.action.focusTabSearch.label": "当前标签页搜索",
   "app.shortcuts.action.newConnection.description": "创建新的数据库、运行时或其他数据源连接",
   "app.shortcuts.action.newConnection.label": "新建数据源",
   "app.shortcuts.action.sidebarNewQuery.description": "选中侧边栏中的数据库或表时，新建 SQL 查询标签页（与右键「新建查询」一致）",

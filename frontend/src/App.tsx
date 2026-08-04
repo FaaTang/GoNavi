@@ -2614,6 +2614,34 @@ function App() {
               case 'focusSidebarSearch':
                   window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-sidebar-search'));
                   break;
+              case 'focusTabSearch': {
+                  const activeTab = tabs.find((tab) => tab.id === activeTabId);
+                  if (!activeTab) {
+                      break;
+                  }
+                  if (activeTab.type === 'redis-keys') {
+                      window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-redis-key-search', {
+                          detail: {
+                              tabId: activeTab.id,
+                              connectionId: activeTab.connectionId,
+                              redisDB: activeTab.redisDB ?? 0,
+                          },
+                      }));
+                      break;
+                  }
+                  if (activeTab.type === 'query') {
+                      window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-editor-find', {
+                          detail: { tabId: activeTab.id },
+                      }));
+                      break;
+                  }
+                  if (activeTab.type === 'table') {
+                      window.dispatchEvent(new CustomEvent('PinkHunkDB:focus-datagrid-page-find', {
+                          detail: { tabId: activeTab.id },
+                      }));
+                  }
+                  break;
+              }
               case 'switchToNextTab':
                   switchActiveTabByOffset(1);
                   break;
@@ -2658,7 +2686,7 @@ function App() {
       return () => {
           window.removeEventListener('keydown', handleGlobalShortcut, true);
       };
-  }, [activeShortcutPlatform, activeTabId, handleCreateConnection, handleManualResetWindowZoom, handleOpenSettingsModal, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
+  }, [activeShortcutPlatform, activeTabId, handleCreateConnection, handleManualResetWindowZoom, handleOpenSettingsModal, handleTitleBarWindowToggle, handleToggleLogPanel, isMacRuntime, shortcutOptions, switchActiveTabByOffset, tabs, themeMode, setTheme, toggleAIPanel, useNativeMacWindowControls]);
 
   useEffect(() => {
       if (!capturingShortcutAction) {

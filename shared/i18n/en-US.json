@@ -2641,6 +2641,8 @@
   "app.shortcuts.action.diagnoseQuery.label": "SQL Diagnose",
   "app.shortcuts.action.focusSidebarSearch.description": "Focus the left connection tree search box",
   "app.shortcuts.action.focusSidebarSearch.label": "Focus Sidebar Search",
+  "app.shortcuts.action.focusTabSearch.description": "Focus in-tab search (SQL find, Redis key search, table page find, etc.)",
+  "app.shortcuts.action.focusTabSearch.label": "Find in Current Tab",
   "app.shortcuts.action.newConnection.description": "Create a new database, runtime, or other data source connection",
   "app.shortcuts.action.newConnection.label": "New Data Source",
   "app.shortcuts.action.sidebarNewQuery.description": "Create a SQL query tab from the selected database or table in the sidebar tree (same as the context menu action)",

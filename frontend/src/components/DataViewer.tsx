@@ -1232,8 +1232,36 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
     fetchData(1, pagination.pageSize);
   }, [tab.id, tab.connectionId, tab.dbName, tab.tableName, sortInfo, filterConditions, quickWhereCondition]); // Initial load and re-load on sort/filter
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+    const handleFocusPageFind = (event: Event) => {
+      const detail = (event as CustomEvent<{ tabId?: string }>).detail || {};
+      if (detail.tabId && detail.tabId !== tab.id) {
+        return;
+      }
+      const input = rootRef.current?.querySelector(
+        '.gn-v2-data-grid-page-find-input',
+      ) as HTMLInputElement | null;
+      if (!input) {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        input.focus();
+        input.select();
+      });
+    };
+    window.addEventListener('PinkHunkDB:focus-datagrid-page-find', handleFocusPageFind as EventListener);
+    return () => {
+      window.removeEventListener('PinkHunkDB:focus-datagrid-page-find', handleFocusPageFind as EventListener);
+    };
+  }, [isActive, tab.id]);
+
   return (
-    <div className={'gn-v2-data-viewer'} style={{ flex: '1 1 auto', minHeight: 0, minWidth: 0, height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div ref={rootRef} className={'gn-v2-data-viewer'} style={{ flex: '1 1 auto', minHeight: 0, minWidth: 0, height: '100%', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <DataGrid
           data={data}
           columnNames={columnNames}

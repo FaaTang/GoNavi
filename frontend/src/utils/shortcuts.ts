@@ -12,6 +12,7 @@ export type ShortcutAction =
   | 'deleteSelectedRows'
   | 'sendAIChatMessage'
   | 'focusSidebarSearch'
+  | 'focusTabSearch'
   | 'sidebarNewQuery'
   | 'sidebarViewTableDdl'
   | 'switchToNextTab'
@@ -115,6 +116,7 @@ export const SHORTCUT_ACTION_ORDER: ShortcutAction[] = [
   'deleteSelectedRows',
   'sendAIChatMessage',
   'focusSidebarSearch',
+  'focusTabSearch',
   'sidebarNewQuery',
   'sidebarViewTableDdl',
   'switchToNextTab',
@@ -203,6 +205,11 @@ const SHORTCUT_ACTION_META_DEFINITIONS: Record<ShortcutAction, ShortcutActionMet
   focusSidebarSearch: {
     labelKey: 'app.shortcuts.action.focusSidebarSearch.label',
     descriptionKey: 'app.shortcuts.action.focusSidebarSearch.description',
+    allowInEditable: true,
+  },
+  focusTabSearch: {
+    labelKey: 'app.shortcuts.action.focusTabSearch.label',
+    descriptionKey: 'app.shortcuts.action.focusTabSearch.description',
     allowInEditable: true,
   },
   sidebarNewQuery: {
@@ -322,6 +329,10 @@ export const DEFAULT_SHORTCUT_OPTIONS: ShortcutOptions = {
     windows: { combo: 'Enter', enabled: true },
   },
   focusSidebarSearch: {
+    mac: { combo: 'Meta+Shift+F', enabled: true },
+    windows: { combo: 'Ctrl+Shift+F', enabled: true },
+  },
+  focusTabSearch: {
     mac: { combo: 'Meta+F', enabled: true },
     windows: { combo: 'Ctrl+F', enabled: true },
   },
@@ -640,7 +651,7 @@ const isLegacyShortcutBinding = (value: Record<string, unknown>): boolean => (
 );
 
 const LEGACY_NEW_QUERY_TAB_COMBOS = new Set(['Ctrl+N', 'Meta+N']);
-const LEGACY_FOCUS_SIDEBAR_SEARCH_COMBOS = new Set(['Ctrl+K', 'Meta+K']);
+const LEGACY_FOCUS_SIDEBAR_SEARCH_COMBOS = new Set(['Ctrl+K', 'Meta+K', 'Ctrl+F', 'Meta+F']);
 
 const isLegacyNewQueryTabCombo = (combo: string): boolean => (
   LEGACY_NEW_QUERY_TAB_COMBOS.has(normalizeShortcutCombo(combo))
