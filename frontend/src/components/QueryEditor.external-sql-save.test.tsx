@@ -7121,11 +7121,12 @@ storeState.languagePreference = 'en-US';
     });
   });
 
-  it('shows "No running query to cancel." in English when stop is clicked before a query id exists', async () => {
+  it('shows "Query canceled." in English when stop is clicked before a remote query id exists', async () => {
     storeState.languagePreference = 'en-US';
     setCurrentLanguage('en-US');
 
     backendApp.GenerateQueryID.mockReturnValueOnce(new Promise(() => {}));
+    backendApp.CancelQuery.mockResolvedValueOnce({ success: true });
 
     let renderer!: ReactTestRenderer;
     await act(async () => {
@@ -7141,7 +7142,9 @@ storeState.languagePreference = 'en-US';
       await findButton(renderer, 'Stop').props.onClick();
     });
 
-    expect(messageApi.warning).toHaveBeenCalledWith('No running query to cancel.');
+    expect(backendApp.CancelQuery).toHaveBeenCalled();
+    expect(messageApi.success).toHaveBeenCalledWith('Query canceled.');
+    expect(messageApi.warning).not.toHaveBeenCalledWith('No running query to cancel.');
     expect(messageApi.warning).not.toHaveBeenCalledWith('没有正在运行的查询可取消');
   });
 

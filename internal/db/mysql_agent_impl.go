@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"GoNavi-Wails/internal/connection"
 )
@@ -181,6 +182,16 @@ func (c *mysqlAgentClient) call(req mysqlAgentRequest, out interface{}, fields *
 	return nil
 }
 
+func (c *mysqlAgentClient) interrupt() {
+	// 故意不抢 c.mu：call() 可能正持锁阻塞在 ReadBytes。
+	if c.stdin != nil {
+		_ = c.stdin.Close()
+	}
+	if c.cmd != nil && c.cmd.Process != nil {
+		_ = c.cmd.Process.Kill()
+	}
+}
+
 func (c *mysqlAgentClient) close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -250,7 +261,57 @@ func (m *MySQLAgentDB) QueryContext(ctx context.Context, query string) ([]map[st
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
-	return m.Query(query)
+	type callResult struct {
+		data   []map[string]interface{}
+		fields []string
+		err    error
+	}
+	done := make(chan callResult, 1)
+	go func() {
+		data, fields, err := m.Query(query)
+		done <- callResult{data: data, fields: fields, err: err}
+	}()
+	select {
+	case <-ctx.Done():
+		if m.client != nil {
+			m.client.interrupt()
+		}
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+		}
+		return nil, nil, ctx.Err()
+	case result := <-done:
+		return result.data, result.fields, result.err
+	}
+}
+
+func (m *MySQLAgentDB) ExecContext(ctx context.Context, query string) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	type callResult struct {
+		affected int64
+		err      error
+	}
+	done := make(chan callResult, 1)
+	go func() {
+		affected, err := m.Exec(query)
+		done <- callResult{affected: affected, err: err}
+	}()
+	select {
+	case <-ctx.Done():
+		if m.client != nil {
+			m.client.interrupt()
+		}
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+		}
+		return 0, ctx.Err()
+	case result := <-done:
+		return result.affected, result.err
+	}
 }
 
 func (m *MySQLAgentDB) Query(query string) ([]map[string]interface{}, []string, error) {
@@ -267,13 +328,6 @@ func (m *MySQLAgentDB) Query(query string) ([]map[string]interface{}, []string, 
 		return nil, nil, err
 	}
 	return data, fields, nil
-}
-
-func (m *MySQLAgentDB) ExecContext(ctx context.Context, query string) (int64, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	return m.Exec(query)
 }
 
 func (m *MySQLAgentDB) Exec(query string) (int64, error) {

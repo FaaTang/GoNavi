@@ -899,19 +899,12 @@ func (a *App) DBQueryWithCancel(config connection.ConnectionConfig, dbName strin
 	defer cancel()
 
 	// Store cancel function for potential manual cancellation
-	a.queryMu.Lock()
-	a.runningQueries[queryID] = queryContext{
-		cancel:  cancel,
-		started: time.Now(),
-	}
-	a.queryMu.Unlock()
+	a.registerRunningQuery(queryID, cancel, runConfig, func() {
+		a.forceStopCachedDatabase(runConfig, queryID)
+	})
 
 	// Ensure query is removed from tracking when done
-	defer func() {
-		a.queryMu.Lock()
-		delete(a.runningQueries, queryID)
-		a.queryMu.Unlock()
-	}()
+	defer a.unregisterRunningQuery(queryID)
 
 	isReadQuery := isReadOnlySQLQuery(runConfig.Type, query)
 	tryQueryFirst := shouldTryQueryResultFirst(runConfig.Type, query)
@@ -1034,17 +1027,10 @@ func (a *App) DBQueryMulti(config connection.ConnectionConfig, dbName string, qu
 	ctx, cancel := newQueryExecutionContext(runConfig)
 	defer cancel()
 
-	a.queryMu.Lock()
-	a.runningQueries[queryID] = queryContext{
-		cancel:  cancel,
-		started: time.Now(),
-	}
-	a.queryMu.Unlock()
-	defer func() {
-		a.queryMu.Lock()
-		delete(a.runningQueries, queryID)
-		a.queryMu.Unlock()
-	}()
+	a.registerRunningQuery(queryID, cancel, runConfig, func() {
+		a.forceStopCachedDatabase(runConfig, queryID)
+	})
+	defer a.unregisterRunningQuery(queryID)
 
 	// 尝试使用驱动原生多结果集支持。
 	// 注意：原生 conn.Query() 执行写操作（UPDATE/INSERT/DELETE）时，
@@ -1217,6 +1203,10 @@ func (a *App) DBQueryMulti(config connection.ConnectionConfig, dbName string, qu
 
 	var resultSets []connection.ResultSetData
 	for idx, stmt := range statements {
+		if err := ctx.Err(); err != nil {
+			logger.Warnf("DBQueryMulti 已取消，停止后续语句：%s 已完成=%d/%d", formatConnSummary(runConfig), idx, len(statements))
+			return connection.QueryResult{Success: false, Message: err.Error(), QueryID: queryID}
+		}
 		stmt = strings.TrimSpace(stmt)
 		if stmt == "" {
 			continue

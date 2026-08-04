@@ -70,17 +70,10 @@ func (a *App) DBQueryMultiTransactional(config connection.ConnectionConfig, dbNa
 	ctx, cancel := newQueryExecutionContext(runConfig)
 	defer cancel()
 
-	a.queryMu.Lock()
-	a.runningQueries[queryID] = queryContext{
-		cancel:  cancel,
-		started: time.Now(),
-	}
-	a.queryMu.Unlock()
-	defer func() {
-		a.queryMu.Lock()
-		delete(a.runningQueries, queryID)
-		a.queryMu.Unlock()
-	}()
+	a.registerRunningQuery(queryID, cancel, runConfig, func() {
+		a.forceStopCachedDatabase(runConfig, queryID)
+	})
+	defer a.unregisterRunningQuery(queryID)
 
 	var (
 		sessionExecer        db.StatementExecer
@@ -228,17 +221,30 @@ func (a *App) DBQueryMultiInTransaction(transactionID string, query string, quer
 	ctx, cancel := newQueryExecutionContext(runConfig)
 	defer cancel()
 
-	a.queryMu.Lock()
-	a.runningQueries[queryID] = queryContext{
-		cancel:  cancel,
-		started: time.Now(),
-	}
-	a.queryMu.Unlock()
-	defer func() {
-		a.queryMu.Lock()
-		delete(a.runningQueries, queryID)
-		a.queryMu.Unlock()
-	}()
+	a.registerRunningQuery(queryID, cancel, runConfig, func() {
+		// 事务内停止：取消查询后强制关闭会话，避免长事务继续占库。
+		a.sqlTransactionMu.Lock()
+		tx := a.sqlTransactions[transactionID]
+		if tx != nil {
+			delete(a.sqlTransactions, transactionID)
+		}
+		a.sqlTransactionMu.Unlock()
+		if tx == nil {
+			return
+		}
+		if tx.transactor != nil {
+			_ = tx.transactor.Rollback()
+		} else if strings.TrimSpace(tx.rollbackSQL) != "" && tx.execer != nil {
+			_, _ = tx.execer.ExecContext(context.Background(), tx.rollbackSQL)
+		}
+		if tx.execer != nil {
+			_ = tx.execer.Close()
+		}
+		if tx.cancel != nil {
+			tx.cancel()
+		}
+	})
+	defer a.unregisterRunningQuery(queryID)
 
 	resultSets, err := executeManagedSQLTransactionStatements(ctx, tx.execer, runConfig, statements, a.appText)
 	if err != nil {

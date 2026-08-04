@@ -514,17 +514,35 @@ func (d *OptionalDriverAgentDB) QueryContextWithMessages(ctx context.Context, qu
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	var data []map[string]interface{}
-	var fields []string
-	var messages []string
-	if err := client.call(optionalAgentRequest{
-		Method:    optionalAgentMethodQuery,
-		Query:     query,
-		TimeoutMs: timeoutMsFromContext(ctx),
-	}, &data, &fields, &messages, nil); err != nil {
-		return nil, nil, nil, err
+	type callResult struct {
+		data     []map[string]interface{}
+		fields   []string
+		messages []string
+		err      error
 	}
-	return data, fields, messages, nil
+	done := make(chan callResult, 1)
+	go func() {
+		var data []map[string]interface{}
+		var fields []string
+		var messages []string
+		callErr := client.call(optionalAgentRequest{
+			Method:    optionalAgentMethodQuery,
+			Query:     query,
+			TimeoutMs: timeoutMsFromContext(ctx),
+		}, &data, &fields, &messages, nil)
+		done <- callResult{data: data, fields: fields, messages: messages, err: callErr}
+	}()
+	select {
+	case <-ctx.Done():
+		client.forceTerminate()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+		}
+		return nil, nil, nil, ctx.Err()
+	case result := <-done:
+		return result.data, result.fields, result.messages, result.err
+	}
 }
 
 func (d *OptionalDriverAgentDB) Query(query string) ([]map[string]interface{}, []string, error) {
@@ -645,15 +663,31 @@ func (d *OptionalDriverAgentDB) ExecContext(ctx context.Context, query string) (
 	if err != nil {
 		return 0, err
 	}
-	var affected int64
-	if err := client.call(optionalAgentRequest{
-		Method:    optionalAgentMethodExec,
-		Query:     query,
-		TimeoutMs: timeoutMsFromContext(ctx),
-	}, nil, nil, nil, &affected); err != nil {
-		return 0, err
+	type callResult struct {
+		affected int64
+		err      error
 	}
-	return affected, nil
+	done := make(chan callResult, 1)
+	go func() {
+		var affected int64
+		callErr := client.call(optionalAgentRequest{
+			Method:    optionalAgentMethodExec,
+			Query:     query,
+			TimeoutMs: timeoutMsFromContext(ctx),
+		}, nil, nil, nil, &affected)
+		done <- callResult{affected: affected, err: callErr}
+	}()
+	select {
+	case <-ctx.Done():
+		client.forceTerminate()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+		}
+		return 0, ctx.Err()
+	case result := <-done:
+		return result.affected, result.err
+	}
 }
 
 func (d *OptionalDriverAgentDB) Exec(query string) (int64, error) {

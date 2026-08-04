@@ -188,6 +188,8 @@ func TestDBReleaseConnectionClosesAllDatabaseCacheEntriesForSameInstance(t *test
 	mainConfig := connection.ConnectionConfig{Type: "mysql", Host: "127.0.0.1", Port: 3306, User: "root", Database: "main"}
 	analyticsConfig := mainConfig
 	analyticsConfig.Database = "analytics"
+	// ConnectionParams 仍参与缓存键；用于模拟同实例上曾缓存过的另一条连接。
+	analyticsConfig.ConnectionParams = "charset=utf8mb4"
 	otherConfig := mainConfig
 	otherConfig.Port = 3307
 	otherConfig.Database = "main"
@@ -195,6 +197,15 @@ func TestDBReleaseConnectionClosesAllDatabaseCacheEntriesForSameInstance(t *test
 	mainDB := &releaseRecordingDB{}
 	analyticsDB := &releaseRecordingDB{}
 	otherDB := &releaseRecordingDB{}
+
+	if getCacheKey(mainConfig) == getCacheKey(analyticsConfig) {
+		t.Fatal("expected different cache keys when connection params differ")
+	}
+	if getCacheKey(mainConfig) != getCacheKey(connection.ConnectionConfig{
+		Type: "mysql", Host: "127.0.0.1", Port: 3306, User: "root", Database: "other_db",
+	}) {
+		t.Fatal("expected mysql databases on same instance to share cache key")
+	}
 
 	app.dbCache[getCacheKey(mainConfig)] = cachedDatabase{
 		inst:   mainDB,

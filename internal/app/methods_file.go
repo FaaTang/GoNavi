@@ -1521,17 +1521,8 @@ func (a *App) ExecuteSQLFile(config connection.ConnectionConfig, dbName string, 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a.queryMu.Lock()
-	a.runningQueries[jobID] = queryContext{
-		cancel:  cancel,
-		started: time.Now(),
-	}
-	a.queryMu.Unlock()
-	defer func() {
-		a.queryMu.Lock()
-		delete(a.runningQueries, jobID)
-		a.queryMu.Unlock()
-	}()
+	a.registerRunningQuery(jobID, cancel, connection.ConnectionConfig{}, nil)
+	defer a.unregisterRunningQuery(jobID)
 
 	// 发送进度事件的辅助函数
 	emitProgress := func(status string, executed, failed, total int, bytesRead int64, currentSQL string, errMsg string) {

@@ -1517,9 +1517,18 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   }, [autoFetchVisible, currentConnectionId, currentDb, connections, isActive, isObjectEditQueryTab, refreshObjectDecorations]);
 
   // Query ID management helpers
+  const cancelRequestedRef = useRef(false);
   const setQueryId = (id: string) => {
       currentQueryIdRef.current = id;
       setCurrentQueryId(id);
+      if (id && cancelRequestedRef.current) {
+          cancelRequestedRef.current = false;
+          void CancelQuery(id).finally(() => {
+              if (currentQueryIdRef.current === id) {
+                  clearQueryId();
+              }
+          });
+      }
   };
 
   const clearQueryId = () => {
@@ -3421,12 +3430,13 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       try {
           setLoading(true);
           // 保持与首次执行一致的后端路径，必要时复用挂起事务
-          let queryId: string;
+          let queryId = 'reload-' + Date.now();
           try {
               queryId = await GenerateQueryID();
           } catch {
-              queryId = 'reload-' + Date.now();
+              // keep local fallback
           }
+          setQueryId(queryId);
           const res = await executeSqlEditorMultiQuery(
               config,
               currentDb,
@@ -3484,6 +3494,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               error: formatSqlExecutionError(err?.message || err || translate('common.unknown'), { translate }),
           }));
       } finally {
+          clearQueryId();
           setLoading(false);
       }
   };
@@ -3524,12 +3535,13 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   ? { ...rs, page: { ...rs.page, loading: true } }
                   : rs
           ));
-          let queryId: string;
+          let queryId = 'query-page-' + Date.now();
           try {
               queryId = await GenerateQueryID();
           } catch {
-              queryId = 'query-page-' + Date.now();
+              // keep local fallback
           }
+          setQueryId(queryId);
           const res = await executeSqlEditorMultiQuery(
               config,
               currentDb,
@@ -3591,6 +3603,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               error: formatSqlExecutionError(err?.message || err || translate('common.unknown'), { translate }),
           }));
       } finally {
+          clearQueryId();
           setLoading(false);
           setResultSets(prev => prev.map(rs =>
               rs.key === resultKey && rs.page?.loading
@@ -3631,9 +3644,15 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
         clearQueryId();
     }
       runSeq = ++runSeqRef.current;
+      cancelRequestedRef.current = false;
       setLoading(true);
       startedLoading = true;
       setExecutionError('');
+      // 尽早绑定可取消的 queryId，缩短 Stop 按钮出现后尚无 ID 的窗口。
+      {
+        const earlyQueryId = 'query-' + uuidv4();
+        setQueryId(earlyQueryId);
+      }
       const runStartTime = Date.now();
     const conn = connections.find(c => c.id === currentConnectionId);
     if (!conn) {
@@ -3729,12 +3748,14 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                     }
                 }
                 const startTime = Date.now();
-                let queryId: string;
+                let queryId = currentQueryIdRef.current || ('query-' + uuidv4());
                 try {
-                    queryId = await GenerateQueryID();
+                    const remoteId = await GenerateQueryID();
+                    if (remoteId && currentQueryIdRef.current) {
+                        queryId = remoteId;
+                    }
                 } catch (error) {
                     console.warn('GenerateQueryID failed, using local UUID fallback:', error);
-                    queryId = 'query-' + uuidv4();
                 }
                 setQueryId(queryId);
 
@@ -3973,12 +3994,14 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                 : executableStatements.join(';\n');
 
             const startTime = Date.now();
-            let queryId: string;
+            let queryId = currentQueryIdRef.current || ('query-' + uuidv4());
             try {
-                queryId = await GenerateQueryID();
+                const remoteId = await GenerateQueryID();
+                if (remoteId && currentQueryIdRef.current) {
+                    queryId = remoteId;
+                }
             } catch (error) {
                 console.warn('GenerateQueryID failed, using local UUID fallback:', error);
-                queryId = 'query-' + uuidv4();
             }
             setQueryId(queryId);
 
@@ -4009,13 +4032,19 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                                          errorMsg.includes('canceled') ||
                                          errorMsg.includes('cancelled') ||
                                          errorMsg.includes('statement canceled') ||
-                                         errorMsg.includes('sql: statement canceled');
+                                         errorMsg.includes('sql: statement canceled') ||
+                                         errorMsg.includes('sql: database is closed') ||
+                                         errorMsg.includes('driver: bad connection') ||
+                                         errorMsg.includes('invalid connection') ||
+                                         errorMsg.includes('connection reset') ||
+                                         errorMsg.includes('broken pipe') ||
+                                         errorMsg.includes('query cancelled');
                 const isTimeoutError = errorMsg.includes('context deadline exceeded') ||
                                        errorMsg.includes('timeout') ||
                                        hasLocalizedSqlTimeoutKeyword(errorMsg) ||
                                        errorMsg.includes('deadline exceeded');
 
-                if (isCancelledError && !isTimeoutError) {
+                if ((isCancelledError && !isTimeoutError) || runSeqRef.current !== runSeq) {
                     setResultSets([]);
                     setActiveResultKey('');
                     if (currentQueryIdRef.current) {
@@ -4363,24 +4392,36 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
   ]);
 
   const handleCancel = async () => {
-    if (!currentQueryIdRef.current) {
-      message.warning(translate('query_editor.message.cancel_no_running'));
+    // 立即解除客户端 loading，避免驱动不响应时 UI 一直转圈。
+    runSeqRef.current += 1;
+    setLoading(false);
+    setResultSets((prev) => prev.map((rs) => (
+      rs.page?.loading
+        ? { ...rs, page: { ...rs.page, loading: false } }
+        : rs
+    )));
+
+    const queryIdToCancel = currentQueryIdRef.current;
+    if (!queryIdToCancel) {
+      // 查询尚未拿到 queryId：标记待取消，等 setQueryId 时立刻 CancelQuery。
+      cancelRequestedRef.current = true;
+      message.success(translate('query_editor.message.cancel_success'));
       return;
     }
-    const queryIdToCancel = currentQueryIdRef.current;
+    cancelRequestedRef.current = false;
     try {
       const res = await CancelQuery(queryIdToCancel);
       if (res.success) {
         message.success(translate('query_editor.message.cancel_success'));
-        // Clear query ID after successful cancellation
-        if (currentQueryIdRef.current === queryIdToCancel) {
-          clearQueryId()
-        }
       } else {
         message.warning(res.message);
       }
     } catch (error: any) {
       message.error(translate('query_editor.message.cancel_failed', { error: error.message }));
+    } finally {
+      if (currentQueryIdRef.current === queryIdToCancel) {
+        clearQueryId();
+      }
     }
   };
 

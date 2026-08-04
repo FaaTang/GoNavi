@@ -82,7 +82,7 @@ func TestGetCacheKey_DuckDBHostAndDatabaseEquivalent(t *testing.T) {
 	}
 }
 
-func TestGetCacheKey_KeepDatabaseIsolation(t *testing.T) {
+func TestGetCacheKey_MySQLSharesDatabaseCatalog(t *testing.T) {
 	a := connection.ConnectionConfig{
 		Type:     "mysql",
 		Host:     "127.0.0.1",
@@ -98,8 +98,45 @@ func TestGetCacheKey_KeepDatabaseIsolation(t *testing.T) {
 
 	left := getCacheKey(a)
 	right := getCacheKey(b)
+	if left != right {
+		t.Fatalf("expected same cache key for mysql databases on same instance, got %s vs %s", left, right)
+	}
+}
+
+func TestGetCacheKey_PostgresKeepsDatabaseIsolation(t *testing.T) {
+	a := connection.ConnectionConfig{
+		Type:     "postgres",
+		Host:     "127.0.0.1",
+		Port:     5432,
+		User:     "postgres",
+		Password: "secret",
+		Database: "db_a",
+	}
+	b := a
+	b.Database = "db_b"
+
+	left := getCacheKey(a)
+	right := getCacheKey(b)
 	if left == right {
-		t.Fatalf("expected different cache key for different database targets")
+		t.Fatalf("expected different cache key for different postgres databases")
+	}
+}
+
+func TestGetCacheKey_OceanBaseMySQLSharesDatabaseCatalog(t *testing.T) {
+	a := connection.ConnectionConfig{
+		Type:     "oceanbase",
+		Host:     "ob.local",
+		Port:     2881,
+		User:     "root@test",
+		Database: "app",
+	}
+	b := a
+	b.Database = "analytics"
+
+	left := getCacheKey(a)
+	right := getCacheKey(b)
+	if left != right {
+		t.Fatalf("expected same cache key for OceanBase MySQL-mode databases, got %s vs %s", left, right)
 	}
 }
 

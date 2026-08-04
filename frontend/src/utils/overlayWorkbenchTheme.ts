@@ -89,11 +89,11 @@ export const buildOverlayWorkbenchTheme = (
       sectionBorder: '1px solid rgba(255,255,255,0.08)',
       mutedText: 'rgba(255,255,255,0.5)',
       titleText: '#f5f7ff',
-      iconBg: 'rgba(255,214,102,0.12)',
-      iconColor: '#ffd666',
-      hoverBg: 'rgba(255,214,102,0.10)',
-      selectedBg: 'rgba(255,214,102,0.14)',
-      selectedText: '#ffd666',
+      iconBg: 'rgba(255, 77, 166, 0.16)',
+      iconColor: '#ff8fc7',
+      hoverBg: 'rgba(255, 77, 166, 0.10)',
+      selectedBg: 'rgba(255, 77, 166, 0.14)',
+      selectedText: '#ff8fc7',
       divider: 'rgba(255,255,255,0.08)',
     };
   }
@@ -108,11 +108,11 @@ export const buildOverlayWorkbenchTheme = (
     sectionBorder: '1px solid rgba(16,24,40,0.08)',
     mutedText: 'rgba(16,24,40,0.55)',
     titleText: '#162033',
-    iconBg: 'rgba(24,144,255,0.1)',
-    iconColor: '#1677ff',
-    hoverBg: 'rgba(24,144,255,0.08)',
-    selectedBg: 'rgba(24,144,255,0.12)',
-    selectedText: '#1677ff',
+    iconBg: '#ffe4f0',
+    iconColor: '#ff4da6',
+    hoverBg: 'rgba(255, 77, 166, 0.08)',
+    selectedBg: 'rgba(255, 77, 166, 0.12)',
+    selectedText: '#ff4da6',
     divider: 'rgba(16,24,40,0.08)',
   };
 };

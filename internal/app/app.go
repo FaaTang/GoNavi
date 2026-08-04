@@ -63,8 +63,11 @@ type cachedConnectFailure struct {
 }
 
 type queryContext struct {
-	cancel  context.CancelFunc
-	started time.Time
+	cancel    context.CancelFunc
+	started   time.Time
+	runConfig connection.ConnectionConfig
+	// forceStop 在 context cancel 之外的兜底（例如关闭连接池 / 杀掉会话），可为 nil。
+	forceStop func()
 }
 
 type managedSQLTransaction struct {
@@ -328,6 +331,17 @@ func dataRootInfoPayload(activeRoot string) map[string]interface{} {
 	}
 }
 
+// sharesSQLCatalogAcrossDatabases 表示「Database」只是同一实例内的命名空间，
+// 侧栏/元数据查询普遍带库名限定，可跨库复用同一物理连接池（Postgres 等真·多库除外）。
+func sharesSQLCatalogAcrossDatabases(dbType string) bool {
+	switch strings.ToLower(strings.TrimSpace(dbType)) {
+	case "mysql", "mariadb", "goldendb", "greatdb", "gdb", "diros", "starrocks", "sphinx":
+		return true
+	default:
+		return false
+	}
+}
+
 func normalizeCacheKeyConfig(config connection.ConnectionConfig) connection.ConnectionConfig {
 	normalized := config
 	normalized.ID = ""
@@ -336,6 +350,12 @@ func normalizeCacheKeyConfig(config connection.ConnectionConfig) connection.Conn
 		protocol := resolveOceanBaseProtocolForApp(normalized)
 		normalized.ConnectionParams = normalizeOceanBaseConnectionParamsForCacheWithProtocol(normalized.ConnectionParams, protocol)
 		normalized.OceanBaseProtocol = ""
+		// OceanBase MySQL 模式与 MySQL 相同：库名不参与物理连接复用键。
+		if protocol != "oracle" {
+			normalized.Database = ""
+		}
+	} else if sharesSQLCatalogAcrossDatabases(normalized.Type) {
+		normalized.Database = ""
 	}
 	// timeout 仅用于 Query/Ping 控制，不应作为物理连接复用键的一部分。
 	normalized.Timeout = 0
@@ -1212,34 +1232,89 @@ func generateQueryID() string {
 	return "query-" + uuid.New().String()
 }
 
-// CancelQuery cancels a running query by its ID
+// CancelQuery cancels a running query by its ID.
+// 先触发 context cancel，再执行 forceStop（通常为关闭缓存连接），尽量终止服务端占用。
 func (a *App) CancelQuery(queryID string) connection.QueryResult {
+	queryID = strings.TrimSpace(queryID)
 	a.queryMu.Lock()
-	defer a.queryMu.Unlock()
-
-	if ctx, exists := a.runningQueries[queryID]; exists {
-		ctx.cancel()
+	qc, exists := a.runningQueries[queryID]
+	if exists {
 		delete(a.runningQueries, queryID)
-		logger.Infof("查询已取消：queryID=%s", queryID)
-		return connection.QueryResult{Success: true, Message: a.appText("query_editor.message.cancel_success", nil)}
 	}
-	logger.Warnf("取消查询失败：queryID=%s 不存在或已完成", queryID)
-	return connection.QueryResult{Success: false, Message: a.appText("query_editor.message.cancel_no_running", nil)}
+	a.queryMu.Unlock()
+
+	if !exists {
+		logger.Warnf("取消查询失败：queryID=%s 不存在或已完成", queryID)
+		return connection.QueryResult{Success: false, Message: a.appText("query_editor.message.cancel_no_running", nil)}
+	}
+
+	if qc.cancel != nil {
+		qc.cancel()
+	}
+	if qc.forceStop != nil {
+		func() {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					logger.Warnf("取消查询 forceStop panic：queryID=%s err=%v", queryID, recovered)
+				}
+			}()
+			qc.forceStop()
+		}()
+	} else if strings.TrimSpace(qc.runConfig.Type) != "" {
+		_ = a.invalidateCachedDatabase(qc.runConfig, fmt.Errorf("query cancelled: %s", queryID))
+	}
+	logger.Infof("查询已取消：queryID=%s", queryID)
+	return connection.QueryResult{Success: true, Message: a.appText("query_editor.message.cancel_success", nil)}
 }
 
 // cleanupStaleQueries removes queries older than maxAge.
 func (a *App) cleanupStaleQueries(maxAge time.Duration) {
 	a.queryMu.Lock()
-	defer a.queryMu.Unlock()
-
+	stale := make([]queryContext, 0)
 	now := time.Now()
 	for id, ctx := range a.runningQueries {
 		if now.Sub(ctx.started) > maxAge {
-			// Query likely finished or stuck, remove from tracking
+			stale = append(stale, ctx)
 			delete(a.runningQueries, id)
-			// Query expired, silently remove
 		}
 	}
+	a.queryMu.Unlock()
+
+	for _, ctx := range stale {
+		if ctx.cancel != nil {
+			ctx.cancel()
+		}
+	}
+}
+
+// registerRunningQuery tracks a cancellable query. forceStop may close connections/sessions.
+func (a *App) registerRunningQuery(queryID string, cancel context.CancelFunc, runConfig connection.ConnectionConfig, forceStop func()) {
+	queryID = strings.TrimSpace(queryID)
+	if queryID == "" || cancel == nil {
+		return
+	}
+	a.queryMu.Lock()
+	a.runningQueries[queryID] = queryContext{
+		cancel:    cancel,
+		started:   time.Now(),
+		runConfig: runConfig,
+		forceStop: forceStop,
+	}
+	a.queryMu.Unlock()
+}
+
+func (a *App) unregisterRunningQuery(queryID string) {
+	queryID = strings.TrimSpace(queryID)
+	if queryID == "" {
+		return
+	}
+	a.queryMu.Lock()
+	delete(a.runningQueries, queryID)
+	a.queryMu.Unlock()
+}
+
+func (a *App) forceStopCachedDatabase(runConfig connection.ConnectionConfig, queryID string) {
+	_ = a.invalidateCachedDatabase(runConfig, fmt.Errorf("query cancelled: %s", strings.TrimSpace(queryID)))
 }
 
 // GenerateQueryID generates a unique query ID for cancellation tracking

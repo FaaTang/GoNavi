@@ -21,7 +21,8 @@ func configureSQLConnectionPool(db *sql.DB, dbType string) {
 		return
 	}
 	db.SetMaxOpenConns(defaultSQLMaxOpenConns)
-	db.SetMaxIdleConns(0)
+	// 保留空闲连接，避免侧栏并行元数据查询反复 TCP/认证握手（尤其 SSH）。
+	db.SetMaxIdleConns(defaultSQLMaxOpenConns)
 	db.SetConnMaxIdleTime(defaultSQLConnMaxIdleTime)
 	db.SetConnMaxLifetime(defaultSQLConnMaxLifetime)
 }

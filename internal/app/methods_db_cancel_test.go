@@ -45,10 +45,14 @@ func TestCancelQuery_ValidQuery(t *testing.T) {
 
 	// Store a cancel function in runningQueries map
 	_, cancel := context.WithCancel(context.Background())
+	forceStopCalled := false
 	app.queryMu.Lock()
 	app.runningQueries[queryID] = queryContext{
 		cancel:  cancel,
 		started: time.Now(),
+		forceStop: func() {
+			forceStopCalled = true
+		},
 	}
 	app.queryMu.Unlock()
 
@@ -66,6 +70,9 @@ func TestCancelQuery_ValidQuery(t *testing.T) {
 	}
 	if expected := app.appText("query_editor.message.cancel_success", nil); res.Message != expected {
 		t.Fatalf("expected localized cancel success message %q, got %q", expected, res.Message)
+	}
+	if !forceStopCalled {
+		t.Fatal("expected CancelQuery to invoke forceStop fallback")
 	}
 
 	// Verify query removed from map

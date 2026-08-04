@@ -9,6 +9,7 @@ import {
   buildPackagesMetadataQuerySpecs,
   buildSchemasMetadataQuerySpecs,
   buildSequencesMetadataQuerySpecs,
+  loadFunctions,
   loadPackages,
   loadSequences,
   loadViews,
@@ -72,6 +73,37 @@ describe("buildSchemasMetadataQuerySpecs", () => {
     expect(result.views).toEqual([
       { viewName: "CHARACTER_SETS", schemaName: "information_schema" },
     ]);
+    // 首条完整目录查询成功后应短路，不再跑后续 fallback。
+    expect(mockedDBQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps complementary inferredType queries after catalog fallback fails", async () => {
+    mockedDBQuery.mockImplementation(async (_config: unknown, _dbName: string, sql: string) => {
+      if (sql.includes("information_schema.routines")) {
+        return { success: false, message: "denied", data: [] };
+      }
+      if (sql.includes("SHOW FUNCTION STATUS")) {
+        return {
+          success: true,
+          message: "",
+          data: [{ Name: "fn_add", Db: "app" }],
+        };
+      }
+      if (sql.includes("SHOW PROCEDURE STATUS")) {
+        return {
+          success: true,
+          message: "",
+          data: [{ Name: "sp_run", Db: "app" }],
+        };
+      }
+      return { success: false, message: "", data: [] };
+    });
+
+    const result = await loadFunctions({ config: { type: "mysql" } }, "app");
+
+    expect(result.supported).toBe(true);
+    expect(result.routines.map((item) => item.routineName).sort()).toEqual(["app.fn_add", "app.sp_run"]);
+    expect(mockedDBQuery).toHaveBeenCalledTimes(3);
   });
 });
 

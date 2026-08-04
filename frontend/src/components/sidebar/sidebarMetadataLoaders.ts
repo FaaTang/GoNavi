@@ -739,6 +739,10 @@ const queryMetadataRowsBySpecs = async (
         rows: result.data as Record<string, any>[],
         inferredType: spec.inferredType,
       });
+      // 完整目录查询成功即短路；带 inferredType 的为互补分片（如 FUNCTION+PROCEDURE），继续收集。
+      if (!spec.inferredType) {
+        break;
+      }
     } catch {
       // 忽略单条查询失败，继续尝试后续回退语句
     }
