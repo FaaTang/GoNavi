@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveSidebarNodeDatabaseName,
   resolveSidebarScrollContextCrumbs,
+  isSidebarTreeKeyForConnection,
 } from './sidebarV2Utils';
 
 describe('sidebar scroll context crumbs', () => {
@@ -58,6 +59,13 @@ describe('sidebar scroll context crumbs', () => {
     })).toBe('');
   });
 
+  it('matches tree keys that belong to a connection', () => {
+    expect(isSidebarTreeKeyForConnection('conn-1', 'conn-1')).toBe(true);
+    expect(isSidebarTreeKeyForConnection('conn-1-app_db-users', 'conn-1')).toBe(true);
+    expect(isSidebarTreeKeyForConnection('conn-2', 'conn-1')).toBe(false);
+    expect(isSidebarTreeKeyForConnection('conn-11-app_db', 'conn-1')).toBe(false);
+  });
+
   it('shows only connection when database node itself is still visible', () => {
     expect(resolveSidebarScrollContextCrumbs({
       visibleNodeKeys: ['conn-1-app_db', 'conn-1-app_db-tables'],
@@ -70,6 +78,63 @@ describe('sidebar scroll context crumbs', () => {
       dbName: 'app_db',
       showConnection: true,
       showDatabase: false,
+    });
+  });
+
+  it('prefers the selected visible node over the topmost viewport node', () => {
+    const multiConnectionTree = [
+      {
+        key: 'dev-aml-83',
+        type: 'connection',
+        title: 'dev-aml-83',
+        dataRef: { id: 'dev-aml-83', name: 'dev-aml-83' },
+      },
+      {
+        key: 'pro-aml-212',
+        type: 'connection',
+        title: 'pro-aml-212',
+        dataRef: { id: 'pro-aml-212', name: 'pro-aml-212' },
+        children: [
+          {
+            key: 'pro-aml-212-aml_schema',
+            type: 'database',
+            title: 'aml_schema',
+            dataRef: { id: 'pro-aml-212', dbName: 'aml_schema' },
+            children: [
+              {
+                key: 'pro-aml-212-aml_schema-customer_kyc_verify',
+                type: 'table',
+                title: 'customer.customer_kyc_verify',
+                dataRef: {
+                  id: 'pro-aml-212',
+                  dbName: 'aml_schema',
+                  tableName: 'public.customer_kyc_verify',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ] as any;
+
+    expect(resolveSidebarScrollContextCrumbs({
+      visibleNodeKeys: [
+        'dev-aml-83',
+        'pro-aml-212-aml_schema-customer_kyc_verify',
+      ],
+      treeData: multiConnectionTree,
+      connectionIds: ['dev-aml-83', 'pro-aml-212'],
+      connections: [
+        { id: 'dev-aml-83', name: 'dev-aml-83' },
+        { id: 'pro-aml-212', name: 'pro-aml-212' },
+      ],
+      preferredVisibleKey: 'pro-aml-212-aml_schema-customer_kyc_verify',
+    })).toEqual({
+      connectionId: 'pro-aml-212',
+      connectionName: 'pro-aml-212',
+      dbName: 'aml_schema',
+      showConnection: true,
+      showDatabase: true,
     });
   });
 

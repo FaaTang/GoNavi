@@ -21,6 +21,7 @@ import {
 } from '../V2TableContextMenu';
 import {
   isSidebarTablePinned,
+  isSidebarTreeKeyForConnection,
   type SidebarConnectionState,
   type SidebarTreeNode as TreeNode,
   type V2RailConnectionGroup,
@@ -33,11 +34,14 @@ type UseSidebarV2ActionHandlersArgs = {
   loadingNodesRef: MutableRefObject<Set<string>>;
   treeDataRef: MutableRefObject<TreeNode[]>;
   selectedNodesRef: MutableRefObject<any[]>;
+  selectedKeysRef: MutableRefObject<React.Key[]>;
+  selectionAnchorKeyRef: MutableRefObject<React.Key | null>;
   findTreeNodeByKeyRef: MutableRefObject<(nodes: TreeNode[], targetKey: React.Key) => TreeNode | null>;
   refreshV2TableContextMenuStatsRef: MutableRefObject<(node: any) => void>;
   setConnectionStates: Dispatch<SetStateAction<Record<string, SidebarConnectionState>>>;
   setExpandedKeys: Dispatch<SetStateAction<React.Key[]>>;
   setLoadedKeys: Dispatch<SetStateAction<React.Key[]>>;
+  setSelectedKeys: Dispatch<SetStateAction<React.Key[]>>;
   setTargetConnection: Dispatch<SetStateAction<any>>;
   setIsCreateDbModalOpen: Dispatch<SetStateAction<boolean>>;
   setRenameDbTarget: Dispatch<SetStateAction<any>>;
@@ -97,11 +101,14 @@ export const useSidebarV2ActionHandlers = ({
   loadingNodesRef,
   treeDataRef,
   selectedNodesRef,
+  selectedKeysRef,
+  selectionAnchorKeyRef,
   findTreeNodeByKeyRef,
   refreshV2TableContextMenuStatsRef,
   setConnectionStates,
   setExpandedKeys,
   setLoadedKeys,
+  setSelectedKeys,
   setTargetConnection,
   setIsCreateDbModalOpen,
   setRenameDbTarget,
@@ -368,6 +375,22 @@ export const useSidebarV2ActionHandlers = ({
     }
   };
 
+  const clearSidebarSelectionForConnection = (connKey: string) => {
+    const connectionId = String(connKey || '').trim();
+    if (!connectionId) return;
+    setSelectedKeys((prev) => {
+      const next = prev.filter((key) => !isSidebarTreeKeyForConnection(key, connectionId));
+      selectedKeysRef.current = next;
+      return next;
+    });
+    selectedNodesRef.current = selectedNodesRef.current.filter(
+      (node) => !isSidebarTreeKeyForConnection(node?.key, connectionId),
+    );
+    if (isSidebarTreeKeyForConnection(selectionAnchorKeyRef.current, connectionId)) {
+      selectionAnchorKeyRef.current = selectedKeysRef.current[0] ?? null;
+    }
+  };
+
   const disconnectConnectionNodeInternal = async (
     node: any,
     options?: { skipTabClosePrompt?: boolean; skipSuccessToast?: boolean },
@@ -402,6 +425,7 @@ export const useSidebarV2ActionHandlers = ({
     });
     setExpandedKeys(prev => prev.filter(k => k !== connKey && !k.toString().startsWith(`${connKey}-`)));
     setLoadedKeys(prev => prev.filter(k => k !== connKey && !k.toString().startsWith(`${connKey}-`)));
+    clearSidebarSelectionForConnection(connKey);
     replaceTreeNodeChildren(connKey, undefined);
     try {
       await releaseConnectionResources(conn);
@@ -457,6 +481,7 @@ export const useSidebarV2ActionHandlers = ({
               if (!connId) continue;
               await backendApp.DeleteConnection(connId);
               closeTabsByConnection(connId);
+              clearSidebarSelectionForConnection(connId);
               removeConnection(connId);
             }
             message.success(t('connection.sidebar.delete.batchSuccess', { count: batchNodes.length }));
@@ -481,6 +506,7 @@ export const useSidebarV2ActionHandlers = ({
         try {
           await backendApp.DeleteConnection(connId);
           closeTabsByConnection(connId);
+          clearSidebarSelectionForConnection(connId);
           removeConnection(connId);
           message.success(t('connection.sidebar.delete.success'));
         } catch (error: any) {

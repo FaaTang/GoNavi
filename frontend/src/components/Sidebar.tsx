@@ -1196,15 +1196,25 @@ const Sidebar: React.FC<{
   };
 
   const scrollSidebarTreeToKey = (key: React.Key) => {
+      const targetKey = String(key ?? '').trim();
+      if (!targetKey) return;
       const runAfterFrame = typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
           ? window.requestAnimationFrame.bind(window)
           : (callback: FrameRequestCallback) => window.setTimeout(() => callback(Date.now()), 0);
 
       runAfterFrame(() => {
-          treeRef.current?.scrollTo?.({ key, align: 'auto' });
+          treeRef.current?.scrollTo?.({ key: targetKey, align: 'auto' });
           runAfterFrame(() => {
-              const selectedNode = treeContainerRef.current?.querySelector('.ant-tree-treenode-selected') as HTMLElement | null;
-              selectedNode?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+              const selectedNodes = treeContainerRef.current?.querySelectorAll('.ant-tree-treenode-selected');
+              if (!selectedNodes || selectedNodes.length === 0) return;
+              for (const node of Array.from(selectedNodes)) {
+                  const keyEl = (node as HTMLElement).querySelector('[data-sidebar-node-key]') as HTMLElement | null;
+                  if (String(keyEl?.getAttribute('data-sidebar-node-key') || '').trim() !== targetKey) {
+                      continue;
+                  }
+                  (node as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+                  break;
+              }
           });
       });
   };
@@ -2170,11 +2180,14 @@ const Sidebar: React.FC<{
       loadingNodesRef,
       treeDataRef,
       selectedNodesRef,
+      selectedKeysRef,
+      selectionAnchorKeyRef,
       findTreeNodeByKeyRef,
       refreshV2TableContextMenuStatsRef,
       setConnectionStates,
       setExpandedKeys,
       setLoadedKeys,
+      setSelectedKeys,
       setTargetConnection,
       setIsCreateDbModalOpen,
       setRenameDbTarget,
@@ -2806,6 +2819,7 @@ const Sidebar: React.FC<{
       treeData,
       connectionIds,
       connections,
+      preferredVisibleKey: selectedKeys[0] ? String(selectedKeys[0]) : '',
       fallbackConnectionId: activeConnection?.id,
       fallbackConnectionName: activeConnectionDisplayName,
       fallbackDbName: activeDatabaseDisplayName,
@@ -2815,6 +2829,7 @@ const Sidebar: React.FC<{
       activeDatabaseDisplayName,
       connectionIds,
       connections,
+      selectedKeys,
       treeData,
       viewportVisibleKeys,
   ]);
@@ -3453,13 +3468,13 @@ const Sidebar: React.FC<{
             >
                 {(hasScrollOrSelectionPath
                     ? pathRows
-                    : (pathConnectionId
+                    : (activeConnection?.id
                         ? [{
                             key: 'connection',
                             label: activeConnectionDisplayName,
                             className: 'is-connection',
                             locateKind: 'connection' as const,
-                            locateKey: pathConnectionId,
+                            locateKey: activeConnection.id,
                         }]
                         : [{
                             key: 'connection',

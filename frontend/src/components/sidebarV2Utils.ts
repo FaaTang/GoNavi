@@ -704,6 +704,16 @@ export const shouldCloseV2CommandSearchOnGlobalKey = ({
   return normalizedKey === 'escape' || normalizedKey === 'esc';
 };
 
+export const isSidebarTreeKeyForConnection = (
+  key: unknown,
+  connectionId: string,
+): boolean => {
+  const keyText = String(key ?? '').trim();
+  const connId = String(connectionId || '').trim();
+  if (!keyText || !connId) return false;
+  return keyText === connId || keyText.startsWith(`${connId}-`);
+};
+
 export const resolveSidebarConnectionIdFromKey = (
   key: unknown,
   connectionIds: string[],
@@ -792,12 +802,14 @@ export const resolveSidebarNodeDatabaseName = (
 /**
  * resolveSidebarScrollContextCrumbs 根据当前视口可见节点，计算需要悬浮补全的连接/库面包屑。
  * 仅当对应层级节点本身不在视口内时展示该级。
+ * 若提供 preferredVisibleKey 且该节点仍在视口内，优先以其为锚点，避免顶边露出的其它连接污染路径。
  */
 export const resolveSidebarScrollContextCrumbs = (input: {
   visibleNodeKeys: string[];
   treeData: Array<Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'> | null | undefined>;
   connectionIds: string[];
   connections: Array<{ id: string; name?: string }>;
+  preferredVisibleKey?: string;
   fallbackConnectionId?: string;
   fallbackConnectionName?: string;
   fallbackDbName?: string;
@@ -808,7 +820,11 @@ export const resolveSidebarScrollContextCrumbs = (input: {
     .map((key) => findSidebarTreeNodeByKey(input.treeData, key))
     .filter(Boolean) as Array<Pick<SidebarTreeNode, 'key' | 'type' | 'title' | 'dataRef' | 'children'>>;
 
-  const anchorNode = visibleNodes[0] || null;
+  const preferredKey = String(input.preferredVisibleKey || '').trim();
+  const preferredNode = preferredKey
+    ? visibleNodes.find((node) => String(node.key || '').trim() === preferredKey) || null
+    : null;
+  const anchorNode = preferredNode || visibleNodes[0] || null;
   const connectionId = anchorNode
     ? resolveSidebarNodeConnectionId(anchorNode, connectionIds)
     : String(input.fallbackConnectionId || '').trim();

@@ -693,6 +693,10 @@ describe('Sidebar locate toolbar', () => {
     expect(handlersSource).toContain('skipTabClosePrompt');
     expect(handlersSource).toContain('void disconnectConnectionNode(node)');
     expect(handlersSource).toContain('batchConfirmContent');
+    expect(handlersSource).toContain('clearSidebarSelectionForConnection(connKey)');
+    expect(handlersSource).toContain('clearSidebarSelectionForConnection(connId)');
+    expect(source).toContain('locateKey: activeConnection.id');
+    expect(source).toContain('preferredVisibleKey: selectedKeys[0] ? String(selectedKeys[0]) : \'\'');
   });
 
   it('prompts to save dirty query tabs before disconnecting a sidebar connection', () => {
