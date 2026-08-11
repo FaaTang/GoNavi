@@ -166,7 +166,7 @@ export const openTabDisplaySettings = () => {
   if (typeof window === 'undefined') {
     return;
   }
-  window.dispatchEvent(new CustomEvent('gonavi:open-tab-display-settings'));
+  window.dispatchEvent(new CustomEvent('PinkHunkDB:open-tab-display-settings'));
 };
 
 export const shouldShowV2ConnectionLabel = (displayTitle: string, connectionLabel?: string): boolean => {
@@ -615,8 +615,8 @@ const TabManager: React.FC = React.memo(() => {
       closeTabsWithQueryPrompt([currentActiveTabId], () => closeTab(currentActiveTabId));
     };
 
-    window.addEventListener('gonavi:close-active-tab', handleCloseActiveTab);
-    return () => window.removeEventListener('gonavi:close-active-tab', handleCloseActiveTab);
+    window.addEventListener('PinkHunkDB:close-active-tab', handleCloseActiveTab);
+    return () => window.removeEventListener('PinkHunkDB:close-active-tab', handleCloseActiveTab);
   }, [closeTab, closeTabsWithQueryPrompt]);
 
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
@@ -668,7 +668,7 @@ const TabManager: React.FC = React.memo(() => {
         });
         setActiveTab(newTabId);
         setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('gonavi:insert-sql-to-tab', {
+            window.dispatchEvent(new CustomEvent('PinkHunkDB:insert-sql-to-tab', {
                 detail: { tabId: newTabId, sql, runImmediately: true, connectionId: resolvedConnId, dbName: resolvedDbName }
             }));
         }, 300);
@@ -677,7 +677,7 @@ const TabManager: React.FC = React.memo(() => {
       
       // 插入模式：追加到已有 tab 或新建 tab
       if (activeTab && activeTab.type === 'query') {
-        window.dispatchEvent(new CustomEvent('gonavi:insert-sql-to-tab', {
+        window.dispatchEvent(new CustomEvent('PinkHunkDB:insert-sql-to-tab', {
           detail: { tabId: activeTab.id, sql, runImmediately: false, connectionId: eventConnId, dbName: eventDbName }
         }));
       } else {

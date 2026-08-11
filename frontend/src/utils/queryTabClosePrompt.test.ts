@@ -18,11 +18,18 @@ describe('queryTabClosePrompt', () => {
   it('shows bulk save choices only when multiple dirty tabs remain', () => {
     const source = readFileSync(new URL('./queryTabClosePrompt.tsx', import.meta.url), 'utf8');
 
-    expect(source).toContain("finish('yes')");
-    expect(source).toContain("finish('no')");
-    expect(source).toContain("finish('yes-all')");
-    expect(source).toContain("finish('no-all')");
+    expect(source).toContain("onChoice('yes')");
+    expect(source).toContain("onChoice('no')");
+    expect(source).toContain("choice: 'yes-all'");
+    expect(source).toContain("choice: 'no-all'");
+    expect(source).toContain("onChoice('cancel')");
     expect(source).toContain('remainingCount > 1');
+    expect(source).toContain("ch === 'y'");
+    expect(source).toContain("ch === 'n'");
+    expect(source).toContain("event.key === 'ArrowLeft'");
+    expect(source).toContain("event.key === 'ArrowRight'");
+    expect(source).toContain("event.key === 'Enter' || event.key === ' '");
+    expect(source).toContain("type={index === selected ? 'primary' : 'default'}");
     QUERY_TAB_CLOSE_PROMPT_I18N_KEYS.forEach((key) => {
       expect(source).toContain(`t('${key}'`);
     });

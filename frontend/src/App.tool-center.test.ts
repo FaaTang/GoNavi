@@ -43,14 +43,14 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain("title: t('app.tools.entry.snippets.title')");
     expect(appSource).toContain("description: t('app.tools.entry.snippets.description')");
     expect(appSource).toContain("handleOpenToolCenterPane('workspace', 'snippet-settings')");
-    expect(appSource).toContain('gonavi:open-snippet-settings');
+    expect(appSource).toContain('PinkHunkDB:open-snippet-settings');
     expect(appSource).toContain("setIsSnippetModalOpen(false);");
     expect(appSource).not.toContain('setIsSnippetModalOpen(true)');
     expect(appSource).not.toContain("key: 'shortcut-settings'");
   });
 
   it('exposes shortcut management from settings next to performance', () => {
-    const performanceIndex = appSource.indexOf("key: 'performance'");
+    const performanceIndex = appSource.indexOf("key: 'advanced'");
     const shortcutsIndex = appSource.indexOf("key: 'shortcuts'", performanceIndex);
     expect(performanceIndex).toBeGreaterThan(-1);
     expect(shortcutsIndex).toBeGreaterThan(performanceIndex);
@@ -222,7 +222,7 @@ describe('tool center menu entries', () => {
     expect(appSource).toContain("height: 'min(760px, calc(100vh - 80px))'");
     expect(appSource).toContain("maxHeight: 'calc(100vh - 80px)'");
     expect(appSource).toContain("body: { paddingTop: 8, overflow: 'hidden', flex: 1, minHeight: 0 }");
-    expect(appSource).toContain('data-gonavi-shortcut-modal-scroll="true"');
+    expect(appSource).toContain('data-PinkHunkDB-shortcut-modal-scroll="true"');
     expect(appSource).toContain("height: '100%'");
     expect(appSource).toContain("overflowY: 'auto'");
   });
@@ -326,7 +326,7 @@ describe('tool center menu entries', () => {
 
 describe('global appearance tokens', () => {
   it('publishes v2 font and scale variables for non-AntD chrome', () => {
-    expect(appSource).toContain("setProperty('--gonavi-font-size'");
+    expect(appSource).toContain("setProperty('--PinkHunkDB-font-size'");
     expect(appSource).toContain("setProperty('--gn-ui-scale'");
     expect(appSource).toContain("setProperty('--gn-font-size'");
     expect(appSource).toContain("setProperty('--gn-font-size-sm'");

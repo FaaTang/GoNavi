@@ -567,7 +567,7 @@ const renderDataTableView = () => (
                   size="small"
                   style={{ padding: 0, height: 'auto', fontSize: 'inherit', lineHeight: 'inherit' }}
                   onClick={() => {
-                    window.dispatchEvent(new CustomEvent('gonavi:open-advanced-settings'));
+                    window.dispatchEvent(new CustomEvent('PinkHunkDB:open-advanced-settings'));
                   }}
                 >
                   {translateDataGrid('data_grid.risk.count_fallback.open_advanced')}

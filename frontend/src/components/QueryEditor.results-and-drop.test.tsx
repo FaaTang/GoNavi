@@ -2680,7 +2680,7 @@ storeState.languagePreference = 'en-US';
     expect(panelSource).toContain('executionError={executionError}');
     expect(panelSource).toContain("t('log_panel.short_title')");
     expect(panelSource).toContain('[logTabItem, ...resultTabItems]');
-    expect(editorSource).toContain("window.addEventListener('gonavi:show-sql-execution-log'");
+    expect(editorSource).toContain("window.addEventListener('PinkHunkDB:show-sql-execution-log'");
     expect(editorSource).toContain('setActiveResultKey(QUERY_EDITOR_SQL_LOG_TAB_KEY)');
   });
 

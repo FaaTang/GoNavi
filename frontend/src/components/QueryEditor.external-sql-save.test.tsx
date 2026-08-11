@@ -923,7 +923,7 @@ const windowListeners: Record<string, ((event?: any) => void)[]> = {};
 
     const toggleAction = editorState.editor.addAction.mock.calls
       .map((call: any[]) => call[0])
-      .find((action: any) => action?.id === 'gonavi.toggleQueryResultsPanel');
+      .find((action: any) => action?.id === 'PinkHunkDB.toggleQueryResultsPanel');
     expect(toggleAction).toMatchObject({
       label: 'GoNavi: 切换结果区',
     });
@@ -1056,7 +1056,7 @@ storeState.sqlLogs = [{
     expect(textContent(renderer.toJSON())).not.toContain('SQL 执行日志');
 
     await act(async () => {
-      windowListeners['gonavi:show-sql-execution-log']?.forEach((listener) => listener());
+      windowListeners['PinkHunkDB:show-sql-execution-log']?.forEach((listener) => listener());
     });
 
     expect(textContent(renderer.toJSON())).toContain('SQL 执行日志');
@@ -1065,7 +1065,7 @@ storeState.sqlLogs = [{
     });
 
     await act(async () => {
-      windowListeners['gonavi:show-sql-execution-log']?.forEach((listener) => listener());
+      windowListeners['PinkHunkDB:show-sql-execution-log']?.forEach((listener) => listener());
     });
 
     expect(textContent(renderer.toJSON())).not.toContain('SQL 执行日志');
@@ -2167,7 +2167,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     const showObjectInfoAction = editorState.editor.addAction.mock.calls
       .map((call: any[]) => call[0])
-      .find((action: any) => action?.id === 'gonavi.queryEditor.showObjectInfo');
+      .find((action: any) => action?.id === 'PinkHunkDB.queryEditor.showObjectInfo');
     expect(showObjectInfoAction).toBeTruthy();
 
     editorState.position = { lineNumber: 1, column: 13 };
@@ -2238,7 +2238,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
 
     const showObjectInfoAction = editorState.editor.addAction.mock.calls
       .map((call: any[]) => call[0])
-      .find((action: any) => action?.id === 'gonavi.queryEditor.showObjectInfo');
+      .find((action: any) => action?.id === 'PinkHunkDB.queryEditor.showObjectInfo');
     expect(showObjectInfoAction).toBeTruthy();
 
     editorState.position = { lineNumber: 1, column: 2 };
@@ -2271,17 +2271,17 @@ storeState.queryOptions.showQueryResultsPanel = false;
       create(<QueryEditor tab={createTab()} />);
     });
 
-    expect(findEditorAction('gonavi.queryEditor.showObjectInfo')).toMatchObject({
+    expect(findEditorAction('PinkHunkDB.queryEditor.showObjectInfo')).toMatchObject({
       label: 'GoNavi: Show Object Info',
     });
-    expect(findEditorAction('gonavi.runQuery')).toMatchObject({
-      label: 'GoNavi: Run SQL',
+    expect(findEditorAction('PinkHunkDB.runQuery')).toMatchObject({
+      label: 'PinkHunkDB: Run SQL',
     });
-    expect(findEditorAction('gonavi.selectCurrentStatement')).toMatchObject({
-      label: 'GoNavi: Select Current Statement',
+    expect(findEditorAction('PinkHunkDB.selectCurrentStatement')).toMatchObject({
+      label: 'PinkHunkDB: Select Current Statement',
     });
-    expect(findEditorAction('gonavi.saveQuery')).toMatchObject({
-      label: 'GoNavi: Save Query',
+    expect(findEditorAction('PinkHunkDB.saveQuery')).toMatchObject({
+      label: 'PinkHunkDB: Save Query',
     });
   });
 
@@ -2295,16 +2295,16 @@ storeState.queryOptions.showQueryResultsPanel = false;
       create(<QueryEditor tab={createTab()} />);
     });
 
-    expect(findEditorAction('gonavi.queryEditor.showObjectInfo')).toMatchObject({
+    expect(findEditorAction('PinkHunkDB.queryEditor.showObjectInfo')).toMatchObject({
       label: 'GoNavi: 查看对象信息',
     });
-    expect(findEditorAction('gonavi.runQuery')).toMatchObject({
+    expect(findEditorAction('PinkHunkDB.runQuery')).toMatchObject({
       label: 'GoNavi: 执行 SQL',
     });
-    expect(findEditorAction('gonavi.selectCurrentStatement')).toMatchObject({
+    expect(findEditorAction('PinkHunkDB.selectCurrentStatement')).toMatchObject({
       label: 'GoNavi: 选择当前语句',
     });
-    expect(findEditorAction('gonavi.saveQuery')).toMatchObject({
+    expect(findEditorAction('PinkHunkDB.saveQuery')).toMatchObject({
       label: 'GoNavi: 保存查询',
     });
 
@@ -2314,21 +2314,21 @@ storeState.queryOptions.showQueryResultsPanel = false;
       notifyStoreSubscribers();
     });
 
-    expect(findEditorActionLabels('gonavi.queryEditor.showObjectInfo')).toContain('GoNavi: Show Object Info');
-    expect(findEditorActionLabels('gonavi.runQuery')).toContain('GoNavi: Run SQL');
-    expect(findEditorActionLabels('gonavi.selectCurrentStatement')).toContain('GoNavi: Select Current Statement');
-    expect(findEditorActionLabels('gonavi.saveQuery')).toContain('GoNavi: Save Query');
-    expect(findEditorAction('gonavi.queryEditor.showObjectInfo')).toMatchObject({
+    expect(findEditorActionLabels('PinkHunkDB.queryEditor.showObjectInfo')).toContain('GoNavi: Show Object Info');
+    expect(findEditorActionLabels('PinkHunkDB.runQuery')).toContain('PinkHunkDB: Run SQL');
+    expect(findEditorActionLabels('PinkHunkDB.selectCurrentStatement')).toContain('PinkHunkDB: Select Current Statement');
+    expect(findEditorActionLabels('PinkHunkDB.saveQuery')).toContain('PinkHunkDB: Save Query');
+    expect(findEditorAction('PinkHunkDB.queryEditor.showObjectInfo')).toMatchObject({
       label: 'GoNavi: Show Object Info',
     });
-    expect(findEditorAction('gonavi.runQuery')).toMatchObject({
-      label: 'GoNavi: Run SQL',
+    expect(findEditorAction('PinkHunkDB.runQuery')).toMatchObject({
+      label: 'PinkHunkDB: Run SQL',
     });
-    expect(findEditorAction('gonavi.selectCurrentStatement')).toMatchObject({
-      label: 'GoNavi: Select Current Statement',
+    expect(findEditorAction('PinkHunkDB.selectCurrentStatement')).toMatchObject({
+      label: 'PinkHunkDB: Select Current Statement',
     });
-    expect(findEditorAction('gonavi.saveQuery')).toMatchObject({
-      label: 'GoNavi: Save Query',
+    expect(findEditorAction('PinkHunkDB.saveQuery')).toMatchObject({
+      label: 'PinkHunkDB: Save Query',
     });
   });
 
@@ -2465,7 +2465,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
       create(<QueryEditor tab={createTab({ query: '', readOnly: true })} />);
     });
 
-    const selectCurrentStatementAction = findEditorAction('gonavi.selectCurrentStatement');
+    const selectCurrentStatementAction = findEditorAction('PinkHunkDB.selectCurrentStatement');
     expect(selectCurrentStatementAction).toBeTruthy();
 
     await act(async () => {
@@ -2493,7 +2493,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
       create(<QueryEditor tab={createTab({ query: sql, readOnly: true })} />);
     });
 
-    const selectCurrentStatementAction = findEditorAction('gonavi.selectCurrentStatement');
+    const selectCurrentStatementAction = findEditorAction('PinkHunkDB.selectCurrentStatement');
     expect(selectCurrentStatementAction).toBeTruthy();
 
     await act(async () => {
@@ -2517,7 +2517,7 @@ storeState.queryOptions.showQueryResultsPanel = false;
       create(<QueryEditor tab={createTab({ query: 'select 1;', dbName: 'main' })} />);
     });
 
-    const showObjectInfoAction = findEditorAction('gonavi.queryEditor.showObjectInfo');
+    const showObjectInfoAction = findEditorAction('PinkHunkDB.queryEditor.showObjectInfo');
     expect(showObjectInfoAction).toBeTruthy();
 
     editorState.position = { lineNumber: 1, column: 2 };
@@ -4596,7 +4596,7 @@ let renderer!: ReactTestRenderer;
       create(<QueryEditor tab={createTab({ savedQueryId: 'saved-1' })} />);
     });
 
-    const saveAction = findEditorAction('gonavi.saveQuery');
+    const saveAction = findEditorAction('PinkHunkDB.saveQuery');
     expect(saveAction).toMatchObject({
       label: 'GoNavi: 保存查询',
     });

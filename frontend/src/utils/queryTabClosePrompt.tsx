@@ -112,6 +112,107 @@ export const saveDirtyQueryTab = async (
   });
 };
 
+type QueryCloseFooterProps = {
+  remainingCount: number;
+  onChoice: (choice: QueryTabCloseChoice) => void;
+};
+
+type QueryCloseAction = {
+  choice: QueryTabCloseChoice;
+  label: string;
+};
+
+const QueryCloseFooter: React.FC<QueryCloseFooterProps> = ({ remainingCount, onChoice }) => {
+  const actionsRef = React.useRef<HTMLDivElement>(null);
+  const actions = React.useMemo<QueryCloseAction[]>(() => {
+    const list: QueryCloseAction[] = [
+      { choice: 'yes', label: t('tab_manager.query_close.action.yes') },
+      { choice: 'no', label: t('tab_manager.query_close.action.no') },
+    ];
+    if (remainingCount > 1) {
+      list.push(
+        { choice: 'yes-all', label: t('tab_manager.query_close.action.yes_to_all') },
+        { choice: 'no-all', label: t('tab_manager.query_close.action.no_to_all') },
+      );
+    }
+    list.push({ choice: 'cancel', label: t('common.cancel') });
+    return list;
+  }, [remainingCount]);
+  const [selected, setSelected] = React.useState(0);
+
+  React.useEffect(() => {
+    setSelected(0);
+  }, [remainingCount]);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const buttons = actionsRef.current?.querySelectorAll<HTMLButtonElement>('button');
+      buttons?.[selected]?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [selected]);
+
+  React.useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onChoice('cancel');
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        event.stopPropagation();
+        setSelected((index) => (index - 1 + actions.length) % actions.length);
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        event.stopPropagation();
+        setSelected((index) => (index + 1) % actions.length);
+        return;
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        event.stopPropagation();
+        onChoice(actions[selected]?.choice ?? 'cancel');
+        return;
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const ch = event.key.length === 1 ? event.key.toLowerCase() : '';
+      if (ch === 'y') {
+        event.preventDefault();
+        event.stopPropagation();
+        onChoice('yes');
+        return;
+      }
+      if (ch === 'n') {
+        event.preventDefault();
+        event.stopPropagation();
+        onChoice('no');
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [actions, onChoice, selected]);
+
+  return (
+    <div ref={actionsRef} style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 8 }}>
+      {actions.map((action, index) => (
+        <Button
+          key={action.choice}
+          type={index === selected ? 'primary' : 'default'}
+          autoFocus={index === 0}
+          onFocus={() => setSelected(index)}
+          onClick={() => onChoice(action.choice)}
+        >
+          {action.label}
+        </Button>
+      ))}
+    </div>
+  );
+};
+
 const promptDirtyQueryTabChoice = (
   label: string,
   remainingCount: number,
@@ -146,24 +247,7 @@ const promptDirtyQueryTabChoice = (
       closable: true,
       maskClosable: true,
       footer: () => (
-        <>
-          <Button onClick={() => finish('yes')}>
-            {t('tab_manager.query_close.action.yes')}
-          </Button>
-          <Button onClick={() => finish('no')}>
-            {t('tab_manager.query_close.action.no')}
-          </Button>
-          {remainingCount > 1 ? (
-            <>
-              <Button onClick={() => finish('yes-all')}>
-                {t('tab_manager.query_close.action.yes_to_all')}
-              </Button>
-              <Button onClick={() => finish('no-all')}>
-                {t('tab_manager.query_close.action.no_to_all')}
-              </Button>
-            </>
-          ) : null}
-        </>
+        <QueryCloseFooter remainingCount={remainingCount} onChoice={finish} />
       ),
       onCancel: () => finish('cancel'),
     });

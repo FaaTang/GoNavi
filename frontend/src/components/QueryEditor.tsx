@@ -601,14 +601,20 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
           const currentQuery = getCurrentQuery();
           if (isExternalSQLFileTab) {
               setSQLFileTabDraft(tab.id, currentQuery);
+              if (currentQuery.length <= QUERY_EDITOR_PERSISTED_DRAFT_MAX_TEXT_LENGTH) {
+                  updateQueryTabDraft(tab.id, { query: currentQuery });
+              }
               return;
           }
           setQueryTabDraft(tab.id, currentQuery);
+          if (currentQuery.length <= QUERY_EDITOR_PERSISTED_DRAFT_MAX_TEXT_LENGTH) {
+              updateQueryTabDraft(tab.id, { query: currentQuery });
+          }
       };
 
       window.addEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
       return () => window.removeEventListener(FLUSH_QUERY_TAB_DRAFTS_EVENT, handleFlushQueryTabDrafts);
-  }, [isExternalSQLFileTab, tab.id]);
+  }, [isExternalSQLFileTab, tab.id, updateQueryTabDraft]);
 
   useEffect(() => {
       const handleReleaseTabQueryResults = (event: Event) => {
@@ -1090,7 +1096,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
                   if (!store.aiPanelVisible) {
                       store.setAIPanelVisible(true);
                   }
-                  window.dispatchEvent(new CustomEvent('PinkHunkDB:ai:inject-prompt', { detail: { prompt } }));
+                  window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt } }));
               },
           })
       ));
@@ -3002,7 +3008,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
               store.setAIPanelVisible(true);
           }
           setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('PinkHunkDB:ai:inject-prompt', { detail: { prompt: finalPrompt } }));
+              window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt: finalPrompt } }));
           }, store.aiPanelVisible ? 0 : 350);
       });
 
@@ -3165,7 +3171,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       if (!store.aiPanelVisible) {
           store.setAIPanelVisible(true);
       }
-      window.dispatchEvent(new CustomEvent('PinkHunkDB:ai:inject-prompt', { detail: { prompt: prompts[action] } }));
+      window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt: prompts[action] } }));
   };
 
   const formatSettingsMenu: MenuProps['items'] = [
@@ -5299,7 +5305,7 @@ const QueryEditor: React.FC<{ tab: TabData; isActive?: boolean }> = ({ tab, isAc
       const wasClosed = !store.aiPanelVisible;
       if (wasClosed) store.setAIPanelVisible(true);
       setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('PinkHunkDB:ai:inject-prompt', { detail: { prompt } }));
+          window.dispatchEvent(new CustomEvent('gonavi:ai:inject-prompt', { detail: { prompt } }));
       }, wasClosed ? 350 : 0);
   };
 

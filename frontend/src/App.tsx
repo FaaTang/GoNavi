@@ -58,6 +58,7 @@ import {
   startSecurityUpdateFromBootstrap,
 } from './utils/secureConfigBootstrap';
 import { bootstrapSavedQueries } from './utils/savedQueryPersistence';
+import { flushQueryTabDrafts } from './utils/sqlFileTabDrafts';
 import {
   LEGACY_PERSIST_KEY,
   hasLegacyMigratableSensitiveItems,
@@ -2310,6 +2311,13 @@ function App() {
       }
   }, [securityUpdateRepairSource]);
 
+  const handleAppQuit = useCallback(() => {
+      // Window close: flush unsaved query drafts into persisted tabs, then quit — no save prompt.
+      const tabIds = useStore.getState().tabs.map((tab) => String(tab.id || '').trim()).filter(Boolean);
+      flushQueryTabDrafts(tabIds);
+      Quit();
+  }, []);
+
   const handleOpenAISettings = useCallback((providerId?: string) => {
       if (!shouldLoadAIAssistant(resolveMemoryPolicy(useStore.getState().memorySettings, useStore.getState().appearance))) {
           return;
@@ -2923,7 +2931,7 @@ function App() {
                         className="titlebar-window-btn titlebar-close-btn"
                         aria-label={t('common.close')}
                         style={{ height: '100%', borderRadius: 0, width: titleBarButtonWidth }} 
-                        onClick={Quit} 
+                        onClick={handleAppQuit} 
                       />
                   </div>
               )}
