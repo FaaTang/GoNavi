@@ -2411,6 +2411,7 @@
   "app.about.action.check_updates": "Check for Updates",
   "app.about.action.download_progress": "Download Progress",
   "app.about.action.download_update": "Download Update",
+  "app.about.action.retry_download": "Retry Download",
   "app.about.action.hide_to_background": "Hide to Background",
   "app.about.action.install_update": "Install Update",
   "app.about.action.mute_this_version": "Do Not Remind This Time",

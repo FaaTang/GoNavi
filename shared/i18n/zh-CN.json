@@ -2411,6 +2411,7 @@
   "app.about.action.check_updates": "检查更新",
   "app.about.action.download_progress": "下载进度",
   "app.about.action.download_update": "下载更新",
+  "app.about.action.retry_download": "重试下载",
   "app.about.action.hide_to_background": "隐藏到后台",
   "app.about.action.install_update": "安装更新",
   "app.about.action.mute_this_version": "本次不再提示",

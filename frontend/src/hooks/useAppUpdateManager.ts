@@ -189,7 +189,20 @@ export const useAppUpdateManager = ({
   }, []);
 
   const hideUpdateDownloadProgress = useCallback(() => {
-    setUpdateDownloadProgress((prev) => ({ ...prev, open: false }));
+    setUpdateDownloadProgress((prev) => {
+      // 下载失败后关闭进度窗时回到 idle，About 才能再次显示「下载更新」而非卡住的「下载进度」
+      if (prev.status === 'error') {
+        return {
+          ...prev,
+          open: false,
+          status: 'idle',
+          percent: 0,
+          downloaded: 0,
+          message: '',
+        };
+      }
+      return { ...prev, open: false };
+    });
   }, []);
 
   const isLatestUpdateDownloaded = Boolean(lastUpdateInfo?.hasUpdate) && (
@@ -204,13 +217,12 @@ export const useAppUpdateManager = ({
     }
     return String(lastUpdateInfo?.downloadPath || '').trim();
   }, [lastUpdateInfo]);
+  // 仅「进行中」才替换下载按钮；error/done 应允许重试或安装，不能锁死成「下载进度」
   const isBackgroundProgressForLatestUpdate = Boolean(lastUpdateInfo?.hasUpdate)
     && Boolean(lastUpdateInfo?.latestVersion)
     && updateDownloadProgress.version === lastUpdateInfo?.latestVersion
     && (updateDownloadProgress.status === 'start'
-      || updateDownloadProgress.status === 'downloading'
-      || updateDownloadProgress.status === 'done'
-      || updateDownloadProgress.status === 'error');
+      || updateDownloadProgress.status === 'downloading');
   const canShowProgressEntry = (isLatestUpdateDownloaded || isBackgroundProgressForLatestUpdate)
     && updateInstallTriggeredVersionRef.current !== (lastUpdateInfo?.latestVersion || null);
 

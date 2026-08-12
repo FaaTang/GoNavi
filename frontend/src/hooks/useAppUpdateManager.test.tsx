@@ -281,4 +281,64 @@ describe('useAppUpdateManager', () => {
     expect(messageApi.info).toHaveBeenCalled();
     expect(hook?.isAboutOpen).toBe(false);
   });
+
+  it('keeps download action available after a failed download instead of locking into progress-only', async () => {
+    backendApp.CheckForUpdates.mockResolvedValue({
+      success: true,
+      data: {
+        hasUpdate: true,
+        currentVersion: '0.8.1',
+        latestVersion: '0.8.2',
+        downloaded: false,
+        assetSize: 13_300_000,
+      },
+    });
+    backendApp.DownloadUpdate.mockResolvedValue({
+      success: false,
+      message: 'net/http: TLS handshake timeout',
+    });
+
+    renderHook(false);
+
+    await act(async () => {
+      await hook?.checkForUpdates(false);
+    });
+
+    expect(hook?.lastUpdateInfo?.hasUpdate).toBe(true);
+    expect(hook?.isLatestUpdateDownloaded).toBe(false);
+    expect(hook?.isBackgroundProgressForLatestUpdate).toBe(false);
+
+    await act(async () => {
+      await hook?.downloadUpdate(hook?.lastUpdateInfo!, false);
+    });
+
+    expect(backendApp.DownloadUpdate).toHaveBeenCalledTimes(1);
+    expect(hook?.updateDownloadProgress.status).toBe('error');
+    expect(hook?.updateDownloadProgress.open).toBe(true);
+    // 失败态不应再占用「下载进度」入口，About 应能再次显示下载按钮
+    expect(hook?.isBackgroundProgressForLatestUpdate).toBe(false);
+    expect(hook?.isLatestUpdateDownloaded).toBe(false);
+
+    await act(async () => {
+      hook?.hideUpdateDownloadProgress();
+    });
+
+    expect(hook?.updateDownloadProgress.open).toBe(false);
+    expect(hook?.updateDownloadProgress.status).toBe('idle');
+    expect(hook?.isBackgroundProgressForLatestUpdate).toBe(false);
+
+    backendApp.DownloadUpdate.mockResolvedValue({
+      success: true,
+      data: {
+        downloadPath: 'C:\\Temp\\PinkHunkDB-0.8.2.exe',
+      },
+    });
+
+    await act(async () => {
+      await hook?.downloadUpdate(hook?.lastUpdateInfo!, false);
+    });
+
+    expect(backendApp.DownloadUpdate).toHaveBeenCalledTimes(2);
+    expect(hook?.lastUpdateInfo?.downloaded).toBe(true);
+  });
 });

@@ -5119,7 +5119,19 @@ function App() {
                       {t('app.about.action.install_update')}
                   </Button>
               ] : (updateDownloadProgress.status === 'error' ? [
-                  <Button key="close" onClick={hideUpdateDownloadProgress}>{t('common.close')}</Button>
+                  <Button key="close" onClick={hideUpdateDownloadProgress}>{t('common.close')}</Button>,
+                  <Button
+                      key="retry"
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      disabled={!lastUpdateInfo?.hasUpdate}
+                      onClick={() => {
+                          if (!lastUpdateInfo?.hasUpdate) return;
+                          void downloadUpdate(lastUpdateInfo, false);
+                      }}
+                  >
+                      {t('app.about.action.retry_download')}
+                  </Button>
               ] : null))}
           >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
