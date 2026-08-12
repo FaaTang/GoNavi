@@ -2,7 +2,7 @@ import Modal from './components/common/ResizableDraggableModal';
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Layout, Button, ConfigProvider, theme, message, Spin, Slider, Progress, Switch, Input, InputNumber, Select, Segmented, Tooltip } from 'antd';
 import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { BrowserOpenURL, Environment, Quit, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
+import { BrowserOpenURL, Environment, Quit, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowShow, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
 import Sidebar from './components/Sidebar';
 import TabManager from './components/TabManager';
 import ConnectionModal from './components/ConnectionModal';
@@ -99,6 +99,11 @@ import {
 } from './utils/shortcuts';
 import { resolveTitleBarToggleIconKey, resolveWindowsScaleCheckDelayMs, shouldApplyWindowsScaleFix, shouldResetWebViewZoomForScaleFix, shouldToggleMaximisedWindowForScaleFix, type WindowScaleFixReason, type WindowsScaleCheckTrigger } from './utils/windowStateUi';
 import { resolveVisibleStartupWindowBounds } from './utils/windowRestoreBounds';
+import {
+  isCreatePlaceholderWindowBounds,
+  readBrowserScreenWorkArea,
+  resolveStartupNormalWindowBounds,
+} from './utils/windowInitialSize';
 import { DEFAULT_AI_PANEL_WIDTH, resolveOverlayAIPanelWidth, shouldOverlayAIPanel } from './utils/aiPanelLayout';
 import { safeWindowRuntimeCall } from './utils/wailsRuntime';
 import { buildTableSelectQuery } from './utils/objectQueryTemplates';
@@ -752,48 +757,58 @@ function App() {
       const restoreWindowState = async () => {
           if (cancelled) return;
           const state = useStore.getState();
+          const revealWindow = () => {
+              try { WindowShow(); } catch (_) {}
+          };
+          const applyNormalWindowBounds = () => {
+              const viewport = readBrowserScreenWorkArea();
+              const nextBounds = resolveVisibleStartupWindowBounds(
+                  resolveStartupNormalWindowBounds(state.windowBounds, viewport),
+                  viewport,
+              );
+              WindowSetSize(nextBounds.width, nextBounds.height);
+              WindowSetPosition(nextBounds.x, nextBounds.y);
+              state.setWindowBounds(nextBounds);
+              return nextBounds;
+          };
+          // 最大化/全屏前先写入正常还原尺寸，避免退出后掉回 StartHidden 的 900x560。
+          const seedNormalBoundsThen = async (next: () => Promise<void> | void) => {
+              try {
+                  applyNormalWindowBounds();
+              } catch (e) {
+                  console.warn('Failed to seed normal window bounds before maximise', e);
+              }
+              await next();
+              revealWindow();
+          };
           // startupFullscreen 设置优先
           if (state.startupFullscreen) {
-              applyStartupWindowPreference(1);
+              await seedNormalBoundsThen(() => {
+                  applyStartupWindowPreference(1);
+              });
               return;
           }
           // 根据上次保存的窗口状态恢复
           const savedState = state.windowState;
           if (savedState === 'fullscreen') {
-              applyStartupWindowPreference(1);
+              await seedNormalBoundsThen(() => {
+                  applyStartupWindowPreference(1);
+              });
               return;
           }
           if (savedState === 'maximized') {
-              try { await WindowMaximise(); } catch (_) {}
+              await seedNormalBoundsThen(async () => {
+                  try { await WindowMaximise(); } catch (_) {}
+              });
               return;
           }
-          // 普通窗口：恢复尺寸和位置
-          const bounds = state.windowBounds;
-          if (!bounds || bounds.width < 400 || bounds.height < 300) return;
+          // 普通窗口：有用户记忆则恢复；占位尺寸/首次打开按屏幕比例
           try {
-              const nextBounds = resolveVisibleStartupWindowBounds(bounds, {
-                  availWidth: window.screen?.availWidth || 0,
-                  availHeight: window.screen?.availHeight || 0,
-                  availLeft: (window.screen as Screen & { availLeft?: number })?.availLeft || 0,
-                  availTop: (window.screen as Screen & { availTop?: number })?.availTop || 0,
-              });
-              if (
-                  nextBounds.x !== bounds.x ||
-                  nextBounds.y !== bounds.y ||
-                  nextBounds.width !== bounds.width ||
-                  nextBounds.height !== bounds.height
-              ) {
-                  void emitWindowDiagnostic('adjust:startup-window-bounds', {
-                      from: bounds,
-                      to: nextBounds,
-                  });
-                  state.setWindowBounds(nextBounds);
-              }
-              WindowSetSize(nextBounds.width, nextBounds.height);
-              WindowSetPosition(nextBounds.x, nextBounds.y);
+              applyNormalWindowBounds();
           } catch (e) {
               console.warn('Failed to restore window bounds', e);
           }
+          revealWindow();
       };
 
       if (useStore.persist.hasHydrated()) {
@@ -805,9 +820,16 @@ function App() {
           }
           void restoreWindowState();
       });
+      // StartHidden: ensure the window becomes visible even if hydration is delayed.
+      const safetyShowTimer = window.setTimeout(() => {
+          if (!cancelled) {
+              try { WindowShow(); } catch (_) {}
+          }
+      }, 2500);
 
       return () => {
           cancelled = true;
+          window.clearTimeout(safetyShowTimer);
           if (startupWindowTimer !== null) {
               window.clearTimeout(startupWindowTimer);
           }
@@ -844,7 +866,7 @@ function App() {
                   store.setWindowState(newState);
               }
 
-              // 只在普通窗口模式下保存尺寸和位置
+              // 只在普通窗口模式下保存尺寸和位置；忽略 StartHidden 占位尺寸，避免把 900x560 写成用户偏好
               if (isFs || isMax) return;
 
               const [size, pos] = await Promise.all([
@@ -857,6 +879,9 @@ function App() {
               const x = Math.trunc(Number(pos.x || 0));
               const y = Math.trunc(Number(pos.y || 0));
                if (w < 400 || h < 300) return;
+               if (isCreatePlaceholderWindowBounds({ width: w, height: h }, readBrowserScreenWorkArea())) {
+                   return;
+               }
 
                const key = `${w},${h},${x},${y}`;
                if (key === lastSaved) return;
@@ -2372,6 +2397,25 @@ function App() {
           void emitWindowDiagnostic('action:titlebar-toggle:before');
           if (await WindowIsFullscreen()) {
               await WindowUnfullscreen();
+              await new Promise((resolve) => window.setTimeout(resolve, 96));
+              try {
+                  const size = await safeWindowRuntimeCall(() => WindowGetSize(), null);
+                  const viewport = readBrowserScreenWorkArea();
+                  if (isCreatePlaceholderWindowBounds(
+                      { width: Math.trunc(Number(size?.w) || 0), height: Math.trunc(Number(size?.h) || 0) },
+                      viewport,
+                  )) {
+                      const nextBounds = resolveStartupNormalWindowBounds(
+                          useStore.getState().windowBounds,
+                          viewport,
+                      );
+                      WindowSetSize(nextBounds.width, nextBounds.height);
+                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      useStore.getState().setWindowBounds(nextBounds);
+                  }
+              } catch (e) {
+                  console.warn('Failed to upgrade placeholder bounds after unfullscreen', e);
+              }
               await syncWindowStateFromRuntime();
               void emitWindowDiagnostic('action:titlebar-toggle:after-unfullscreen');
               return;
@@ -2385,7 +2429,47 @@ function App() {
           const isMaximised = await safeWindowRuntimeCall(() => WindowIsMaximised(), false);
           if (isMaximised) {
               WindowUnmaximise();
+              await new Promise((resolve) => window.setTimeout(resolve, 96));
+              // 若还原尺寸仍是 StartHidden 占位（约 900x560），立刻升到屏幕比例正常尺寸。
+              try {
+                  const size = await safeWindowRuntimeCall(() => WindowGetSize(), null);
+                  const viewport = readBrowserScreenWorkArea();
+                  if (isCreatePlaceholderWindowBounds(
+                      { width: Math.trunc(Number(size?.w) || 0), height: Math.trunc(Number(size?.h) || 0) },
+                      viewport,
+                  )) {
+                      const nextBounds = resolveStartupNormalWindowBounds(
+                          useStore.getState().windowBounds,
+                          viewport,
+                      );
+                      WindowSetSize(nextBounds.width, nextBounds.height);
+                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      useStore.getState().setWindowBounds(nextBounds);
+                  }
+              } catch (e) {
+                  console.warn('Failed to upgrade placeholder bounds after unmaximise', e);
+              }
           } else {
+              // 最大化前先确保还原尺寸不是占位小窗，退出最大化才不会缩成一条。
+              try {
+                  const size = await safeWindowRuntimeCall(() => WindowGetSize(), null);
+                  const viewport = readBrowserScreenWorkArea();
+                  if (isCreatePlaceholderWindowBounds(
+                      { width: Math.trunc(Number(size?.w) || 0), height: Math.trunc(Number(size?.h) || 0) },
+                      viewport,
+                  )) {
+                      const nextBounds = resolveStartupNormalWindowBounds(
+                          useStore.getState().windowBounds,
+                          viewport,
+                      );
+                      WindowSetSize(nextBounds.width, nextBounds.height);
+                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      useStore.getState().setWindowBounds(nextBounds);
+                      await new Promise((resolve) => window.setTimeout(resolve, 32));
+                  }
+              } catch (e) {
+                  console.warn('Failed to seed normal bounds before maximise', e);
+              }
               WindowMaximise();
           }
           await new Promise((resolve) => window.setTimeout(resolve, 96));
@@ -4078,7 +4162,9 @@ function App() {
             title={renderUtilityModalTitle(<InfoCircleOutlined />, t('app.about.title'), t('app.about.description'))}
             open={isAboutOpen}
             onCancel={() => setIsAboutOpen(false)}
-            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10, display: 'flex', flexWrap: 'nowrap', gap: 10, justifyContent: 'flex-end' } }}
+            centered
+            width={640}
+            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' } }}
             footer={[
                 isBackgroundProgressForLatestUpdate && !isLatestUpdateDownloaded ? (
                     <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
@@ -4995,6 +5081,8 @@ function App() {
                   ? t('app.about.download_progress.title_with_version', { version: updateDownloadProgress.version })
                   : t('app.about.download_progress.title')}
               open={updateDownloadProgress.open}
+              centered
+              width={480}
               closable
               maskClosable
               keyboard

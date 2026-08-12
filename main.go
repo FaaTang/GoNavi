@@ -42,14 +42,17 @@ func main() {
 		windowsBackdrop = windows.None
 	}
 
-	// Create application with options
+	// Width/Height must be set for Wails window creation; StartHidden keeps them off-screen
+	// until frontend applies screen-ratio first-open size or restores the user's bounds.
 	err := wails.Run(&options.App{
-		Title:     "PinkHunkDB",
-		Width:     1024,
-		Height:    768,
-		MinWidth:  900,
-		MinHeight: 600,
-		Frameless: true,
+		Title:            "PinkHunkDB",
+		Width:            900,
+		Height:           560,
+		MinWidth:         900,
+		MinHeight:        560,
+		WindowStartState: options.Normal,
+		StartHidden:      true,
+		Frameless:        true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
