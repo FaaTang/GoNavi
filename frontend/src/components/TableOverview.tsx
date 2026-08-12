@@ -537,15 +537,20 @@ const TableOverview: React.FC<TableOverviewProps> = ({ tab }) => {
             message.warning(t('table_overview.message.copy_table_name_empty'));
             return;
         }
+        const qualifiedName = name.includes('.')
+            ? name
+            : [schemaName, tab.dbName].map((part) => String(part || '').trim()).find(Boolean)
+                ? `${String(schemaName || tab.dbName).trim()}.${name}`
+                : name;
         try {
-            await navigator.clipboard.writeText(name);
+            await navigator.clipboard.writeText(qualifiedName);
             message.success(t('table_overview.message.copy_table_name_success'));
         } catch (e: any) {
             message.error(t('table_overview.message.copy_table_name_failed', {
                 detail: e?.message || String(e),
             }));
         }
-    }, [t]);
+    }, [schemaName, t, tab.dbName]);
 
     const handleExport = useCallback(async (tableName: string, options: { format: string; xlsxMaxRowsPerSheet?: number }, totalRows?: number) => {
         const config = buildConfig();

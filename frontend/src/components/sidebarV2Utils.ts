@@ -173,7 +173,22 @@ export const flattenSidebarTreeKeysInExpandedOrder = (
 export const resolveSidebarTableNameForCopy = (
   node: Pick<SidebarTreeNode, 'title' | 'dataRef'> | null | undefined,
 ): string => {
-  return String(node?.dataRef?.tableName || node?.dataRef?.viewName || node?.dataRef?.sequenceName || node?.dataRef?.packageName || node?.dataRef?.eventName || node?.title || '').trim();
+  const objectName = String(
+    node?.dataRef?.tableName
+      || node?.dataRef?.viewName
+      || node?.dataRef?.sequenceName
+      || node?.dataRef?.packageName
+      || node?.dataRef?.eventName
+      || node?.title
+      || '',
+  ).trim();
+  if (!objectName) return '';
+  if (String(objectName).includes('.')) return objectName;
+  const schemaName = String(node?.dataRef?.schemaName || '').trim();
+  if (schemaName) return `${schemaName}.${objectName}`;
+  const dbName = String(node?.dataRef?.dbName || '').trim();
+  if (dbName) return `${dbName}.${objectName}`;
+  return objectName;
 };
 
 type SidebarTableSortPreference = 'name' | 'frequency';

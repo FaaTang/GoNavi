@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildOrderBySQL, buildPaginatedSelectSQL, quoteQualifiedIdent, reverseOrderBySQL } from './sql';
+import { buildOrderBySQL, buildPaginatedSelectSQL, quoteQualifiedIdent, resolveCatalogQualifiedTableName, reverseOrderBySQL, sharesSQLCatalogAcrossDatabases } from './sql';
 
 describe('buildOrderBySQL', () => {
   it('does not add fallback ORDER BY for DuckDB without explicit sort', () => {
@@ -9,6 +9,24 @@ describe('buildOrderBySQL', () => {
 
   it('keeps explicit DuckDB sort', () => {
     expect(buildOrderBySQL('duckdb', { columnKey: 'ID', order: 'descend' }, ['NAME'])).toBe(' ORDER BY "ID" DESC');
+  });
+});
+
+describe('resolveCatalogQualifiedTableName', () => {
+  it('prefixes mysql-family bare table names with database', () => {
+    expect(sharesSQLCatalogAcrossDatabases('mysql')).toBe(true);
+    expect(resolveCatalogQualifiedTableName('mysql', 'alldebit_schema', 't_channel_alldebit_callback'))
+      .toBe('alldebit_schema.t_channel_alldebit_callback');
+  });
+
+  it('keeps already qualified mysql table names', () => {
+    expect(resolveCatalogQualifiedTableName('mysql', 'alldebit_schema', 'other.t_channel_alldebit_callback'))
+      .toBe('other.t_channel_alldebit_callback');
+  });
+
+  it('does not rewrite postgres bare table names', () => {
+    expect(sharesSQLCatalogAcrossDatabases('postgres')).toBe(false);
+    expect(resolveCatalogQualifiedTableName('postgres', 'app', 'users')).toBe('users');
   });
 });
 

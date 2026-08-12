@@ -313,6 +313,21 @@ describe('Sidebar locate toolbar', () => {
       title: 'users',
       dataRef: {},
     })).toBe('users');
+    expect(resolveSidebarTableNameForCopy({
+      title: 't_channel_alldebit_callback',
+      dataRef: {
+        tableName: 't_channel_alldebit_callback',
+        dbName: 'alldebit_schema',
+      },
+    })).toBe('alldebit_schema.t_channel_alldebit_callback');
+    expect(resolveSidebarTableNameForCopy({
+      title: 'orders',
+      dataRef: {
+        tableName: 'orders',
+        dbName: 'main',
+        schemaName: 'sales',
+      },
+    })).toBe('sales.orders');
   });
 
   it('treats empty lazy children as unloaded for sidebar expansion', () => {

@@ -9,6 +9,7 @@
 //   - 共享常量和类型集中管理，便于跨文件复用
 
 import { t } from '../../i18n';
+import { splitQualifiedNameSegments } from '../../utils/qualifiedName';
 
 // === 共享常量 ===
 
@@ -138,13 +139,31 @@ export const resolveV2ObjectGroupTitle = (
 };
 
 /**
- * resolveSidebarTableNameForCopy 从节点提取用于复制的表名。
+ * resolveSidebarTableNameForCopy 从节点提取用于复制的对象名。
  * 优先级：dataRef.tableName > dataRef.viewName > dataRef.eventName > title。
+ * 未限定时优先补 schemaName，其次补 dbName，便于粘贴为可用的库/模式.对象名。
  */
 export const resolveSidebarTableNameForCopy = (
   node: Pick<SidebarNodeLike, 'title' | 'dataRef'> | null | undefined,
 ): string => {
-  return String(node?.dataRef?.tableName || node?.dataRef?.viewName || node?.dataRef?.sequenceName || node?.dataRef?.packageName || node?.dataRef?.eventName || node?.title || '').trim();
+  const objectName = String(
+    node?.dataRef?.tableName
+      || node?.dataRef?.viewName
+      || node?.dataRef?.sequenceName
+      || node?.dataRef?.packageName
+      || node?.dataRef?.eventName
+      || node?.title
+      || '',
+  ).trim();
+  if (!objectName) return '';
+  if (splitQualifiedNameSegments(objectName).filter(Boolean).length >= 2) {
+    return objectName;
+  }
+  const schemaName = String(node?.dataRef?.schemaName || '').trim();
+  if (schemaName) return `${schemaName}.${objectName}`;
+  const dbName = String(node?.dataRef?.dbName || '').trim();
+  if (dbName) return `${dbName}.${objectName}`;
+  return objectName;
 };
 
 const SIDEBAR_OBJECT_CONTEXT_TYPES = new Set([

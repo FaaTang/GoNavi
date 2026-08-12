@@ -63,6 +63,41 @@ export const quoteQualifiedIdent = (dbType: string, ident: string) => {
   return parts.map((part) => quoteIdentPart(dbType, part)).join('.');
 };
 
+/**
+ * MySQL 族连接按实例复用物理连接（缓存键不含库名），未限定表名会落到登录库。
+ * 打开表数据时需补上 dbName.tableName，与元数据查询的库名限定策略一致。
+ */
+export const sharesSQLCatalogAcrossDatabases = (dbType: string): boolean => {
+  switch (String(dbType || '').trim().toLowerCase()) {
+    case 'mysql':
+    case 'mariadb':
+    case 'goldendb':
+    case 'greatdb':
+    case 'gdb':
+    case 'diros':
+    case 'starrocks':
+    case 'sphinx':
+    case 'oceanbase':
+      return true;
+    default:
+      return false;
+  }
+};
+
+export const resolveCatalogQualifiedTableName = (
+  dbType: string,
+  dbName: string,
+  tableName: string,
+): string => {
+  const rawTable = String(tableName || '').trim();
+  if (!rawTable) return rawTable;
+  if (!sharesSQLCatalogAcrossDatabases(dbType)) return rawTable;
+  const rawDb = String(dbName || '').trim();
+  if (!rawDb) return rawTable;
+  if (splitQualifiedNameSegments(rawTable).filter(Boolean).length >= 2) return rawTable;
+  return `${rawDb}.${rawTable}`;
+};
+
 export const escapeLiteral = (val: string) => (val || '').replace(/'/g, "''");
 
 type SortInfoItem = {

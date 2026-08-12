@@ -4,7 +4,7 @@ import { TabData, ColumnDefinition, IndexDefinition } from '../types';
 import { useStore } from '../store';
 import { DBQuery, DBGetColumns, DBGetIndexes } from '../../wailsjs/go/app/App';
 import DataGrid, { GONAVI_ROW_KEY } from './DataGrid';
-import { buildOrderBySQL, buildPaginatedSelectSQL, buildWhereSQL, hasExplicitSort, quoteIdentPart, quoteQualifiedIdent, reverseOrderBySQL, withSortBufferTuningSQL, type FilterCondition } from '../utils/sql';
+import { buildOrderBySQL, buildPaginatedSelectSQL, buildWhereSQL, hasExplicitSort, quoteIdentPart, quoteQualifiedIdent, resolveCatalogQualifiedTableName, reverseOrderBySQL, withSortBufferTuningSQL, type FilterCondition } from '../utils/sql';
 import { buildMongoCountCommand, buildMongoFilter, buildMongoFindCommand, buildMongoSort } from '../utils/mongodb';
 import { buildOracleApproximateTotalSql, parseApproximateTableCountRow, resolveApproximateTableCountStrategy } from '../utils/approximateTableCount';
 import { getDataSourceCapabilities, resolveDataSourceType, shouldShowOceanBaseRowNumberColumn } from '../utils/dataSourceCapabilities';
@@ -641,6 +641,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
 
     const dbName = tab.dbName || '';
     const tableName = tab.tableName || '';
+    const queryTableName = resolveCatalogQualifiedTableName(dbType, dbName, tableName);
     const isMongoDB = dbTypeLower === 'mongodb';
     let mongoFilter: Record<string, unknown> | undefined;
     if (isMongoDB) {
@@ -739,7 +740,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
 
     const countSql = isMongoDB
       ? buildMongoCountCommand(tableName, mongoFilter || {})
-      : `SELECT COUNT(*) as total FROM ${quoteQualifiedIdent(dbType, tableName)} ${whereSQL}`;
+      : `SELECT COUNT(*) as total FROM ${quoteQualifiedIdent(dbType, queryTableName)} ${whereSQL}`;
     const orderBySQL = isMongoDB
       ? ''
       : buildOrderBySQL(dbType, sortInfo, resolveDataViewerOrderFallbackColumns(editLocatorForQuery, pkColumnsForQuery));
@@ -774,7 +775,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
             includeObjectIDLocator: true,
         });
     } else {
-        const baseSql = buildDataViewerBaseSelectSQL(dbType, tableName, whereSQL, editLocatorForQuery);
+        const baseSql = buildDataViewerBaseSelectSQL(dbType, queryTableName, whereSQL, editLocatorForQuery);
         sql = `${baseSql}${orderBySQL}`;
         // ClickHouse deep pagination with very large OFFSET can be slow. When the tail offset is smaller,
         // query in reverse ORDER BY with a smaller OFFSET, then reverse rows in the frontend.
@@ -861,7 +862,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
             }
 
             if (safeSelect) {
-                let fallbackSql = `SELECT ${safeSelect} FROM ${quoteQualifiedIdent(dbType, tableName)} ${whereSQL}`;
+                let fallbackSql = `SELECT ${safeSelect} FROM ${quoteQualifiedIdent(dbType, queryTableName)} ${whereSQL}`;
                 fallbackSql = buildPaginatedSelectSQL(dbType, fallbackSql, buildOrderBySQL(dbType, sortInfo, resolveDataViewerOrderFallbackColumns(editLocatorForQuery, pkColumnsForQuery)), size + 1, offset);
                 executedSql = fallbackSql;
                 resData = await executeDataQuery(fallbackSql, tr('data_viewer.sql_log.phase.complex_type_fallback_retry'));
@@ -1200,12 +1201,13 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
     const tableName = String(tab.tableName || '').trim();
     const dbType = resolveDataSourceType(currentConnConfig);
     if (!tableName || !dbType) return '';
+    const queryTableName = resolveCatalogQualifiedTableName(dbType, tab.dbName || '', tableName);
 
     const effectiveFilterConditions = buildEffectiveFilterConditions(filterConditions, quickWhereCondition);
     const whereSQL = buildWhereSQL(dbType, effectiveFilterConditions);
     if (!whereSQL) return '';
 
-    let sql = `SELECT * FROM ${quoteQualifiedIdent(dbType, tableName)} ${whereSQL}`;
+    let sql = `SELECT * FROM ${quoteQualifiedIdent(dbType, queryTableName)} ${whereSQL}`;
     sql += buildOrderBySQL(dbType, sortInfo, resolveDataViewerOrderFallbackColumns(editLocator, pkColumns));
     const normalizedType = dbType.toLowerCase();
     const hasSortForBuffer = hasExplicitSort(sortInfo);
@@ -1213,7 +1215,7 @@ const DataViewer: React.FC<{ tab: TabData; isActive?: boolean }> = React.memo(({
       sql = withSortBufferTuningSQL(normalizedType, sql, 32 * 1024 * 1024);
     }
     return sql;
-  }, [tab.tableName, currentConnConfig?.type, currentConnConfig?.driver, filterConditions, quickWhereCondition, sortInfo, editLocator, pkColumns]);
+  }, [tab.tableName, tab.dbName, currentConnConfig?.type, currentConnConfig?.driver, filterConditions, quickWhereCondition, sortInfo, editLocator, pkColumns]);
 
   useEffect(() => {
     const action = resolveDataViewerAutoFetchAction({
