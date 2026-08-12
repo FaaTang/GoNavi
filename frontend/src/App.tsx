@@ -2,7 +2,7 @@ import Modal from './components/common/ResizableDraggableModal';
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Layout, Button, ConfigProvider, theme, message, Spin, Slider, Progress, Switch, Input, InputNumber, Select, Segmented, Tooltip } from 'antd';
 import { PlusOutlined, ConsoleSqlOutlined, UploadOutlined, DownloadOutlined, CloudDownloadOutlined, ToolOutlined, GlobalOutlined, InfoCircleOutlined, GithubOutlined, SkinOutlined, CheckOutlined, MinusOutlined, BorderOutlined, CloseOutlined, SettingOutlined, LinkOutlined, BgColorsOutlined, AppstoreOutlined, RobotOutlined, FolderOpenOutlined, HddOutlined, SafetyCertificateOutlined, SwitcherOutlined, CodeOutlined, RightOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { BrowserOpenURL, Environment, Quit, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowShow, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
+import { BrowserOpenURL, Environment, Quit, WindowCenter, WindowFullscreen, WindowGetPosition, WindowGetSize, WindowIsFullscreen, WindowIsMaximised, WindowIsMinimised, WindowIsNormal, WindowMaximise, WindowMinimise, WindowSetPosition, WindowSetSize, WindowShow, WindowUnfullscreen, WindowUnmaximise } from '../wailsjs/runtime';
 import Sidebar from './components/Sidebar';
 import TabManager from './components/TabManager';
 import ConnectionModal from './components/ConnectionModal';
@@ -762,14 +762,42 @@ function App() {
           };
           const applyNormalWindowBounds = () => {
               const viewport = readBrowserScreenWorkArea();
+              const savedBounds = state.windowBounds;
+              // 首次打开 / StartHidden 占位尺寸：用原生居中，避免 browser screen 坐标与 Win32 不一致导致安装后贴左上角
+              const usingFirstOpen = !savedBounds || isCreatePlaceholderWindowBounds(savedBounds, viewport);
               const nextBounds = resolveVisibleStartupWindowBounds(
-                  resolveStartupNormalWindowBounds(state.windowBounds, viewport),
+                  resolveStartupNormalWindowBounds(savedBounds, viewport),
                   viewport,
               );
               WindowSetSize(nextBounds.width, nextBounds.height);
-              WindowSetPosition(nextBounds.x, nextBounds.y);
+              if (usingFirstOpen) {
+                  WindowCenter();
+              } else {
+                  WindowSetPosition(nextBounds.x, nextBounds.y);
+              }
               state.setWindowBounds(nextBounds);
-              return nextBounds;
+              return { nextBounds, usingFirstOpen };
+          };
+          const syncCenteredPositionToStore = () => {
+              void Promise.resolve()
+                  .then(async () => {
+                      const pos = await safeWindowRuntimeCall(() => WindowGetPosition(), null);
+                      if (!pos || cancelled) {
+                          return;
+                      }
+                      const current = useStore.getState().windowBounds;
+                      if (!current) {
+                          return;
+                      }
+                      useStore.getState().setWindowBounds({
+                          ...current,
+                          x: Math.trunc(Number(pos.x) || 0),
+                          y: Math.trunc(Number(pos.y) || 0),
+                      });
+                  })
+                  .catch(() => {
+                      // ignore
+                  });
           };
           // 最大化/全屏前先写入正常还原尺寸，避免退出后掉回 StartHidden 的 900x560。
           const seedNormalBoundsThen = async (next: () => Promise<void> | void) => {
@@ -802,13 +830,29 @@ function App() {
               });
               return;
           }
-          // 普通窗口：有用户记忆则恢复；占位尺寸/首次打开按屏幕比例
+          // 普通窗口：有用户记忆则恢复；占位尺寸/首次打开按屏幕比例并原生居中
+          let applied: { nextBounds: { width: number; height: number; x: number; y: number }; usingFirstOpen: boolean } | null = null;
           try {
-              applyNormalWindowBounds();
+              applied = applyNormalWindowBounds();
           } catch (e) {
               console.warn('Failed to restore window bounds', e);
           }
           revealWindow();
+          // Show 后再补一次定位：安装器/更新脚本以 Hidden 拉起时，Show 前的 SetPosition/Center 有时不生效
+          if (applied?.usingFirstOpen) {
+              try {
+                  WindowCenter();
+              } catch (_) {
+                  // ignore
+              }
+              syncCenteredPositionToStore();
+          } else if (applied) {
+              try {
+                  WindowSetPosition(applied.nextBounds.x, applied.nextBounds.y);
+              } catch (_) {
+                  // ignore
+              }
+          }
       };
 
       if (useStore.persist.hasHydrated()) {
@@ -2410,7 +2454,7 @@ function App() {
                           viewport,
                       );
                       WindowSetSize(nextBounds.width, nextBounds.height);
-                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      WindowCenter();
                       useStore.getState().setWindowBounds(nextBounds);
                   }
               } catch (e) {
@@ -2443,7 +2487,7 @@ function App() {
                           viewport,
                       );
                       WindowSetSize(nextBounds.width, nextBounds.height);
-                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      WindowCenter();
                       useStore.getState().setWindowBounds(nextBounds);
                   }
               } catch (e) {
@@ -2463,7 +2507,7 @@ function App() {
                           viewport,
                       );
                       WindowSetSize(nextBounds.width, nextBounds.height);
-                      WindowSetPosition(nextBounds.x, nextBounds.y);
+                      WindowCenter();
                       useStore.getState().setWindowBounds(nextBounds);
                       await new Promise((resolve) => window.setTimeout(resolve, 32));
                   }
@@ -4168,7 +4212,7 @@ function App() {
               content: utilityModalShellStyle,
               header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 },
               body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' },
-              // 主操作（下载/安装）必须放在 flex-end 最右侧，避免英文长按钮在窄 footer + overflow:hidden 时被裁掉
+              // 主操作（下载/安装）放在同行最前，避免单独折到下一行；其余次要操作跟在后面右对齐
               footer: {
                 background: 'transparent',
                 borderTop: 'none',
@@ -4183,16 +4227,6 @@ function App() {
             }}
             footer={[
                 lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
-                ) : null,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
-                ) : null,
-                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
-                isBackgroundProgressForLatestUpdate && !isLatestUpdateDownloaded ? (
-                    <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
-                ) : null,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
                     <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={() => downloadUpdate(lastUpdateInfo, false)}>{t('app.about.action.download_update')}</Button>
                 ) : null,
                 isLatestUpdateDownloaded ? (
@@ -4200,6 +4234,16 @@ function App() {
                         {t('app.about.action.install_update')}
                     </Button>
                 ) : null,
+                isBackgroundProgressForLatestUpdate && !isLatestUpdateDownloaded ? (
+                    <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
+                ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
+                ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
+                ) : null,
+                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
             ].filter(Boolean)}
           >
             {aboutLoading ? (
