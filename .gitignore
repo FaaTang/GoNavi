@@ -33,3 +33,4 @@ CLAUDE.md
 .worktrees
 docs
 .tmp_superpowers_edit
+.cursor/
