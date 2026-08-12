@@ -23,17 +23,18 @@ export type V2ExplorerFilter = 'all' | 'tables' | 'views' | 'sequences' | 'routi
 // === 纯函数 ===
 
 /**
- * formatSidebarRowCount 把行数格式化为人类可读的简短形式。
- * - >= 1M 显示为 "1.2M"
- * - >= 1K 显示为 "1.2K"
- * - 否则显示原数字
+ * formatSidebarRowCount 把估算行数格式化为人类可读的简短形式。
+ * - 前缀 ≈，标明来自系统统计的近似值（可能与真实行数不符，含 ≈0）
+ * - >= 1M 显示为 "≈1.2M"
+ * - >= 1K 显示为 "≈1.2K"
+ * - 否则显示 "≈" + 原数字
  * - 非法值（NaN/负数）返回空字符串
  */
 export const formatSidebarRowCount = (count: number): string => {
   if (!Number.isFinite(count) || count < 0) return '';
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
-  return String(Math.round(count));
+  if (count >= 1_000_000) return `≈${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `≈${(count / 1_000).toFixed(1)}K`;
+  return `≈${Math.round(count)}`;
 };
 
 /**
