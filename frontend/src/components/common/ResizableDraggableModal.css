@@ -36,6 +36,12 @@
   min-height: 0;
 }
 
+/* 防止 footer 被 content overflow:hidden / flex 压缩裁掉（About 等多按钮场景） */
+.gn-resizable-draggable-modal .ant-modal-footer {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
 .gn-resizable-draggable-modal[data-draggable='true'] .ant-modal-confirm-title {
   cursor: move;
 }

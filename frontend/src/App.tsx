@@ -4163,9 +4163,32 @@ function App() {
             open={isAboutOpen}
             onCancel={() => setIsAboutOpen(false)}
             centered
-            width={640}
-            styles={{ content: utilityModalShellStyle, header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 }, body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' }, footer: { background: 'transparent', borderTop: 'none', paddingTop: 10, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' } }}
+            width={720}
+            styles={{
+              content: utilityModalShellStyle,
+              header: { background: 'transparent', borderBottom: 'none', paddingBottom: 8 },
+              body: { paddingTop: 8, maxHeight: 'min(72vh, 680px)', overflow: 'auto' },
+              // 主操作（下载/安装）必须放在 flex-end 最右侧，避免英文长按钮在窄 footer + overflow:hidden 时被裁掉
+              footer: {
+                background: 'transparent',
+                borderTop: 'none',
+                paddingTop: 10,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 10,
+                justifyContent: 'flex-end',
+                flexShrink: 0,
+                rowGap: 10,
+              },
+            }}
             footer={[
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
+                ) : null,
+                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
+                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
+                ) : null,
+                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
                 isBackgroundProgressForLatestUpdate && !isLatestUpdateDownloaded ? (
                     <Button key="progress" icon={<DownloadOutlined />} onClick={showUpdateDownloadProgress}>{t('app.about.action.download_progress')}</Button>
                 ) : null,
@@ -4177,13 +4200,6 @@ function App() {
                         {t('app.about.action.install_update')}
                     </Button>
                 ) : null,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="skip-version" onClick={skipCurrentUpdateVersion}>{t('app.about.action.skip_this_version')}</Button>
-                ) : null,
-                lastUpdateInfo?.hasUpdate && !isLatestUpdateDownloaded && !isBackgroundProgressForLatestUpdate ? (
-                    <Button key="disable-auto-prompt" onClick={disableAutoUpdatePrompt}>{t('app.about.action.disable_auto_prompt')}</Button>
-                ) : null,
-                <Button key="check" icon={<CloudDownloadOutlined />} onClick={() => checkForUpdates(false)}>{t('app.about.action.check_updates')}</Button>,
             ].filter(Boolean)}
           >
             {aboutLoading ? (
