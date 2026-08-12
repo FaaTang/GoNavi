@@ -101,6 +101,9 @@ PinkHunkDB is designed for developers and DBAs who need a unified desktop experi
 - Monaco Editor core.
 - Context-aware completion for databases/tables/columns.
 - Multi-tab query workflow.
+- SQL beautify / restore (remembers pre-beautify text across sessions).
+- Optional “ask what to execute” chooser (statement / selection / all).
+- Cancellable queries; focus search within the active tab.
 
 ### Batch Export / Backup
 - Database-level and table-level batch export/backup.
@@ -120,11 +123,13 @@ PinkHunkDB is designed for developers and DBAs who need a unified desktop experi
 ### Observability and Update
 - SQL execution logs with timing information.
 - Startup/scheduled/manual update checks.
+- About dialog with version and release notes.
 
 ### UI/UX
 - Ant Design 5 based interface.
 - Light/Dark themes.
 - Flexible sidebar and layout behavior.
+- Improved window creation and state restore.
 
 ---
 
