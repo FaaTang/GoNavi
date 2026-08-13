@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
     <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ff8fc7"/>
-      <stop offset="48%" stop-color="#ff4da6"/>
-      <stop offset="100%" stop-color="#ff006e"/>
+      <stop offset="0%" stop-color="#ff9ed0"/>
+      <stop offset="45%" stop-color="#ff2d8f"/>
+      <stop offset="100%" stop-color="#c40068"/>
     </linearGradient>
     <linearGradient id="bgShine" x1="256" y1="32" x2="256" y2="240" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="dbFill" x1="256" y1="110" x2="256" y2="400" gradientUnits="userSpaceOnUse">
+    <linearGradient id="dbFill" x1="256" y1="70" x2="256" y2="440" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"/>
       <stop offset="100%" stop-color="#ffe4f0" stop-opacity="0.92"/>
     </linearGradient>
     <filter id="softShadow" x="-25%" y="-15%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#b8004d" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#8a0048" flood-opacity="0.35"/>
     </filter>
   </defs>
 
@@ -22,20 +22,21 @@
   <rect width="512" height="512" rx="112" fill="url(#bgShine)"/>
   <rect x="28" y="28" width="456" height="456" rx="92" stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.5"/>
 
-  <!-- DB ~300Ã—290, optically centered -->
+  <!-- Large DB cylinder ~340×340 -->
   <g filter="url(#softShadow)">
-    <g transform="translate(106 112)">
-      <ellipse cx="150" cy="44" rx="150" ry="38" fill="url(#dbFill)" stroke="#ffffff" stroke-width="5" stroke-opacity="0.85"/>
+    <g transform="translate(86 86)">
+      <ellipse cx="170" cy="48" rx="170" ry="44" fill="url(#dbFill)" stroke="#ffffff" stroke-width="6" stroke-opacity="0.9"/>
       <path
-        d="M0 44 C0 16 67 0 150 0 C233 0 300 16 300 44 L300 246 C300 274 233 290 150 290 C67 290 0 274 0 246 Z"
+        d="M0 48 C0 18 76 0 170 0 C264 0 340 18 340 48 L340 292 C340 322 264 340 170 340 C76 340 0 322 0 292 Z"
         fill="url(#dbFill)"
         stroke="#ffffff"
-        stroke-width="5"
-        stroke-opacity="0.85"
+        stroke-width="6"
+        stroke-opacity="0.9"
       />
-      <ellipse cx="150" cy="246" rx="150" ry="38" fill="#fff5fa" stroke="#ffffff" stroke-width="5" stroke-opacity="0.85"/>
-      <line x1="60" y1="120" x2="240" y2="120" stroke="#ff4da6" stroke-opacity="0.35" stroke-width="5" stroke-linecap="round"/>
-      <line x1="60" y1="164" x2="200" y2="164" stroke="#ff4da6" stroke-opacity="0.24" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="170" cy="292" rx="170" ry="44" fill="#fff5fa" stroke="#ffffff" stroke-width="6" stroke-opacity="0.9"/>
+      <line x1="56" y1="130" x2="284" y2="130" stroke="#ff2d8f" stroke-opacity="0.4" stroke-width="10" stroke-linecap="round"/>
+      <line x1="56" y1="186" x2="240" y2="186" stroke="#ff2d8f" stroke-opacity="0.28" stroke-width="10" stroke-linecap="round"/>
+      <line x1="56" y1="242" x2="200" y2="242" stroke="#ff2d8f" stroke-opacity="0.18" stroke-width="10" stroke-linecap="round"/>
     </g>
   </g>
 </svg>
