@@ -201,10 +201,10 @@ func TestDBReleaseConnectionClosesAllDatabaseCacheEntriesForSameInstance(t *test
 	if getCacheKey(mainConfig) == getCacheKey(analyticsConfig) {
 		t.Fatal("expected different cache keys when connection params differ")
 	}
-	if getCacheKey(mainConfig) != getCacheKey(connection.ConnectionConfig{
+	if getCacheKey(mainConfig) == getCacheKey(connection.ConnectionConfig{
 		Type: "mysql", Host: "127.0.0.1", Port: 3306, User: "root", Database: "other_db",
 	}) {
-		t.Fatal("expected mysql databases on same instance to share cache key")
+		t.Fatal("expected mysql databases on same instance but different database to use isolated cache keys")
 	}
 
 	app.dbCache[getCacheKey(mainConfig)] = cachedDatabase{

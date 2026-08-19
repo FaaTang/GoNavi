@@ -332,10 +332,14 @@ func dataRootInfoPayload(activeRoot string) map[string]interface{} {
 }
 
 // sharesSQLCatalogAcrossDatabases 表示「Database」只是同一实例内的命名空间，
-// 侧栏/元数据查询普遍带库名限定，可跨库复用同一物理连接池（Postgres 等真·多库除外）。
+// 且底层连接不会把当前 database 固化到会话级默认上下文里，允许跨库复用物理连接池。
+//
+// 注意：MySQL / MariaDB 虽然支持 `db.table` 跨库访问，但会话建立后默认库会影响未限定表名解析。
+// SQL 编辑器存在大量 `SELECT * FROM table_name` 的直接执行场景，若缓存键忽略 database，
+// 切库后会误复用旧默认库连接，导致查询稳定落到上一次库名。
 func sharesSQLCatalogAcrossDatabases(dbType string) bool {
 	switch strings.ToLower(strings.TrimSpace(dbType)) {
-	case "mysql", "mariadb", "goldendb", "greatdb", "gdb", "diros", "starrocks", "sphinx":
+	case "goldendb", "greatdb", "gdb", "diros", "starrocks", "sphinx":
 		return true
 	default:
 		return false
@@ -350,10 +354,9 @@ func normalizeCacheKeyConfig(config connection.ConnectionConfig) connection.Conn
 		protocol := resolveOceanBaseProtocolForApp(normalized)
 		normalized.ConnectionParams = normalizeOceanBaseConnectionParamsForCacheWithProtocol(normalized.ConnectionParams, protocol)
 		normalized.OceanBaseProtocol = ""
-		// OceanBase MySQL 模式与 MySQL 相同：库名不参与物理连接复用键。
-		if protocol != "oracle" {
-			normalized.Database = ""
-		}
+		// OceanBase MySQL / Oracle 两种协议都依赖 database/service 上下文，
+		// 这里保持 Database 参与缓存键，避免跨库/跨服务名误复用连接。
+		_ = protocol
 	} else if sharesSQLCatalogAcrossDatabases(normalized.Type) {
 		normalized.Database = ""
 	}

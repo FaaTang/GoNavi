@@ -6176,6 +6176,8 @@
   "query_editor.empty_state.title": "等待执行 SQL",
   "query_editor.execution.ask_what_to_execute": "执行前询问",
   "query_editor.execution.chooser.all_statements": "执行全部语句 ({{count}})",
+  "query_editor.execution.chooser.drag_hint": "拖动以移动面板",
+  "query_editor.execution.chooser.option_execute_hint": "按 Enter 或双击执行",
   "query_editor.execution.chooser.column_statements": "语句",
   "query_editor.execution.chooser.column_subqueries": "子查询",
   "query_editor.execution.chooser.current_subquery": "执行当前子查询",

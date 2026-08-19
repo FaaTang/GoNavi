@@ -27,7 +27,7 @@ const createBox = (width: number, height: number, rect: {
 };
 
 describe('positionSqlExecutionChooserHost', () => {
-  it('centers horizontally under the cursor and places the top edge below it', () => {
+  it('anchors to the right side near the cursor line', () => {
     const hostNode = createBox(400, 200, { top: 0, left: 0, width: 400, height: 200 });
     const overlayRoot = createBox(1000, 800, { top: 0, left: 0, width: 1000, height: 800 });
     const editorDom = createBox(800, 600, { top: 100, left: 100, width: 800, height: 600 });
@@ -44,7 +44,7 @@ describe('positionSqlExecutionChooserHost', () => {
     })).toBe(true);
 
     expect(hostNode.style.top).toBe('166px');
-    expect(hostNode.style.left).toBe('20px');
+    expect(hostNode.style.left).toBe('592px');
   });
 
   it('clamps inside the overlay when there is not enough space below or above', () => {
@@ -61,6 +61,6 @@ describe('positionSqlExecutionChooserHost', () => {
 
     expect(positionSqlExecutionChooserHost(editor, hostNode as any, overlayRoot as any)).toBe(true);
     expect(hostNode.style.top).toBe('42px');
-    expect(hostNode.style.left).toBe('150px');
+    expect(hostNode.style.left).toBe('292px');
   });
 });

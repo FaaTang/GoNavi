@@ -144,7 +144,7 @@ export function buildSqlExecutionChooserOptions(
     options.push({
       id: 'all',
       sql: allSql,
-      preview: truncateSqlPreview(allSql),
+      preview: `(all) ${truncateSqlPreview(allSql)}`,
       highlightStart: 0,
       highlightEnd: text.length,
       statementCount: statementRanges.length,

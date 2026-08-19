@@ -87,6 +87,7 @@ describe('sqlExecutionScope', () => {
     expect(options[2].sql).toBe('SELECT 3');
     expect(options[3].sql).toBe('SELECT 1 FROM audit_log WHERE success');
     expect(options[4].statementCount).toBe(3);
+    expect(options[4].preview.startsWith('(all) ')).toBe(true);
 
     const intent = resolveSqlExecutionIntent({
       fullSql: sql,

@@ -29,6 +29,7 @@ type SqlExecutionChooserPanelProps = {
   onConfirm: (sql: string, optionId: SqlExecutionChooserOptionId) => void;
   onCancel: () => void;
   onOpenSettings: () => void;
+  onDragHandleMouseDown?: (clientX: number, clientY: number) => void;
   translate?: SqlExecutionChooserTranslate;
 };
 
@@ -132,6 +133,18 @@ const ensureSqlExecutionChooserHighlightStyle = () => {
   pointer-events: auto;
   z-index: 1;
 }
+.gn-sql-execution-chooser {
+  background: color-mix(in srgb, var(--gn-bg-panel, #fff) 80%, transparent);
+  backdrop-filter: blur(6px);
+}
+.gn-sql-execution-chooser-drag-handle {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.gn-sql-execution-chooser-drag-handle:active {
+  cursor: grabbing;
+}
 `;
     document.head.appendChild(overlayStyleNode);
   }
@@ -157,7 +170,6 @@ export const positionSqlExecutionChooserHost = (
   const overlayRect = overlayRoot.getBoundingClientRect();
   const editorRect = editorDom.getBoundingClientRect();
   const lineHeight = Number(editor?.getOption?.(monaco?.editor?.EditorOption?.lineHeight) || 20);
-  const gap = 6;
   const margin = 8;
   const measuredWidth = Math.max(hostNode.offsetWidth || 0, hostNode.scrollWidth || 0);
   const measuredHeight = Math.max(hostNode.offsetHeight || 0, hostNode.scrollHeight || 0);
@@ -166,30 +178,50 @@ export const positionSqlExecutionChooserHost = (
   const overlayWidth = overlayRect.width;
   const overlayHeight = overlayRect.height;
 
-  const cursorX = editorRect.left - overlayRect.left + coords.left;
   const cursorTop = editorRect.top - overlayRect.top + coords.top;
   const cursorBottom = cursorTop + lineHeight;
 
-  // Horizontally center on the cursor, then clamp inside the overlay.
-  let left = cursorX - popupWidth / 2;
-  const maxLeft = Math.max(margin, overlayWidth - popupWidth - margin);
-  left = Math.min(Math.max(margin, left), maxLeft);
+  // Default anchor: right side of the editor overlay so formatted SQL on the left stays visible.
+  let left = overlayWidth - popupWidth - margin;
+  left = Math.max(margin, left);
 
-  // Prefer placing the top edge just below the cursor line.
-  let top = cursorBottom + gap;
+  // Vertically align near the cursor line, then clamp inside the overlay.
+  let top = cursorBottom + 6;
   const fitsBelow = top + popupHeight <= overlayHeight - margin;
   if (!fitsBelow) {
-    const aboveTop = cursorTop - popupHeight - gap;
+    const aboveTop = cursorTop - popupHeight - 6;
     if (aboveTop >= margin) {
       top = aboveTop;
     } else {
       top = Math.max(margin, overlayHeight - popupHeight - margin);
     }
   }
+  top = Math.min(Math.max(margin, top), Math.max(margin, overlayHeight - popupHeight - margin));
 
   hostNode.style.top = `${Math.round(top)}px`;
   hostNode.style.left = `${Math.round(left)}px`;
   return true;
+};
+
+export const revealSqlExecutionHighlightInEditor = (
+  editor: any,
+  monaco: any,
+  highlightStart: number,
+  highlightEnd: number,
+  sqlText: string,
+): void => {
+  if (!editor || !monaco || !sqlText) {
+    return;
+  }
+  const start = getNormalizedPositionAtOffset(sqlText, highlightStart);
+  const end = getNormalizedPositionAtOffset(sqlText, highlightEnd);
+  const endColumn = (
+    start.lineNumber === end.lineNumber && end.column <= start.column
+      ? start.column + 1
+      : end.column
+  );
+  const range = new monaco.Range(start.lineNumber, start.column, end.lineNumber, endColumn);
+  editor.revealRangeInCenterIfOutsideViewport?.(range);
 };
 
 const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
@@ -199,6 +231,7 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
   onConfirm,
   onCancel,
   onOpenSettings,
+  onDragHandleMouseDown,
   translate = defaultTranslate,
 }) => {
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -267,11 +300,18 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
 
   const renderOptionButton = (option: SqlExecutionChooserOptionView) => {
     const isSelected = option.id === selectedId;
+    const executeHint = translate('query_editor.execution.chooser.option_execute_hint');
     return (
       <button
         key={option.id}
         aria-pressed={isSelected}
         onClick={() => onSelectedIdChange(option.id)}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          onSelectedIdChange(option.id);
+          onConfirm(option.sql, option.id);
+        }}
+        title={executeHint}
         type="button"
         style={{
           textAlign: 'left',
@@ -280,8 +320,8 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
             ? '1px solid var(--gn-accent, #ff4da6)'
             : '1px solid var(--gn-br-2, #d9d9d9)',
           background: isSelected
-            ? 'var(--gn-accent-soft, #ffe4f0)'
-            : 'var(--gn-bg-panel, #fff)',
+            ? 'color-mix(in srgb, var(--gn-accent-soft, #ffe4f0) 88%, transparent)'
+            : 'color-mix(in srgb, var(--gn-bg-panel, #fff) 72%, transparent)',
           padding: '8px 10px',
           display: 'flex',
           flexDirection: 'column',
@@ -335,13 +375,36 @@ const SqlExecutionChooserPanel: React.FC<SqlExecutionChooserPanelProps> = ({
         padding: 10,
         borderRadius: 8,
         border: '1px solid #d9d9d9',
-        background: '#fff',
         boxShadow: '0 6px 18px rgba(0, 0, 0, 0.12)',
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
       }}
     >
+      <div
+        className="gn-sql-execution-chooser-drag-handle"
+        data-testid="sql-execution-chooser-drag-handle"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onDragHandleMouseDown?.(event.clientX, event.clientY);
+        }}
+        title={translate('query_editor.execution.chooser.drag_hint')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          margin: '-2px -2px 2px',
+          padding: '4px 8px',
+          borderRadius: 6,
+          color: '#999',
+          fontSize: 11,
+          letterSpacing: 1,
+        }}
+      >
+        <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>⋮⋮</span>
+        <span>{translate('query_editor.execution.chooser.drag_hint')}</span>
+      </div>
       <div
         style={{
           display: 'flex',
@@ -435,6 +498,62 @@ export function mountSqlExecutionChooser(
   let decorationIds: string[] = [];
   let currentSelectedId = props.selectedId;
   let disposed = false;
+  let userPositioned = false;
+  let dragState: {
+    startX: number;
+    startY: number;
+    origLeft: number;
+    origTop: number;
+  } | null = null;
+
+  const clampHostPosition = (left: number, top: number) => {
+    if (!overlayRoot) {
+      return { left, top };
+    }
+    const margin = 8;
+    const overlayRect = overlayRoot.getBoundingClientRect();
+    const hostWidth = Math.max(domNode.offsetWidth || 0, domNode.scrollWidth || 0);
+    const hostHeight = Math.max(domNode.offsetHeight || 0, domNode.scrollHeight || 0);
+    return {
+      left: Math.min(Math.max(margin, left), Math.max(margin, overlayRect.width - hostWidth - margin)),
+      top: Math.min(Math.max(margin, top), Math.max(margin, overlayRect.height - hostHeight - margin)),
+    };
+  };
+
+  const stopDrag = () => {
+    dragState = null;
+    document.removeEventListener('mousemove', handleDragMouseMove);
+    document.removeEventListener('mouseup', stopDrag);
+  };
+
+  const handleDragMouseMove = (event: MouseEvent) => {
+    if (!dragState || !overlayRoot) {
+      return;
+    }
+    const overlayRect = overlayRoot.getBoundingClientRect();
+    const nextLeft = dragState.origLeft + (event.clientX - dragState.startX);
+    const nextTop = dragState.origTop + (event.clientY - dragState.startY);
+    const clamped = clampHostPosition(nextLeft, nextTop);
+    domNode.style.left = `${Math.round(clamped.left)}px`;
+    domNode.style.top = `${Math.round(clamped.top)}px`;
+  };
+
+  const startDrag = (clientX: number, clientY: number) => {
+    if (!overlayRoot) {
+      return;
+    }
+    userPositioned = true;
+    const overlayRect = overlayRoot.getBoundingClientRect();
+    const hostRect = domNode.getBoundingClientRect();
+    dragState = {
+      startX: clientX,
+      startY: clientY,
+      origLeft: hostRect.left - overlayRect.left,
+      origTop: hostRect.top - overlayRect.top,
+    };
+    document.addEventListener('mousemove', handleDragMouseMove);
+    document.addEventListener('mouseup', stopDrag);
+  };
 
   const getSelectedOption = () => resolveSelectedOption(props.options, currentSelectedId);
 
@@ -464,6 +583,13 @@ export function mountSqlExecutionChooser(
         },
       },
     ]);
+    revealSqlExecutionHighlightInEditor(
+      editor,
+      monaco,
+      selected.highlightStart,
+      selected.highlightEnd,
+      sqlText,
+    );
   };
 
   const updateSelected = (nextId: SqlExecutionChooserOptionId) => {
@@ -494,7 +620,7 @@ export function mountSqlExecutionChooser(
   };
 
   const updateOverlayPosition = () => {
-    if (!useOverlayRoot || !overlayRoot || disposed) return;
+    if (!useOverlayRoot || !overlayRoot || disposed || userPositioned) return;
     positionSqlExecutionChooserHost(editor, domNode, overlayRoot, monaco);
   };
 
@@ -517,6 +643,7 @@ export function mountSqlExecutionChooser(
         onConfirm={(sql, optionId) => props.onConfirm(sql, optionId)}
         onCancel={props.onCancel}
         onOpenSettings={props.onOpenSettings}
+        onDragHandleMouseDown={startDrag}
         translate={props.translate}
       />,
     );
@@ -613,6 +740,7 @@ export function mountSqlExecutionChooser(
     if (handleOutsidePointerDown) {
       document.removeEventListener('mousedown', handleOutsidePointerDown, true);
     }
+    stopDrag();
     root.unmount();
   };
 }

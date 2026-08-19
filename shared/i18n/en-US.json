@@ -6176,6 +6176,8 @@
   "query_editor.empty_state.title": "Awaiting SQL execution",
   "query_editor.execution.ask_what_to_execute": "Ask what to execute",
   "query_editor.execution.chooser.all_statements": "Execute all statements ({{count}})",
+  "query_editor.execution.chooser.drag_hint": "Drag to move panel",
+  "query_editor.execution.chooser.option_execute_hint": "Press Enter or double-click to execute",
   "query_editor.execution.chooser.column_statements": "Statements",
   "query_editor.execution.chooser.column_subqueries": "Subqueries",
   "query_editor.execution.chooser.current_subquery": "Execute current subquery",
