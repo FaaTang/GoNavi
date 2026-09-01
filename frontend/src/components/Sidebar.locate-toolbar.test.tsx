@@ -398,6 +398,8 @@ describe('Sidebar locate toolbar', () => {
     expect(source).toContain('if (hasSidebarLazyChildren(children)) return;');
     expect(source).toContain('if (!shouldSkipSidebarLoadOnExpandWhileDragging(isTreeDragging, info))');
     expect(source).toContain('if (shouldLoadSidebarNodeOnExpand(node))');
+    expect(source).toContain('isSidebarTreeDoubleClickGesture');
+    expect(source).toContain('toggleSidebarTreeNodeExpanded');
   });
 
   it('parses v2 command search prefixes into real search modes', () => {

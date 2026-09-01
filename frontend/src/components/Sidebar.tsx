@@ -58,6 +58,8 @@ import {
   resolveSidebarNodeDisplayLabel,
   resolveSidebarObjectNameForContext,
   resolveSidebarTreeSelectState,
+  isSidebarTreeDoubleClickGesture,
+  shouldToggleSidebarTreeNodeOnDoubleClick,
   shouldHandleSidebarTreeCopyShortcut,
   shouldHandleSidebarTreeShortcut,
   type V2ExplorerFilter,
@@ -86,6 +88,8 @@ export {
   resolveSidebarNodeDisplayLabel,
   resolveSidebarObjectNameForContext,
   resolveSidebarTreeSelectState,
+  isSidebarTreeDoubleClickGesture,
+  shouldToggleSidebarTreeNodeOnDoubleClick,
   shouldHandleSidebarTreeCopyShortcut,
   shouldHandleSidebarTreeShortcut,
 } from './sidebar/sidebarHelpers';
@@ -588,6 +592,9 @@ const Sidebar: React.FC<{
   const databaseTreeTouchedAtRef = useRef<Record<string, number>>({});
   const pruneLoadedDatabaseTreesRef = useRef<() => void>(() => {});
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const treeClickGestureRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
+  const treeExpandToggleGuardRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
+  const expandedKeysRef = useRef<React.Key[]>([]);
   const treeDragSelectSuppressUntilRef = useRef(0);
   const treeDragSelectionSnapshotRef = useRef<{
       selectedKeys: React.Key[];
@@ -720,12 +727,24 @@ const Sidebar: React.FC<{
       selectedKeysRef.current = selectedKeys;
   }, [selectedKeys]);
 
+  useEffect(() => {
+      expandedKeysRef.current = expandedKeys;
+  }, [expandedKeys]);
+
   const focusSidebarTreeContainer = useCallback(() => {
       treeContainerRef.current?.focus?.();
   }, []);
 
-  const markSidebarTreeInteraction = useCallback(() => {
+  const markSidebarTreeInteraction = useCallback((options?: { focus?: boolean }) => {
       sidebarTreeCopyHotkeyArmedAtRef.current = Date.now();
+      if (options?.focus === false) {
+          return;
+      }
+      const root = treeContainerRef.current;
+      // 已在树内聚焦时不要重复 focus，避免打断双击手势（WebView 下尤为明显）
+      if (root && typeof document !== 'undefined' && root.contains(document.activeElement)) {
+          return;
+      }
       focusSidebarTreeContainer();
   }, [focusSidebarTreeContainer]);
   const treeDataRef = useRef<TreeNode[]>([]);
@@ -1694,6 +1713,26 @@ const Sidebar: React.FC<{
       selectionAnchorKeyRef.current = nextAnchorKey;
       markSidebarTreeInteraction();
 
+      const clickKey = String(info?.node?.key ?? '').trim();
+      const clickAt = Date.now();
+      const isDoubleClickSelect = isSidebarTreeDoubleClickGesture({
+          previousKey: treeClickGestureRef.current.key,
+          previousAt: treeClickGestureRef.current.at,
+          currentKey: clickKey,
+          currentAt: clickAt,
+      });
+      treeClickGestureRef.current = { key: clickKey, at: clickAt };
+      if (isDoubleClickSelect && shouldToggleSidebarTreeNodeOnDoubleClick(info?.node)) {
+          if (clickTimerRef.current) {
+              clearTimeout(clickTimerRef.current);
+              clickTimerRef.current = null;
+          }
+          toggleSidebarTreeNodeExpanded(info.node);
+          // 消费掉双击手势，避免第三次点击再次被识别为双击而立刻折叠
+          treeClickGestureRef.current = { key: '', at: 0 };
+          return;
+      }
+
       if (nextKeys.length === 0) {
           if (false) {
               setActiveContext(null);
@@ -1763,6 +1802,31 @@ const Sidebar: React.FC<{
     }
   };
 
+  const toggleSidebarTreeNodeExpanded = (node: any) => {
+      const key = String(node?.key ?? '').trim();
+      if (!key) return false;
+      const now = Date.now();
+      // onSelect 点击识别与原生 onDoubleClick 可能连续触发，短窗口内只切换一次，避免展开又立刻收起
+      if (
+          treeExpandToggleGuardRef.current.key === key
+          && now - treeExpandToggleGuardRef.current.at < 80
+      ) {
+          return false;
+      }
+      treeExpandToggleGuardRef.current = { key, at: now };
+      const isExpanded = expandedKeysRef.current.some((item) => String(item) === key);
+      const nextExpandedKeys = isExpanded
+          ? expandedKeysRef.current.filter((item) => String(item) !== key)
+          : [...expandedKeysRef.current, (node.key ?? key) as React.Key];
+      expandedKeysRef.current = nextExpandedKeys;
+      setExpandedKeys(nextExpandedKeys);
+      setAutoExpandParent(false);
+      if (!isExpanded && shouldLoadSidebarNodeOnExpand(node)) {
+          void onLoadData(node);
+      }
+      return true;
+  };
+
   const onDoubleClick = (e: any, node: any) => {
       // 双击时取消单击延迟动作（如表概览打开），让双击只触发展开/折叠
       if (clickTimerRef.current) {
@@ -1779,14 +1843,14 @@ const Sidebar: React.FC<{
           selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
           selectionAnchorKeyRef.current = nodeKey;
-          markSidebarTreeInteraction();
+          markSidebarTreeInteraction({ focus: false });
           setActiveContext({ connectionId: nodeKey, dbName: '' });
       } else if (type === 'database') {
           setSelectedKeys([nodeKey]);
           selectedKeysRef.current = [nodeKey];
           selectedNodesRef.current = [node];
           selectionAnchorKeyRef.current = nodeKey;
-          markSidebarTreeInteraction();
+          markSidebarTreeInteraction({ focus: false });
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: dataRef.dbName });
       } else if (type === 'jvm-mode' || type === 'jvm-resource' || type === 'jvm-diagnostic' || type === 'jvm-monitoring') {
           setActiveContext({ connectionId: nodeConnectionId || dataRef.id, dbName: '' });
@@ -1910,18 +1974,8 @@ const Sidebar: React.FC<{
           return;
       }
 
-      const key = node.key;
-      const isExpanded = expandedKeys.includes(key);
-      const newExpandedKeys = isExpanded
-          ? expandedKeys.filter(k => k !== key)
-          : [...expandedKeys, key];
-
-      setExpandedKeys(newExpandedKeys);
-      if (!isExpanded) {
-          setAutoExpandParent(false);
-          if (shouldLoadSidebarNodeOnExpand(node)) {
-              void onLoadData(node);
-          }
+      if (shouldToggleSidebarTreeNodeOnDoubleClick(node)) {
+          toggleSidebarTreeNodeExpanded(node);
       }
   };
   
@@ -3528,7 +3582,8 @@ const Sidebar: React.FC<{
             tabIndex={-1}
             onMouseDown={(event) => {
                 if ((event.target as HTMLElement | null)?.closest('.ant-tree')) {
-                    markSidebarTreeInteraction();
+                    // 只武装快捷键，不在 mousedown 抢焦点；否则从编辑器切过来时容易打断双击
+                    markSidebarTreeInteraction({ focus: false });
                 }
             }}
             onKeyDown={handleSidebarTreeKeyboardShortcut}

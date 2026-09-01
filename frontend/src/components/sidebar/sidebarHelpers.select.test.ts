@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isSidebarTreeDoubleClickGesture,
   resolveSidebarTreeRangeKeys,
   resolveSidebarTreeSelectState,
+  shouldToggleSidebarTreeNodeOnDoubleClick,
 } from './sidebarHelpers';
 
 describe('sidebar tree select state', () => {
@@ -78,5 +80,34 @@ describe('sidebar tree select state', () => {
   it('resolves range keys inclusive of both ends', () => {
     expect(resolveSidebarTreeRangeKeys(['a', 'b', 'c', 'd'], 'd', 'b')).toEqual(['b', 'c', 'd']);
     expect(resolveSidebarTreeRangeKeys(['a', 'b', 'c'], 'x', 'c')).toEqual(['c']);
+  });
+
+  it('detects double-click by consecutive clicks on the same tree key', () => {
+    expect(isSidebarTreeDoubleClickGesture({
+      previousKey: 'conn-1',
+      previousAt: 1000,
+      currentKey: 'conn-1',
+      currentAt: 1250,
+    })).toBe(true);
+    expect(isSidebarTreeDoubleClickGesture({
+      previousKey: 'conn-1',
+      previousAt: 1000,
+      currentKey: 'conn-2',
+      currentAt: 1100,
+    })).toBe(false);
+    expect(isSidebarTreeDoubleClickGesture({
+      previousKey: 'conn-1',
+      previousAt: 1000,
+      currentKey: 'conn-1',
+      currentAt: 1600,
+    })).toBe(false);
+  });
+
+  it('only toggles expand on double-click for folder-like sidebar nodes', () => {
+    expect(shouldToggleSidebarTreeNodeOnDoubleClick({ type: 'connection', isLeaf: false })).toBe(true);
+    expect(shouldToggleSidebarTreeNodeOnDoubleClick({ type: 'database', isLeaf: false })).toBe(true);
+    expect(shouldToggleSidebarTreeNodeOnDoubleClick({ type: 'object-group', isLeaf: false })).toBe(true);
+    expect(shouldToggleSidebarTreeNodeOnDoubleClick({ type: 'table', isLeaf: false })).toBe(false);
+    expect(shouldToggleSidebarTreeNodeOnDoubleClick({ type: 'connection', isLeaf: true })).toBe(false);
   });
 });

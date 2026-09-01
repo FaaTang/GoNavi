@@ -273,6 +273,69 @@ export const shouldLoadSidebarNodeOnExpand = (
       || node.type === 'jvm-resource';
 };
 
+/** 侧栏树双击手势识别窗口（毫秒）。略宽于浏览器默认，兼容首击重渲染后的第二次单击。 */
+export const SIDEBAR_TREE_DOUBLE_CLICK_INTERVAL_MS = 400;
+
+/**
+ * isSidebarTreeDoubleClickGesture 根据连续两次点击的 key/时间判断是否为双击。
+ * 不依赖原生 dblclick：虚拟树重渲染、mousedown 抢焦点时 dblclick 常丢失，但两次 onSelect 仍会触发。
+ */
+export const isSidebarTreeDoubleClickGesture = (input: {
+  previousKey?: string | null;
+  previousAt?: number | null;
+  currentKey: unknown;
+  currentAt: number;
+  intervalMs?: number;
+}): boolean => {
+  const currentKey = String(input.currentKey ?? '').trim();
+  if (!currentKey) return false;
+  const previousKey = String(input.previousKey ?? '').trim();
+  if (!previousKey || previousKey !== currentKey) return false;
+  const previousAt = Number(input.previousAt);
+  if (!Number.isFinite(previousAt) || previousAt <= 0) return false;
+  const intervalMs = Number.isFinite(input.intervalMs)
+      ? Number(input.intervalMs)
+      : SIDEBAR_TREE_DOUBLE_CLICK_INTERVAL_MS;
+  const delta = input.currentAt - previousAt;
+  return delta >= 0 && delta <= intervalMs;
+};
+
+/**
+ * shouldToggleSidebarTreeNodeOnDoubleClick 判断双击应切换展开/折叠，而非打开对象页签。
+ * 与 Sidebar onDoubleClick 中「打开 tab 后 return」的节点类型保持互斥。
+ */
+export const shouldToggleSidebarTreeNodeOnDoubleClick = (
+  node: Pick<SidebarNodeLike, 'type' | 'isLeaf'> | null | undefined,
+): boolean => {
+  if (!node || node.isLeaf === true) return false;
+  const type = String(node.type || '');
+  if (
+    type === 'table'
+    || type === 'view'
+    || type === 'materialized-view'
+    || type === 'saved-query'
+    || type === 'external-sql-file'
+    || type === 'redis-db'
+    || type === 'db-trigger'
+    || type === 'db-event'
+    || type === 'routine'
+    || type === 'sequence'
+    || type === 'package'
+    || type === 'jvm-mode'
+    || type === 'jvm-resource'
+    || type === 'jvm-monitoring'
+    || type === 'jvm-diagnostic'
+    || type === 'v2-table-section'
+    || type === 'folder-columns'
+    || type === 'folder-indexes'
+    || type === 'folder-fks'
+    || type === 'folder-triggers'
+  ) {
+    return false;
+  }
+  return true;
+};
+
 /**
  * resolveSidebarNodeDisplayLabel 提取树节点当前显示文案（用于 Ctrl/Cmd+C 复制）。
  */
