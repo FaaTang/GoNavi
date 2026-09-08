@@ -9,7 +9,7 @@
 [![Downloads](https://img.shields.io/github/downloads/FaaTang/PinkHunkDB/total?color=blue&label=downloads)](https://github.com/FaaTang/PinkHunkDB/releases)
 
 **Language**: English | [简体中文](README.zh-CN.md)
-
+ 
 > **Fork Notice**
 >
 > This repository ([FaaTang/PinkHunkDB](https://github.com/FaaTang/PinkHunkDB)) is a **personal fork** of the upstream project [Syngnat/GoNavi](https://github.com/Syngnat/GoNavi), maintained for **customized development** and personal use.
